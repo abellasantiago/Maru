@@ -1,0 +1,630 @@
+/* ═══════════════════════════════════════════════════════════════
+   Santi & Maru — Hero inmersivo
+   Paleta, tipografía y toda la interfaz del recorrido.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Fuentes vendorizadas (offline para siempre) ─────────────── */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('../assets/fuentes/cormorant-garamond.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('../assets/fuentes/cormorant-garamond-italic.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montserrat';
+  src: url('../assets/fuentes/montserrat.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Variables: paleta única de todo el sitio ────────────────── */
+:root {
+  --color-crema: #f5efe6;        /* fondo base (reemplaza el negro del original) */
+  --color-bordo-oscuro: #5c1526;
+  --color-bordo: #77182f;
+  --color-rojo: #b21e35;
+  --color-rojo-vivo: #c8283f;
+  --color-rojo-claro: #e0596a;
+  --color-beige: #e8dcc8;        /* ajustar tono exacto durante implementación */
+
+  /* Derivados del hero (siguen la paleta, nada frío) */
+  --color-fondo-3d: #1a0508;     /* bordó casi negro: profundidad sin negro puro */
+  --color-dorado: #e6b87d;       /* acento cálido para partículas y glow */
+  --color-vidrio: rgba(245, 239, 230, 0.06);
+  --color-vidrio-borde: rgba(255, 255, 255, 0.10);
+
+  --fuente-display: 'Cormorant Garamond', Georgia, serif;
+  --fuente-ui: 'Montserrat', 'Segoe UI', sans-serif;
+
+  /* Duración del viaje: altura del espaciador de scroll del hero */
+  --alto-recorrido: 620vh;
+}
+
+/* ── Base ────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-bordo) var(--color-fondo-3d);
+}
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+
+body {
+  background: var(--color-fondo-3d);
+  color: var(--color-crema);
+  font-family: var(--fuente-ui);
+  overflow-x: hidden;
+}
+
+/* En desktop con puntero fino ocultamos el cursor nativo (usamos las cerezas) */
+@media (pointer: fine) {
+  body.cursor-cereza-activo, body.cursor-cereza-activo * { cursor: none !important; }
+}
+
+/* ═══════════════ CAPAS FIJAS DE LA ESCENA ═══════════════ */
+
+#lienzo-webgl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+#capa-css3d {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;          /* solo los paneles reciben eventos */
+}
+
+/* Grano de película global, muy sutil (unifica canvas + paneles DOM) */
+#grano-global {
+  position: fixed;
+  inset: -60px;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 0.95 0 0 0 0 0.9 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E");
+  animation: grano-baile 0.6s steps(3) infinite;
+}
+@keyframes grano-baile {
+  0%   { transform: translate(0, 0); }
+  33%  { transform: translate(-22px, 14px); }
+  66%  { transform: translate(16px, -20px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Velo de transición hero → timeline (lo controla GSAP con el scroll) */
+#velo-transicion {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: var(--color-crema);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ═══════════════ INTERFAZ ═══════════════ */
+
+.ui {
+  position: fixed;
+  z-index: 50;
+  font-family: var(--fuente-ui);
+  color: var(--color-crema);
+  user-select: none;
+  transition: opacity 0.6s ease, visibility 0.6s;
+}
+.ui.oculto { opacity: 0 !important; visibility: hidden; pointer-events: none !important; }
+
+/* Cápsula base (vidrio) reutilizada por nav, buscador e indicador */
+.nav-pill, .buscador, .indicador {
+  display: flex;
+  align-items: center;
+  background: rgba(26, 5, 8, 0.35);
+  border: 1px solid var(--color-vidrio-borde);
+  border-radius: 999px;
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: 0 0 24px rgba(200, 40, 63, 0.10), inset 0 0 18px rgba(245, 239, 230, 0.03);
+}
+
+/* ── Monograma ───────────────────────────────────────────────── */
+.monograma {
+  top: 28px;
+  left: 34px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.monograma-letras {
+  font-family: var(--fuente-display);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-shadow: 0 0 18px rgba(224, 89, 106, 0.45);
+}
+/* El "&" entre la S y la M: rojo, claro y legible (no la ligadura caligráfica) */
+.monograma-letras em {
+  font-family: var(--fuente-ui);
+  font-style: normal;
+  font-weight: 600;
+  color: var(--color-rojo-vivo);
+  font-size: 17px;
+  margin: 0 2px;
+  text-shadow: 0 0 12px rgba(200, 40, 63, 0.5);
+}
+.monograma-sub {
+  font-size: 9px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+/* ── Nav superior derecha con latido ─────────────────────────── */
+.nav-pill {
+  top: 28px;
+  right: 34px;
+  gap: 14px;
+  padding: 11px 22px;
+}
+.nav-nombre {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+.nav-latido {
+  width: 58px;
+  height: 22px;
+  overflow: visible;
+}
+.latido-base {
+  stroke: rgba(245, 239, 230, 0.18);
+  stroke-width: 1.2;
+}
+.latido-pulso {
+  stroke: var(--color-rojo-claro);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 26 96;
+  stroke-dashoffset: 122;
+  filter: drop-shadow(0 0 4px var(--color-rojo-vivo));
+  animation: latido-viaje 2.2s linear infinite;
+}
+/* El segmento iluminado recorre la línea como un pulso cardíaco */
+@keyframes latido-viaje {
+  from { stroke-dashoffset: 122; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* ── Sidebar de momentos (izquierda, centrada vertical) ──────── */
+.sidebar-momentos {
+  left: 34px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  padding: 8px 4px;
+  color: var(--color-crema);
+  font-family: var(--fuente-ui);
+}
+.sidebar-punto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid rgba(245, 239, 230, 0.5);
+  background: transparent;
+  transition: background 0.4s, box-shadow 0.4s, transform 0.4s, border-color 0.4s;
+  flex-shrink: 0;
+}
+.sidebar-etiqueta {
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.35s, transform 0.35s;
+  white-space: nowrap;
+}
+.sidebar-item:hover .sidebar-etiqueta { opacity: 0.75; transform: translateX(0); }
+.sidebar-item.activo .sidebar-punto {
+  background: var(--color-rojo-claro);
+  border-color: var(--color-rojo-claro);
+  box-shadow: 0 0 12px var(--color-rojo-vivo);
+  transform: scale(1.35);
+}
+.sidebar-item.activo .sidebar-etiqueta { opacity: 1; transform: translateX(0); }
+/* Línea fina que une los puntos */
+.sidebar-momentos::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 14px;
+  bottom: 14px;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(245, 239, 230, 0.18), transparent);
+}
+
+/* ── Buscador (inferior izquierda) ───────────────────────────── */
+.buscador {
+  left: 34px;
+  bottom: 30px;
+  gap: 10px;
+  padding: 12px 20px;
+  width: min(340px, calc(100vw - 68px));
+  transition: box-shadow 0.4s, border-color 0.4s, opacity 0.6s ease, visibility 0.6s;
+}
+.buscador:focus-within {
+  border-color: rgba(224, 89, 106, 0.45);
+  box-shadow: 0 0 30px rgba(200, 40, 63, 0.22), inset 0 0 18px rgba(245, 239, 230, 0.04);
+}
+.buscador-icono {
+  width: 16px;
+  height: 16px;
+  color: var(--color-rojo-claro);
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 5px rgba(224, 89, 106, 0.5));
+}
+#buscador-input {
+  background: none;
+  border: none;
+  outline: none;
+  width: 100%;
+  color: var(--color-crema);
+  font-family: var(--fuente-ui);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+#buscador-input::placeholder {
+  color: rgba(245, 239, 230, 0.4);
+  font-style: italic;
+}
+/* Sacudida sutil cuando no se encuentra el momento buscado */
+.buscador.sin-resultado { animation: buscador-no 0.45s ease; }
+@keyframes buscador-no {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-7px); }
+  55% { transform: translateX(6px); }
+  80% { transform: translateX(-3px); }
+}
+
+/* ── Indicador de panel activo + flechas (inferior derecha) ──── */
+.indicador {
+  right: 34px;
+  bottom: 30px;
+  gap: 16px;
+  padding: 10px 18px;
+}
+.indicador-flecha {
+  background: none;
+  border: none;
+  color: var(--color-crema);
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0.55;
+  padding: 4px 2px;
+  transition: opacity 0.3s, text-shadow 0.3s;
+}
+.indicador-flecha:hover {
+  opacity: 1;
+  text-shadow: 0 0 10px var(--color-rojo-claro);
+}
+.indicador-centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 104px;
+}
+.indicador-contador {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  opacity: 0.85;
+}
+.indicador-titulo {
+  font-family: var(--fuente-display);
+  font-style: italic;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--color-beige);
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+/* ── Pista de scroll (inferior centro) ───────────────────────── */
+.pista-scroll {
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.pista-scroll svg {
+  width: 14px;
+  height: 18px;
+  animation: pista-baja 2s ease-in-out infinite;
+}
+@keyframes pista-baja {
+  0%, 100% { transform: translateY(0); opacity: 0.9; }
+  50% { transform: translateY(6px); opacity: 0.35; }
+}
+
+/* ═══════════════ PANELES DE VIDRIO (CSS3D) ═══════════════ */
+
+/*
+  Cada panel vive dentro de la capa CSS3D y se posiciona en el espacio con
+  transformaciones 3D calculadas por Three.js. La variable --foco (0 → lejos,
+  1 → en el centro de la pantalla) la actualiza JS en cada frame y maneja el
+  "revelado" de la foto: borrosa/velada de lejos, nítida al llegar al centro.
+*/
+.panel-vidrio {
+  --foco: 0;
+  width: 440px;
+  height: 320px;
+  padding: 14px;
+  border-radius: 20px;
+  background: linear-gradient(
+    135deg,
+    rgba(245, 239, 230, 0.09),
+    rgba(245, 239, 230, 0.03) 45%,
+    rgba(224, 89, 106, 0.05)
+  );
+  border: 1px solid var(--color-vidrio-borde);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 0 calc(18px + var(--foco) * 26px) rgba(200, 40, 63, calc(0.10 + var(--foco) * 0.16)),
+    inset 0 0 22px rgba(245, 239, 230, 0.04);
+  pointer-events: auto;
+  overflow: hidden;
+}
+/* Brillo del borde superior, como luz rasante sobre el vidrio */
+.panel-vidrio::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, calc(0.22 + var(--foco) * 0.2)),
+    transparent 38%,
+    transparent 70%,
+    rgba(224, 89, 106, calc(0.12 + var(--foco) * 0.18))
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.panel-foto {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.panel-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* Revelado: de lejos la foto está desenfocada y apagada; en foco, nítida */
+  filter:
+    blur(calc((1 - var(--foco)) * 7px))
+    saturate(calc(0.65 + var(--foco) * 0.45))
+    brightness(calc(0.82 + var(--foco) * 0.22));
+  transform: scale(calc(1.09 - var(--foco) * 0.09));
+}
+/* Grano propio del panel: se disuelve cuando la foto entra en foco */
+.panel-grano {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: calc((1 - var(--foco)) * 0.5);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.95 0 0 0 0 0.9 0 0 0 0 0.85 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23p)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+/* Velo bordó que se levanta con el foco */
+.panel-foto::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(92, 21, 38, 0.15), rgba(26, 5, 8, 0.5));
+  opacity: calc(1 - var(--foco));
+  pointer-events: none;
+}
+
+.panel-info {
+  position: absolute;
+  left: 30px;
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: calc(0.25 + var(--foco) * 0.75);
+  transform: translateY(calc((1 - var(--foco)) * 8px));
+  pointer-events: none;
+}
+.panel-palabra {
+  font-family: var(--fuente-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 27px;
+  letter-spacing: 0.04em;
+  color: var(--color-crema);
+  text-shadow: 0 1px 14px rgba(26, 5, 8, 0.8);
+}
+.panel-fecha {
+  font-size: 9px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--color-beige);
+  opacity: 0.85;
+  text-shadow: 0 1px 8px rgba(26, 5, 8, 0.9);
+}
+
+/* ═══════════════ CURSOR CEREZAS ═══════════════ */
+
+#cursor-cereza, #cursor-halo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;                    /* aparece con el primer movimiento del mouse */
+}
+#cursor-cereza {
+  width: 26px;
+  height: 39px;                  /* mantiene el aspecto 32:48 del viewBox */
+  margin: -2px 0 0 -2px;         /* la punta del tallo (3,3) coincide con el mouse */
+  transition: opacity 0.3s;
+}
+#cursor-cereza svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: 9% 6%;       /* crece desde el punto del que cuelga */
+}
+#cursor-cereza.interactivo svg { transform: scale(1.28) rotate(-6deg); }
+/* La cerecita se mece despacio, como colgando de verdad */
+.cereza-colgante {
+  transform-box: view-box;
+  transform-origin: 3px 3px;     /* pivota en la punta del tallo */
+  animation: cereza-colgar 2.8s ease-in-out infinite;
+}
+@keyframes cereza-colgar {
+  0%, 100% { transform: rotate(-6deg); }
+  50%      { transform: rotate(6deg); }
+}
+.cereza-tallo {
+  stroke: var(--color-beige);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.cereza-hoja { fill: rgba(232, 220, 200, 0.75); }
+.cereza-fruta {
+  fill: var(--color-rojo-vivo);
+  filter: drop-shadow(0 0 3px rgba(200, 40, 63, 0.65));
+}
+#cursor-cereza.interactivo .cereza-fruta { fill: var(--color-rojo-claro); }
+.cereza-brillo { fill: rgba(245, 239, 230, 0.8); }
+
+#cursor-halo {
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;       /* centrado en la posición (con retardo/lerp) */
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(224, 89, 106, 0.22), transparent 65%);
+  transition: opacity 0.3s, transform 0.35s ease;
+}
+#cursor-halo.interactivo { transform: scale(1.9); }
+
+/* ═══════════════ RECORRIDO Y TIMELINE ═══════════════ */
+
+#recorrido {
+  height: var(--alto-recorrido);
+  pointer-events: none;
+}
+
+.seccion-timeline {
+  position: relative;
+  z-index: 35;                   /* cubre el velo y la escena fija al entrar */
+  min-height: 100vh;
+  background: var(--color-crema);
+  color: var(--color-bordo-oscuro);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.timeline-interior {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  padding: 80px 24px;
+}
+.timeline-fecha-inicio {
+  font-size: 10px;
+  letter-spacing: 0.45em;
+  text-transform: uppercase;
+  color: var(--color-rojo);
+}
+.timeline-titulo {
+  font-family: var(--fuente-display);
+  font-weight: 500;
+  font-size: clamp(44px, 7vw, 88px);
+  line-height: 1.05;
+  color: var(--color-bordo-oscuro);
+}
+.timeline-nota {
+  font-family: var(--fuente-display);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--color-bordo);
+  opacity: 0.6;
+}
+
+/* ═══════════════ ACCESIBILIDAD Y RESPONSIVE ═══════════════ */
+
+/* Versión reducida: menos movimiento decorativo (JS también baja partículas) */
+@media (prefers-reduced-motion: reduce) {
+  #grano-global { animation: none; }
+  .latido-pulso { animation-duration: 4.4s; }
+  .pista-scroll svg { animation: none; }
+  .cereza-colgante { animation: none; }
+}
+
+/* Mobile: el hero se simplifica, la UI se reacomoda */
+@media (max-width: 760px) {
+  .monograma { top: 20px; left: 20px; }
+  .nav-pill { top: 20px; right: 20px; padding: 9px 16px; gap: 10px; }
+  .nav-latido { width: 42px; }
+  .sidebar-momentos { left: 14px; }
+  .sidebar-etiqueta { display: none; }
+  .buscador {
+    left: 16px;
+    bottom: 84px;
+    width: calc(100vw - 32px);
+    padding: 11px 16px;
+  }
+  .indicador {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 22px;
+  }
+  .pista-scroll { display: none; }
+  .panel-vidrio { width: 330px; height: 250px; padding: 11px; }
+  .panel-palabra { font-size: 21px; }
+  .panel-info { left: 24px; bottom: 20px; }
+}
