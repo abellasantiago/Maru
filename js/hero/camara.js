@@ -96,10 +96,23 @@ export class RecorridoCamara {
     let atenParallax = 1;
 
     if (p <= FASES.landingFin) {
-      /* ── LANDING: dolly lento hacia el corazón ── */
+      /* ── LANDING en dos tiempos ──
+         Fase A (0..landingGiro): la cámara queda casi quieta frente al
+           corazón — sólo un leve descenso del fondo — mientras el corazón
+           gira sobre su eje (como en activetheory.net).
+         Fase B (landingGiro..1): descenso real que sube el corazón fuera del
+           cuadro y encuadra, de a poco, el arranque del timeline. */
       const t = FASES.landingFin > 0 ? p / FASES.landingFin : 1;
       this.progresoLanding = t;
-      const e = t * t * (3 - 2 * t);   // suavizado (smoothstep)
+      const g = FASES.landingGiro;
+      let e;
+      if (t <= g) {
+        const a = g > 0 ? t / g : 1;
+        e = 0.08 * (a * a * (3 - 2 * a));            // deriva mínima del fondo (~8%)
+      } else {
+        const b = (t - g) / (1 - g);
+        e = 0.08 + 0.92 * (b * b * (3 - 2 * b));     // descenso principal
+      }
       this._pos.lerpVectors(this.landingInicioPos, this.landingFinPos, e);
       this._look.lerpVectors(this.landingInicioLook, this.landingFinLook, e);
       atenParallax = 0.35 + 0.65 * t;

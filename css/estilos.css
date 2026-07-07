@@ -387,6 +387,10 @@ body {
 */
 .panel-vidrio {
   --foco: 0;
+  /* --entrada: fundido de aparición del timeline (lo controla paneles.js).
+     Evita el "exabrupto": la card entra de a poco al descender la cámara. */
+  --entrada: 1;
+  opacity: var(--entrada);
   width: 440px;
   height: 320px;
   padding: 14px;

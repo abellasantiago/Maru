@@ -43,9 +43,16 @@ export const PALETA = {
                                 el scroll y luego se esfuma.
   ▸ landingFin   → timelineFin: TIMELINE — vuelo de cámara por las 23 cards.
   ▸ timelineFin  → 1          : FINAL — velo crema y pantalla de cierre.
+
+  El LANDING transcurre en dos tiempos (ver camara.js):
+  ▸ 0..landingGiro (fracción DEL landing): el corazón gira sobre su eje casi
+    quieto, con un descenso mínimo del fondo (como en activetheory.net).
+  ▸ landingGiro..1: recién ahí se desplaza hacia arriba y se esfuma, dando
+    paso — de forma gradual — al timeline.
 */
 export const FASES = {
-  landingFin: 0.09,
+  landingGiro: 0.5,   // fracción del landing dedicada al giro antes de desplazarse
+  landingFin: 0.13,
   timelineFin: 0.92,
 };
 
@@ -66,7 +73,7 @@ export const CONFIG = {
   /* Corazón central */
   particulasCorazon: ES_MOBILE ? 700 : 1100,
   amplitudRespiracion: MOVIMIENTO_REDUCIDO ? 0.008 : 0.022,
-  vueltasCorazon: MOVIMIENTO_REDUCIDO ? 0.6 : 2,   // giros completos durante el landing
+  vueltasCorazon: MOVIMIENTO_REDUCIDO ? 0.6 : 1.25,   // giros completos durante el landing
 
   /* Post-procesamiento */
   bloom: { fuerza: 0.55, radio: 0.85, umbral: 0.55 },

@@ -118,16 +118,18 @@ class HeroInmersivo {
     });
   }
 
-  /* Corazón del landing: gira con el scroll y se esfuma al entrar al timeline */
+  /* Corazón del landing: primero gira sobre su eje (casi quieto), luego se
+     desplaza hacia arriba y se esfuma para darle paso al timeline. */
   _actualizarCorazon(progreso) {
-    /* Giro sobre su eje, proporcional al avance dentro del landing */
+    /* Sub-progreso 0..1 dentro del landing */
     const land = Math.min(progreso / FASES.landingFin, 1);
+
+    /* Giro sobre su eje, proporcional al avance dentro del landing */
     this.corazon.setGiro(land * CONFIG.vueltasCorazon * Math.PI * 2);
 
-    /* Se esfuma en el tramo final del landing (antes de que empiece el timeline) */
-    const opacidad = 1 - THREE.MathUtils.smoothstep(
-      progreso, FASES.landingFin * 0.7, FASES.landingFin * 1.05
-    );
+    /* Recién se esfuma en la fase B (cuando empieza a desplazarse), de forma
+       gradual hasta el arranque del timeline: nada de cortes bruscos. */
+    const opacidad = 1 - THREE.MathUtils.smoothstep(land, FASES.landingGiro, 1);
     this.corazon.setOpacidad(opacidad);
   }
 

@@ -14,7 +14,7 @@ import http from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 
-const PUERTO = 8123;
+const PUERTO = process.env.PORT || 8123;
 const RAIZ = process.cwd();
 const CARPETA_CAPTURAS = process.env.CAPTURAS || join(RAIZ, '.capturas');
 
