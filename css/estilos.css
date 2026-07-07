@@ -45,8 +45,10 @@
   --fuente-display: 'Cormorant Garamond', Georgia, serif;
   --fuente-ui: 'Montserrat', 'Segoe UI', sans-serif;
 
-  /* Duración del viaje: altura del espaciador de scroll (landing + 23 cards + final) */
-  --alto-recorrido: 1300vh;
+  /* Duración del viaje: altura del espaciador de scroll (landing + 23 cards + final).
+     Se subió de 1300vh a 1600vh para darle más scroll absoluto al landing (giro +
+     descenso lento) sin robarle ritmo al timeline (ver FASES en config.js). */
+  --alto-recorrido: 1600vh;
 }
 
 /* ── Base ────────────────────────────────────────────────────── */

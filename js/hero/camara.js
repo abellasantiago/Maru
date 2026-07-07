@@ -108,10 +108,23 @@ export class RecorridoCamara {
       let e;
       if (t <= g) {
         const a = g > 0 ? t / g : 1;
-        e = 0.08 * (a * a * (3 - 2 * a));            // deriva mínima del fondo (~8%)
+        e = 0.08 * (a * a * (3 - 2 * a));            // deriva mínima del fondo (~8%), ease-in-out
       } else {
+        /* Descenso principal: ease-IN cúbico (Hermite), sin frenar al final.
+           Antes usaba smoothstep completo, que frenaba a velocidad ~0 justo
+           en el límite con el timeline — y como la curva del timeline arranca
+           ya a velocidad de crucero, se sentía como un frenazo-y-arranque.
+           shape(b) = A·b³ + B·b² arranca en velocidad 0 (empalma con el final
+           de la fase A) y termina con pendiente `PEND_SALIDA`, calibrada para
+           que la velocidad de salida coincida con la velocidad de entrada al
+           timeline (sin usar una potencia fraccionaria: esas crecen casi en
+           vertical apenas b > 0 y igual generaban un salto). */
         const b = (t - g) / (1 - g);
-        e = 0.08 + 0.92 * (b * b * (3 - 2 * b));     // descenso principal
+        const PEND_SALIDA = 2.44;
+        const A = PEND_SALIDA - 2;
+        const B = 3 - PEND_SALIDA;
+        const shape = A * b * b * b + B * b * b;
+        e = 0.08 + 0.92 * shape;
       }
       this._pos.lerpVectors(this.landingInicioPos, this.landingFinPos, e);
       this._look.lerpVectors(this.landingInicioLook, this.landingFinLook, e);

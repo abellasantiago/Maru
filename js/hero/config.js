@@ -51,9 +51,9 @@ export const PALETA = {
     paso — de forma gradual — al timeline.
 */
 export const FASES = {
-  landingGiro: 0.5,   // fracción del landing dedicada al giro antes de desplazarse
-  landingFin: 0.13,
-  timelineFin: 0.92,
+  landingGiro: 0.73,   // fracción del landing dedicada al giro antes de desplazarse
+  landingFin: 0.30,    // duración total del landing (girar + descender): más scroll = más lento
+  timelineFin: 0.94,   // subido junto con --alto-recorrido para no acelerar el timeline
 };
 
 /* Posición del corazón en el mundo: arriba y al frente. La cámara arranca a su
