@@ -67,13 +67,34 @@ export class RecorridoCamara {
       return FASES.landingFin + u * (FASES.timelineFin - FASES.landingFin);
     });
 
-    /* ── Landing: el corazón SOLO, arriba; la cámara está a su altura y
-       DESCIENDE (eje Y) hasta el arranque del timeline. El corazón sube y
-       sale por arriba del cuadro mientras bajamos. ── */
+    /* ── Landing (efecto Active Theory): el corazón queda CLAVADO en el
+       centro de la pantalla girando sobre sí mismo, mientras la cámara
+       DESCIENDE por el mundo desde el primer scroll — partículas y
+       enredaderas pasan de largo, dando la sensación de recorrer el sitio
+       hacia abajo hasta llegar al timeline, que espera más al fondo.
+       El truco: el corazón se re-ancla cada frame al punto de MIRADA de la
+       cámara (corazonAncla), así nunca se desplaza en pantalla. ── */
     this.landingInicioPos = new THREE.Vector3(0, POS_CORAZON[1], 10);
     this.landingInicioLook = new THREE.Vector3(0, POS_CORAZON[1], 0);
     this.landingFinPos = this.curvaPos.getPoint(0);     // continuidad exacta
     this.landingFinLook = this.curvaLook.getPoint(0);
+
+    /* Punto donde debe estar el corazón este frame (main.js se lo copia) */
+    this.corazonAncla = new THREE.Vector3().fromArray(POS_CORAZON);
+
+    /* Pendiente de salida del landing calculada para que la velocidad de la
+       cámara empalme EXACTA con la velocidad de entrada al timeline (nada de
+       constantes mágicas: se deriva de las curvas reales, así sobrevive a
+       cualquier retoque de posiciones). */
+    this.distLanding = this.landingInicioPos.distanceTo(this.landingFinPos);
+    const du = 0.002;
+    const velEntradaTimeline =
+      this.curvaPos.getPoint(0).distanceTo(this.curvaPos.getPoint(du)) /
+      (du * (FASES.timelineFin - FASES.landingFin));
+    this.pendSalidaLanding = THREE.MathUtils.clamp(
+      (velEntradaTimeline * FASES.landingFin) / Math.max(this.distLanding, 0.001),
+      1, 6
+    );
 
     this._pos = new THREE.Vector3();
     this._look = new THREE.Vector3();
@@ -96,38 +117,35 @@ export class RecorridoCamara {
     let atenParallax = 1;
 
     if (p <= FASES.landingFin) {
-      /* ── LANDING en dos tiempos ──
-         Fase A (0..landingGiro): la cámara queda casi quieta frente al
-           corazón — sólo un leve descenso del fondo — mientras el corazón
-           gira sobre su eje (como en activetheory.net).
-         Fase B (landingGiro..1): descenso real que sube el corazón fuera del
-           cuadro y encuadra, de a poco, el arranque del timeline. */
+      /* ── LANDING (efecto Active Theory) ──
+         La cámara desciende DESDE EL PRIMER SCROLL (el mundo pasa de largo:
+         inmersión, "el timeline está más abajo y hay que viajar hasta él"),
+         mientras el corazón — re-anclado cada frame al punto de mirada —
+         queda clavado al centro de la pantalla girando sobre su eje.
+         ▸ Fase A (0..landingGiro): descenso LINEAL 1:1 con el scroll: los
+           primeros 3-4 golpes de rueda mueven el fondo de forma inmediata.
+         ▸ Fase B (landingGiro..1): Hermite cúbico que arranca con la MISMA
+           velocidad de la fase A y termina con la MISMA velocidad de entrada
+           al timeline (pendSalidaLanding) — sin frenazos ni saltos. */
       const t = FASES.landingFin > 0 ? p / FASES.landingFin : 1;
       this.progresoLanding = t;
       const g = FASES.landingGiro;
+      const eA = 0.38;   // fracción del camino recorrida durante la fase A
       let e;
       if (t <= g) {
-        const a = g > 0 ? t / g : 1;
-        e = 0.08 * (a * a * (3 - 2 * a));            // deriva mínima del fondo (~8%), ease-in-out
+        e = (t / g) * eA;
       } else {
-        /* Descenso principal: ease-IN cúbico (Hermite), sin frenar al final.
-           Antes usaba smoothstep completo, que frenaba a velocidad ~0 justo
-           en el límite con el timeline — y como la curva del timeline arranca
-           ya a velocidad de crucero, se sentía como un frenazo-y-arranque.
-           shape(b) = A·b³ + B·b² arranca en velocidad 0 (empalma con el final
-           de la fase A) y termina con pendiente `PEND_SALIDA`, calibrada para
-           que la velocidad de salida coincida con la velocidad de entrada al
-           timeline (sin usar una potencia fraccionaria: esas crecen casi en
-           vertical apenas b > 0 y igual generaban un salto). */
         const b = (t - g) / (1 - g);
-        const PEND_SALIDA = 2.44;
-        const A = PEND_SALIDA - 2;
-        const B = 3 - PEND_SALIDA;
-        const shape = A * b * b * b + B * b * b;
-        e = 0.08 + 0.92 * shape;
+        /* Pendientes en espacio local de la fase B (continuidad C¹ en ambos bordes) */
+        const s0 = ((eA / g) * (1 - g)) / (1 - eA);
+        const s1 = (this.pendSalidaLanding * (1 - g)) / (1 - eA);
+        const h = (s0 + s1 - 2) * b * b * b + (3 - 2 * s0 - s1) * b * b + s0 * b;
+        e = eA + (1 - eA) * h;
       }
       this._pos.lerpVectors(this.landingInicioPos, this.landingFinPos, e);
       this._look.lerpVectors(this.landingInicioLook, this.landingFinLook, e);
+      /* El corazón se clava al punto de mirada: siempre centrado en pantalla */
+      this.corazonAncla.copy(this._look);
       atenParallax = 0.35 + 0.65 * t;
 
     } else if (p <= FASES.timelineFin) {

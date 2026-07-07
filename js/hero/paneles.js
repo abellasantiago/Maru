@@ -72,12 +72,11 @@ export class PanelesVidrio {
 
   actualizar(dt, tiempo, camara) {
     const deriva = MOVIMIENTO_REDUCIDO ? 0 : 1;
-    /* Entrada GRADUAL del timeline: las cards se desvanecen desde 0 (landing,
-       cámara alta frente al corazón) hasta 1 al descender hacia el corredor.
-       Reemplaza el viejo corte duro display:none→block que hacía "aparecer"
-       el timeline de golpe. La ventana [6.2, 8.8] queda por encima del z máximo
-       de la cámara en el timeline (5.0), así dentro del corredor siempre es 1. */
-    const entrada = 1 - THREE.MathUtils.smoothstep(camara.position.z, 6.2, 8.8);
+    /* Sin fundido de entrada: las cards viven ABAJO en el mundo (y≈0) y la
+       cámara desciende desde arriba durante el landing, así que entran al
+       cuadro desde el borde inferior de la pantalla, físicamente, empujadas
+       por la navegación — como contenido que espera más abajo en el sitio.
+       (El corazón se esfuma al 80% del landing, justo antes de alcanzarlas.) */
 
     for (const item of this.items) {
       /* ── Deriva de ingravidez: flotación lenta en posición y giro ── */
@@ -108,15 +107,13 @@ export class PanelesVidrio {
       /* Suavizado temporal para que el revelado respire, sin saltos */
       item.foco += (foco - item.foco) * Math.min(1, dt * 6);
       item.el.style.setProperty('--foco', item.foco.toFixed(3));
-      /* Opacidad de entrada del timeline (fundido, no corte) */
-      item.el.style.setProperty('--entrada', entrada.toFixed(3));
 
       /* ── Optimización (clave con 23 paneles): sólo pintamos los cercanos ──
          Los que quedan detrás de la cámara o muy lejos se ocultan; los de
          media distancia pierden el backdrop-filter (el blur es lo más caro).
          Usamos objeto.visible: el CSS3DRenderer lo traduce a display y, además,
          se saltea el cálculo de transform de los ocultos. */
-      item.objeto.visible = entrada > 0.002 && delante && distCamara < 48;
+      item.objeto.visible = delante && distCamara < 48;
       item.el.classList.toggle('lejos', distCamara > 24);
     }
   }

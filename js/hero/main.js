@@ -127,9 +127,10 @@ class HeroInmersivo {
     /* Giro sobre su eje, proporcional al avance dentro del landing */
     this.corazon.setGiro(land * CONFIG.vueltasCorazon * Math.PI * 2);
 
-    /* Recién se esfuma en la fase B (cuando empieza a desplazarse), de forma
-       gradual hasta el arranque del timeline: nada de cortes bruscos. */
-    const opacidad = 1 - THREE.MathUtils.smoothstep(land, FASES.landingGiro, 1);
+    /* Se esfuma ANTES de que el landing termine (queda totalmente ido al 80%
+       del landing): así nunca se superpone con la aparición de las cards,
+       que recién se funden al final del descenso (ver paneles.js). */
+    const opacidad = 1 - THREE.MathUtils.smoothstep(land, 0.5, 0.8);
     this.corazon.setOpacidad(opacidad);
   }
 
@@ -218,9 +219,18 @@ class HeroInmersivo {
       this.recorrido.aplicarParallax(this.mouseNDC, dt);
       this.recorrido.actualizar();
 
-      /* Intensidad del fondo: tenue durante el landing (corazón solo, imagen
-         limpia) y sube al entrar al timeline. Se "van agregando" con el scroll. */
-      const intensidadFondo = 0.16 + 0.84 * THREE.MathUtils.smoothstep(
+      /* Durante el landing, el corazón se clava al punto de mirada de la
+         cámara: queda fijo en el centro girando mientras el mundo (partículas,
+         enredaderas) se desplaza con el scroll — efecto Active Theory. */
+      if (this.recorrido.progresoLanding < 1) {
+        this.corazon.setPosicion(this.recorrido.corazonAncla);
+      }
+
+      /* Intensidad del fondo: contenida durante el landing (el corredor
+         central ya está despejado, así el corazón se ve limpio) y sube al
+         entrar al timeline. Arranca en 0.35: suficiente presencia para que
+         el desplazamiento del mundo se PERCIBA desde el primer scroll. */
+      const intensidadFondo = 0.35 + 0.65 * THREE.MathUtils.smoothstep(
         this.recorrido.progreso, 0, FASES.landingFin * 0.85
       );
 

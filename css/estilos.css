@@ -46,9 +46,9 @@
   --fuente-ui: 'Montserrat', 'Segoe UI', sans-serif;
 
   /* Duración del viaje: altura del espaciador de scroll (landing + 23 cards + final).
-     Se subió de 1300vh a 1600vh para darle más scroll absoluto al landing (giro +
-     descenso lento) sin robarle ritmo al timeline (ver FASES en config.js). */
-  --alto-recorrido: 1600vh;
+     2150vh reparte ~450vh para el landing y ~1500vh para el timeline (~65vh de
+     scroll por card: navegación pausada). Va de la mano con FASES en config.js. */
+  --alto-recorrido: 2150vh;
 }
 
 /* ── Base ────────────────────────────────────────────────────── */
@@ -389,10 +389,6 @@ body {
 */
 .panel-vidrio {
   --foco: 0;
-  /* --entrada: fundido de aparición del timeline (lo controla paneles.js).
-     Evita el "exabrupto": la card entra de a poco al descender la cámara. */
-  --entrada: 1;
-  opacity: var(--entrada);
   width: 440px;
   height: 320px;
   padding: 14px;

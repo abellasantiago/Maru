@@ -44,22 +44,27 @@ export const PALETA = {
   ▸ landingFin   → timelineFin: TIMELINE — vuelo de cámara por las 23 cards.
   ▸ timelineFin  → 1          : FINAL — velo crema y pantalla de cierre.
 
-  El LANDING transcurre en dos tiempos (ver camara.js):
-  ▸ 0..landingGiro (fracción DEL landing): el corazón gira sobre su eje casi
-    quieto, con un descenso mínimo del fondo (como en activetheory.net).
-  ▸ landingGiro..1: recién ahí se desplaza hacia arriba y se esfuma, dando
-    paso — de forma gradual — al timeline.
+  El LANDING transcurre en dos tiempos (ver camara.js), SIEMPRE con la cámara
+  descendiendo (el mundo pasa de largo desde el primer scroll — inmersión) y
+  el corazón clavado al centro de la pantalla girando sobre su eje:
+  ▸ 0..landingGiro (fracción DEL landing): descenso lineal 1:1 con el scroll.
+  ▸ landingGiro..1: acelera con empalme suave hacia la velocidad del timeline,
+    y el corazón se esfuma para dar paso a las cards.
 */
+/* Con --alto-recorrido: 2150vh, estos valores dejan el landing en ~450vh
+   (igual que antes) y estiran el timeline a ~1500vh → ~65vh de scroll por
+   card: navegación más pausada entre momentos. */
 export const FASES = {
-  landingGiro: 0.73,   // fracción del landing dedicada al giro antes de desplazarse
-  landingFin: 0.30,    // duración total del landing (girar + descender): más scroll = más lento
-  timelineFin: 0.94,   // subido junto con --alto-recorrido para no acelerar el timeline
+  landingGiro: 0.73,   // fracción del landing de descenso lineal (los "3-4 scrolls")
+  landingFin: 0.22,    // duración total del landing: más scroll = más lento
+  timelineFin: 0.95,   // fin del vuelo por las cards (después: velo + cierre)
 };
 
-/* Posición del corazón en el mundo: arriba y al frente. La cámara arranca a su
-   altura (mirándolo solo) y DESCIENDE por el eje Y con el scroll hasta el
-   timeline. Compartida por corazon.js y camara.js para que coincidan siempre. */
-export const POS_CORAZON = [0, 8, 0];
+/* Posición INICIAL del corazón: bien arriba del mundo. La cámara arranca a su
+   altura y desciende ~16 unidades (≈ 2 pantallas de mundo) hasta el timeline;
+   durante el viaje el corazón se re-ancla al centro de la vista (camara.js),
+   así gira clavado en pantalla mientras todo lo demás pasa de largo. */
+export const POS_CORAZON = [0, 16, 0];
 
 export const CONFIG = {
   /* Cámara */

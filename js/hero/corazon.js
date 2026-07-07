@@ -293,6 +293,12 @@ export class Corazon {
 
   /* ── Control desde el scroll (main.js) ── */
   setGiro(radianes) { this.rotacionScroll = radianes; }
+
+  /* Re-anclaje por frame: durante el landing el corazón se posiciona en el
+     punto de mirada de la cámara → queda clavado al centro de la pantalla
+     mientras el mundo se desplaza detrás (efecto Active Theory). */
+  setPosicion(v) { this.grupo.position.copy(v); }
+
   setOpacidad(o) {
     this.opacidad = o;
     /* Cuando está totalmente esfumado, lo sacamos del render (ahorra draw calls) */

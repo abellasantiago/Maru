@@ -25,18 +25,22 @@ export class ParticulasAmbiente {
     const mezclas = new Float32Array(cantidad);       // 0..1 → color en la rampa
 
     const zFondo = PROFUNDIDAD - 12;   // un poco más allá de la última card
-    const corazon = new THREE.Vector3().fromArray(POS_CORAZON);
+    const yTecho = POS_CORAZON[1] + 6; // hasta arriba del corazón inicial
     const p = new THREE.Vector3();
     for (let i = 0; i < cantidad; i++) {
-      /* Volumen que envuelve TODO el recorrido de cámara (z +18 → fondo), con
-         un claro AMPLIO alrededor del corazón para que el landing quede limpio */
+      /* Volumen que envuelve TODO el recorrido de cámara (z +18 → fondo),
+         extendido en altura hasta el corazón inicial. Se despeja un CORREDOR
+         central a lo largo de todo el descenso del landing (el corazón viaja
+         re-anclado por ahí, y debe verse siempre limpio): las partículas
+         quedan a los costados y al fondo, que es donde dan sensación de
+         movimiento sin entorpecer la imagen. */
       do {
         p.set(
           THREE.MathUtils.randFloatSpread(34),
-          THREE.MathUtils.randFloatSpread(24) + POS_CORAZON[1] * 0.15,
+          THREE.MathUtils.randFloat(-13, yTecho),
           THREE.MathUtils.randFloat(zFondo, 18)
         );
-      } while (p.distanceTo(corazon) < 6.0);
+      } while (p.y > -3 && p.z > -8 && p.z < 12 && Math.abs(p.x) < 4.5);
       posiciones[i * 3 + 0] = p.x;
       posiciones[i * 3 + 1] = p.y;
       posiciones[i * 3 + 2] = p.z;
