@@ -8,6 +8,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import { MOMENTOS } from './momentos.js';
+import { FASES } from './config.js';
 
 /* Normaliza texto para buscar: minúsculas y sin tildes */
 function normalizar(texto) {
@@ -100,26 +101,27 @@ export class InterfazHero {
     this.elTitulo.textContent = MOMENTOS[indice].titulo;
   }
 
-  /** Progreso 0..1 del hero: maneja pista de scroll y fundido final de la UI */
+  /** Progreso 0..1 del hero: muestra/oculta la UI según la fase del recorrido */
   setProgreso(progreso) {
-    if (!this.pistaOculta && progreso > 0.01) {
-      this.pistaOculta = true;
-      this.pista.classList.add('oculto');
-    } else if (this.pistaOculta && progreso <= 0.005) {
-      this.pistaOculta = false;
-      this.pista.classList.remove('oculto');
-    }
+    /* Pista "deslizá" sólo al comienzo del landing */
+    this.pista.classList.toggle('oculto', progreso >= 0.03);
 
-    /* Cerca del portal, la UI del hero se retira (el nav se queda:
-       su cápsula de vidrio oscuro sigue legible sobre el timeline crema) */
-    const retirada = progreso > 0.965;
-    for (const id of ['sidebar-momentos', 'buscador', 'indicador', 'monograma']) {
-      document.getElementById(id).classList.toggle('oculto', retirada);
+    /* La UI de cards (sidebar, buscador, indicador) vive sólo en el timeline:
+       oculta durante el landing del corazón y cuando llega la pantalla final. */
+    const enLanding = progreso < FASES.landingFin * 0.9;
+    const enFinal = progreso > FASES.timelineFin + 0.005;
+    const uiCards = !enLanding && !enFinal;
+    for (const id of ['sidebar-momentos', 'buscador', 'indicador']) {
+      document.getElementById(id).classList.toggle('oculto', !uiCards);
     }
+    /* El monograma acompaña todo el recorrido y sólo se va en el cierre */
+    document.getElementById('monograma').classList.toggle('oculto', enFinal);
   }
 
-  /** Estado inicial (marca el primer momento) */
+  /** Estado inicial: marca el primer momento y deja la UI en modo landing
+     (sidebar/buscador/indicador ocultos, pista visible) desde el primer frame. */
   iniciar() {
     this.itemsSidebar[0].classList.add('activo');
+    this.setProgreso(0);
   }
 }

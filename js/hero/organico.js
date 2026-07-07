@@ -11,6 +11,7 @@
 
 import * as THREE from 'three';
 import { PALETA, ES_MOBILE } from './config.js';
+import { PROFUNDIDAD } from './momentos.js';
 import { RUIDO_SIMPLEX_GLSL } from './ruido.js';
 
 /* Genera una curva sinuosa vertical, como rama que sube */
@@ -46,6 +47,7 @@ export class EstructuraOrganica {
           uTiempo: { value: 0 },
           uColor: { value: PALETA.bordo },
           uColorBrillo: { value: PALETA.rojoClaro },
+          uIntensidad: { value: 1 },
         },
         vertexShader: /* glsl */ `
           ${RUIDO_SIMPLEX_GLSL}
@@ -68,6 +70,7 @@ export class EstructuraOrganica {
         fragmentShader: /* glsl */ `
           uniform vec3 uColor;
           uniform vec3 uColorBrillo;
+          uniform float uIntensidad;
           varying vec3 vNormalVista;
           varying vec3 vPosVista;
           void main() {
@@ -77,7 +80,7 @@ export class EstructuraOrganica {
             /* Se desvanece con la distancia para fundirse con el fondo */
             float porDistancia = 1.0 - smoothstep(18.0, 70.0, -vPosVista.z);
             vec3 color = mix(uColor, uColorBrillo, fresnel * 0.7);
-            float alfa = (0.04 + fresnel * 0.24) * porDistancia;
+            float alfa = (0.04 + fresnel * 0.24) * porDistancia * uIntensidad;
             gl_FragColor = vec4(color * 1.4, alfa);
           }
         `,
@@ -86,10 +89,19 @@ export class EstructuraOrganica {
       return m;
     };
 
-    /* Tres enredaderas: izquierda, derecha, y una lejana tras el portal */
-    const definiciones = ES_MOBILE
-      ? [ { x: -6.5, z: -30, s: 1.7 }, { x: 7, z: -46, s: 4.9 } ]
-      : [ { x: -7.5, z: -28, s: 1.7 }, { x: 8, z: -44, s: 4.9 }, { x: 5, z: -74, s: 8.3 } ];
+    /* Enredaderas repartidas a lo largo de TODO el corredor (z 0 → PROFUNDIDAD),
+       alternando lados, para que siempre haya profundidad de fondo al viajar. */
+    const cantidad = ES_MOBILE ? 5 : 9;
+    const largo = Math.abs(PROFUNDIDAD) + 14;
+    const definiciones = [];
+    for (let i = 0; i < cantidad; i++) {
+      const lado = i % 2 === 0 ? -1 : 1;
+      definiciones.push({
+        x: lado * (6.5 + (i % 3) * 1.2),
+        z: -12 - (i / Math.max(1, cantidad - 1)) * largo,
+        s: i * 2.3,
+      });
+    }
 
     const puntosBrotes = [];
     for (const def of definiciones) {
@@ -139,6 +151,7 @@ export class EstructuraOrganica {
         uTiempo: { value: 0 },
         uDPR: { value: 1 },
         uColor: { value: PALETA.dorado },
+        uIntensidad: { value: 1 },
       },
       vertexShader: /* glsl */ `
         attribute float semilla;
@@ -157,6 +170,7 @@ export class EstructuraOrganica {
       fragmentShader: /* glsl */ `
         uniform float uTiempo;
         uniform vec3 uColor;
+        uniform float uIntensidad;
         varying float vSemilla;
         varying float vDist;
         void main() {
@@ -164,8 +178,8 @@ export class EstructuraOrganica {
           float disco = smoothstep(0.5, 0.1, d);
           float titileo = 0.55 + 0.45 * sin(uTiempo * 0.9 + vSemilla * 4.0);
           float porDistancia = 1.0 - smoothstep(16.0, 70.0, vDist);
-          float alfa = disco * titileo * porDistancia * 0.7;
-          if (alfa < 0.004) discard;
+          float alfa = disco * titileo * porDistancia * 0.7 * uIntensidad;
+          if (alfa < 0.006) discard;
           gl_FragColor = vec4(uColor, alfa);
         }
       `,
@@ -177,10 +191,11 @@ export class EstructuraOrganica {
     this.grupo.add(this.brotes);
   }
 
-  actualizar(dt, tiempo, dpr) {
+  actualizar(dt, tiempo, dpr, intensidad = 1) {
     for (const m of this.materiales) {
       if (m.uniforms.uTiempo) m.uniforms.uTiempo.value = tiempo;
       if (m.uniforms.uDPR) m.uniforms.uDPR.value = dpr;
+      if (m.uniforms.uIntensidad) m.uniforms.uIntensidad.value = intensidad;
     }
   }
 

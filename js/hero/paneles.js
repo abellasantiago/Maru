@@ -35,7 +35,7 @@ export class PanelesVidrio {
 
     MOMENTOS.forEach((momento, indice) => {
       const el = document.createElement('div');
-      el.className = 'panel-vidrio';
+      el.className = 'panel-vidrio' + (momento.destacado ? ' destacado' : '');
       el.dataset.momento = momento.id;
       el.innerHTML = `
         <figure class="panel-foto">
@@ -43,8 +43,9 @@ export class PanelesVidrio {
           <div class="panel-grano"></div>
         </figure>
         <header class="panel-info">
-          <span class="panel-palabra">${momento.titulo}</span>
           <span class="panel-fecha">${momento.fecha}</span>
+          <span class="panel-palabra">${momento.titulo}</span>
+          ${momento.desc ? `<span class="panel-desc">${momento.desc}</span>` : ''}
         </header>
       `;
       el.addEventListener('click', () => alClickear(indice));
@@ -71,6 +72,9 @@ export class PanelesVidrio {
 
   actualizar(dt, tiempo, camara) {
     const deriva = MOVIMIENTO_REDUCIDO ? 0 : 1;
+    /* Durante el landing (cámara aún frente al corazón) las cards no se
+       muestran: el corazón queda solo, como en la referencia. */
+    const enLanding = camara.position.z > 7.5;
 
     for (const item of this.items) {
       /* ── Deriva de ingravidez: flotación lenta en posición y giro ── */
@@ -88,18 +92,27 @@ export class PanelesVidrio {
 
       /* ── Foco: cuánto "llegó" el panel al centro de la pantalla ── */
       this._v.copy(item.objeto.position).project(camara);
+      const delante = this._v.z < 1;
+      const distCamara = item.objeto.position.distanceTo(camara.position);
       let foco = 0;
-      if (this._v.z < 1) {
+      if (delante) {
         /* Cerca del centro en pantalla y a distancia de lectura → foco 1 */
         const distCentro = Math.hypot(this._v.x, this._v.y * 0.85);
         const enPantalla = 1 - THREE.MathUtils.smoothstep(distCentro, 0.18, 0.95);
-        const distCamara = item.objeto.position.distanceTo(camara.position);
         const porCercania = 1 - THREE.MathUtils.smoothstep(distCamara, 5.5, 17);
         foco = enPantalla * porCercania;
       }
       /* Suavizado temporal para que el revelado respire, sin saltos */
       item.foco += (foco - item.foco) * Math.min(1, dt * 6);
       item.el.style.setProperty('--foco', item.foco.toFixed(3));
+
+      /* ── Optimización (clave con 23 paneles): sólo pintamos los cercanos ──
+         Los que quedan detrás de la cámara o muy lejos se ocultan; los de
+         media distancia pierden el backdrop-filter (el blur es lo más caro).
+         Usamos objeto.visible: el CSS3DRenderer lo traduce a display y, además,
+         se saltea el cálculo de transform de los ocultos. */
+      item.objeto.visible = !enLanding && delante && distCamara < 48;
+      item.el.classList.toggle('lejos', distCamara > 24);
     }
   }
 

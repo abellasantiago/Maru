@@ -104,17 +104,19 @@
   <!-- No tiene contenido visible: su altura define la duración del viaje de cámara -->
   <div id="recorrido" aria-hidden="true"></div>
 
-  <!-- ═══════════════ TIMELINE (placeholder de integración) ═══════════════ -->
+  <!-- ═══════════════ PANTALLA FINAL (cierre) ═══════════════ -->
   <!--
-    Esta sección es la puerta de salida del hero. Acá se integra el timeline real
-    (que tiene su propia lógica de scroll y su propio WebGL). El hero pausa su
-    renderizado al entrar en esta sección para no exceder el límite de contextos.
+    Al terminar el timeline, el velo crema disuelve hacia esta pantalla.
+    El hero pausa su renderizado al entrar acá (pero el cursor sigue vivo).
   -->
-  <main class="seccion-timeline" id="timeline">
-    <div class="timeline-interior">
-      <p class="timeline-fecha-inicio">desde el primer día</p>
-      <h1 class="timeline-titulo">Nuestra historia</h1>
-      <p class="timeline-nota">— acá comienza el timeline —</p>
+  <main class="seccion-final" id="final">
+    <div class="final-interior">
+      <p class="final-cabecera">y esto recién empieza</p>
+      <h1 class="final-titulo">Te espero.</h1>
+      <p class="final-firma">— para vos, Maru —</p>
+      <span class="final-corazon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 21c-.6 0-6.8-4.6-9.2-8.4C.6 9 2 5 5.6 4.2 8 3.7 10.6 5 12 7c1.4-2 4-3.3 6.4-2.8C22 5 23.4 9 21.2 12.6 18.8 16.4 12.6 21 12 21z"/></svg>
+      </span>
     </div>
   </main>
 

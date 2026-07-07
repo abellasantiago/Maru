@@ -10,7 +10,8 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
-import { CONFIG, PALETA } from './config.js';
+import { CONFIG, PALETA, POS_CORAZON } from './config.js';
+import { PROFUNDIDAD } from './momentos.js';
 import { RUIDO_SIMPLEX_GLSL } from './ruido.js';
 
 export class ParticulasAmbiente {
@@ -23,17 +24,19 @@ export class ParticulasAmbiente {
     const tamanios = new Float32Array(cantidad);      // tamaño base en px
     const mezclas = new Float32Array(cantidad);       // 0..1 → color en la rampa
 
+    const zFondo = PROFUNDIDAD - 12;   // un poco más allá de la última card
+    const corazon = new THREE.Vector3().fromArray(POS_CORAZON);
     const p = new THREE.Vector3();
     for (let i = 0; i < cantidad; i++) {
-      /* Volumen que envuelve todo el recorrido de cámara (z +18 → −74),
-         con un claro alrededor del corazón (origen) para que respire */
+      /* Volumen que envuelve TODO el recorrido de cámara (z +18 → fondo), con
+         un claro AMPLIO alrededor del corazón para que el landing quede limpio */
       do {
         p.set(
           THREE.MathUtils.randFloatSpread(34),
-          THREE.MathUtils.randFloatSpread(20),
-          THREE.MathUtils.randFloat(-74, 18)
+          THREE.MathUtils.randFloatSpread(24) + POS_CORAZON[1] * 0.15,
+          THREE.MathUtils.randFloat(zFondo, 18)
         );
-      } while (p.length() < 3.4);
+      } while (p.distanceTo(corazon) < 6.0);
       posiciones[i * 3 + 0] = p.x;
       posiciones[i * 3 + 1] = p.y;
       posiciones[i * 3 + 2] = p.z;
@@ -60,6 +63,7 @@ export class ParticulasAmbiente {
         uColorDorado: { value: PALETA.dorado },
         uColorRojo: { value: PALETA.rojoVivo },
         uDPR: { value: 1 },
+        uIntensidad: { value: 1 },   // 0..1: tenue en el landing → pleno en el timeline
       },
       vertexShader: /* glsl */ `
         ${RUIDO_SIMPLEX_GLSL}
@@ -103,6 +107,7 @@ export class ParticulasAmbiente {
         uniform vec3 uColorRosa;
         uniform vec3 uColorDorado;
         uniform vec3 uColorRojo;
+        uniform float uIntensidad;
 
         varying float vMezcla;
         varying float vSemilla;
@@ -124,8 +129,10 @@ export class ParticulasAmbiente {
           /* Desvanecer lo muy lejano (profundidad) y lo muy cercano (evita manchas) */
           float porDistancia = (1.0 - smoothstep(26.0, 64.0, vDist)) * smoothstep(0.6, 3.2, vDist);
 
-          float alfa = disco * titileo * porDistancia * 0.85;
-          if (alfa < 0.003) discard;
+          /* uIntensidad baja el alfa en el landing: con el umbral de descarte,
+             muchas partículas desaparecen → literalmente se ven "menos". */
+          float alfa = disco * titileo * porDistancia * 0.85 * uIntensidad;
+          if (alfa < 0.01) discard;
 
           gl_FragColor = vec4(color, alfa);
         }
@@ -138,10 +145,12 @@ export class ParticulasAmbiente {
     escena.add(this.puntos);
   }
 
-  /* Llamado en cada frame desde el bucle principal */
-  actualizar(dt, tiempo, dpr) {
+  /* Llamado en cada frame desde el bucle principal.
+     intensidad (0..1): tenue en el landing, pleno en el timeline. */
+  actualizar(dt, tiempo, dpr, intensidad = 1) {
     this.material.uniforms.uTiempo.value = tiempo;
     this.material.uniforms.uDPR.value = dpr;
+    this.material.uniforms.uIntensidad.value = intensidad;
   }
 
   destruir() {

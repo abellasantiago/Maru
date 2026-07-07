@@ -37,18 +37,36 @@ export const PALETA = {
   dorado: colorDeCSS('--color-dorado'),
 };
 
+/*
+  Fases del recorrido (fracción del scroll total 0..1):
+  ▸ 0            → landingFin : LANDING — el corazón, centrado, gira con
+                                el scroll y luego se esfuma.
+  ▸ landingFin   → timelineFin: TIMELINE — vuelo de cámara por las 23 cards.
+  ▸ timelineFin  → 1          : FINAL — velo crema y pantalla de cierre.
+*/
+export const FASES = {
+  landingFin: 0.09,
+  timelineFin: 0.92,
+};
+
+/* Posición del corazón en el mundo: arriba y al frente. La cámara arranca a su
+   altura (mirándolo solo) y DESCIENDE por el eje Y con el scroll hasta el
+   timeline. Compartida por corazon.js y camara.js para que coincidan siempre. */
+export const POS_CORAZON = [0, 8, 0];
+
 export const CONFIG = {
   /* Cámara */
-  fov: ES_MOBILE ? 58 : 50,
+  fov: ES_MOBILE ? 60 : 52,
   parallaxMouse: MOVIMIENTO_REDUCIDO ? 0 : (ES_MOBILE ? 0 : 1),
 
-  /* Partículas ambientales ("polvo de luz") */
-  cantidadParticulas: MOVIMIENTO_REDUCIDO ? 900 : (ES_MOBILE ? 1400 : 3000),
+  /* Partículas ambientales ("polvo de luz") — cubren todo el corredor */
+  cantidadParticulas: MOVIMIENTO_REDUCIDO ? 1400 : (ES_MOBILE ? 2200 : 4600),
   amplitudDeriva: MOVIMIENTO_REDUCIDO ? 0.15 : 0.55,
 
   /* Corazón central */
   particulasCorazon: ES_MOBILE ? 700 : 1100,
   amplitudRespiracion: MOVIMIENTO_REDUCIDO ? 0.008 : 0.022,
+  vueltasCorazon: MOVIMIENTO_REDUCIDO ? 0.6 : 2,   // giros completos durante el landing
 
   /* Post-procesamiento */
   bloom: { fuerza: 0.55, radio: 0.85, umbral: 0.55 },

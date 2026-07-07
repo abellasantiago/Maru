@@ -45,8 +45,8 @@
   --fuente-display: 'Cormorant Garamond', Georgia, serif;
   --fuente-ui: 'Montserrat', 'Segoe UI', sans-serif;
 
-  /* Duración del viaje: altura del espaciador de scroll del hero */
-  --alto-recorrido: 620vh;
+  /* Duración del viaje: altura del espaciador de scroll (landing + 23 cards + final) */
+  --alto-recorrido: 1300vh;
 }
 
 /* ── Base ────────────────────────────────────────────────────── */
@@ -209,14 +209,16 @@ body {
   to   { stroke-dashoffset: 0; }
 }
 
-/* ── Sidebar de momentos (izquierda, centrada vertical) ──────── */
+/* ── Sidebar de momentos (izquierda, centrada vertical) ──────────
+   Compacta: con 23 cards, los puntos van muy juntos como un riel de progreso. */
 .sidebar-momentos {
-  left: 34px;
+  left: 30px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
+  max-height: 84vh;
 }
 .sidebar-item {
   display: flex;
@@ -224,15 +226,15 @@ body {
   gap: 12px;
   background: none;
   border: none;
-  padding: 8px 4px;
+  padding: 3px 4px;
   color: var(--color-crema);
   font-family: var(--fuente-ui);
 }
 .sidebar-punto {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  border: 1px solid rgba(245, 239, 230, 0.5);
+  border: 1px solid rgba(245, 239, 230, 0.45);
   background: transparent;
   transition: background 0.4s, box-shadow 0.4s, transform 0.4s, border-color 0.4s;
   flex-shrink: 0;
@@ -465,30 +467,56 @@ body {
 .panel-info {
   position: absolute;
   left: 30px;
+  right: 30px;
   bottom: 26px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  opacity: calc(0.25 + var(--foco) * 0.75);
+  gap: 5px;
+  opacity: calc(0.2 + var(--foco) * 0.8);
   transform: translateY(calc((1 - var(--foco)) * 8px));
   pointer-events: none;
+}
+.panel-fecha {
+  font-size: 9px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--color-rojo-claro);
+  text-shadow: 0 1px 8px rgba(26, 5, 8, 0.9);
 }
 .panel-palabra {
   font-family: var(--fuente-display);
   font-style: italic;
-  font-weight: 500;
-  font-size: 27px;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
   color: var(--color-crema);
-  text-shadow: 0 1px 14px rgba(26, 5, 8, 0.8);
+  text-shadow: 0 1px 14px rgba(26, 5, 8, 0.85);
 }
-.panel-fecha {
-  font-size: 9px;
-  letter-spacing: 0.34em;
-  text-transform: uppercase;
+.panel-desc {
+  font-family: var(--fuente-ui);
+  font-size: 11px;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
   color: var(--color-beige);
-  opacity: 0.85;
-  text-shadow: 0 1px 8px rgba(26, 5, 8, 0.9);
+  max-width: 30ch;
+  /* La descripción sólo se revela cuando la card está bien enfocada */
+  opacity: calc(var(--foco) * var(--foco));
+  text-shadow: 0 1px 10px rgba(26, 5, 8, 0.95);
+}
+
+/* Hito destacado (nos pusimos de novios): marco y glow dorados */
+.panel-vidrio.destacado {
+  border-color: rgba(230, 184, 125, 0.4);
+  box-shadow:
+    0 0 calc(24px + var(--foco) * 34px) rgba(230, 184, 125, calc(0.14 + var(--foco) * 0.22)),
+    inset 0 0 26px rgba(230, 184, 125, 0.06);
+}
+.panel-vidrio.destacado .panel-fecha { color: var(--color-dorado); }
+/* Los paneles lejanos sueltan el backdrop-filter (el blur es lo más caro) */
+.panel-vidrio.lejos {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* ═══════════════ CURSOR CEREZAS ═══════════════ */
@@ -555,7 +583,7 @@ body {
   pointer-events: none;
 }
 
-.seccion-timeline {
+.seccion-final {
   position: relative;
   z-index: 35;                   /* cubre el velo y la escena fija al entrar */
   min-height: 100vh;
@@ -566,32 +594,46 @@ body {
   justify-content: center;
   text-align: center;
 }
-.timeline-interior {
+.final-interior {
   display: flex;
   flex-direction: column;
   gap: 18px;
   align-items: center;
   padding: 80px 24px;
 }
-.timeline-fecha-inicio {
+.final-cabecera {
   font-size: 10px;
   letter-spacing: 0.45em;
   text-transform: uppercase;
   color: var(--color-rojo);
 }
-.timeline-titulo {
+.final-titulo {
   font-family: var(--fuente-display);
   font-weight: 500;
-  font-size: clamp(44px, 7vw, 88px);
+  font-size: clamp(48px, 8vw, 96px);
   line-height: 1.05;
   color: var(--color-bordo-oscuro);
 }
-.timeline-nota {
+.final-firma {
   font-family: var(--fuente-display);
   font-style: italic;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--color-bordo);
-  opacity: 0.6;
+  opacity: 0.7;
+}
+.final-corazon {
+  margin-top: 8px;
+  width: 34px;
+  height: 34px;
+  color: var(--color-rojo-vivo);
+  animation: final-latir 2.4s ease-in-out infinite;
+}
+.final-corazon svg { width: 100%; height: 100%; fill: currentColor; filter: drop-shadow(0 0 10px rgba(200, 40, 63, 0.4)); }
+@keyframes final-latir {
+  0%, 100% { transform: scale(1); }
+  15% { transform: scale(1.16); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.1); }
 }
 
 /* ═══════════════ ACCESIBILIDAD Y RESPONSIVE ═══════════════ */
@@ -602,6 +644,7 @@ body {
   .latido-pulso { animation-duration: 4.4s; }
   .pista-scroll svg { animation: none; }
   .cereza-colgante { animation: none; }
+  .final-corazon { animation: none; }
 }
 
 /* Mobile: el hero se simplifica, la UI se reacomoda */

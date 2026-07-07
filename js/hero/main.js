@@ -16,7 +16,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
-import { CONFIG, PALETA, MOVIMIENTO_REDUCIDO } from './config.js';
+import { CONFIG, PALETA, MOVIMIENTO_REDUCIDO, FASES, POS_CORAZON } from './config.js';
 import { MOMENTOS } from './momentos.js';
 import { ParticulasAmbiente } from './particulas.js';
 import { Corazon } from './corazon.js';
@@ -56,7 +56,8 @@ class HeroInmersivo {
       0.1,
       140
     );
-    this.camara.position.set(0, 0.2, 13);
+    /* Arranca a la altura del corazón (landing); el recorrido la baja al timeline */
+    this.camara.position.set(0, POS_CORAZON[1], 10);
 
     /* ── Piezas de la escena ── */
     this.particulas = new ParticulasAmbiente(this.escena);
@@ -104,9 +105,11 @@ class HeroInmersivo {
       end: 'bottom bottom',
       /* Mapeo 1:1 progreso → cámara; el único suavizado es el de Lenis */
       onUpdate: (st) => {
-        this.recorrido.aplicarProgreso(st.progress);
-        this._actualizarVelo(st.progress);
-        this.ui.setProgreso(st.progress);
+        const p = st.progress;
+        this.recorrido.aplicarProgreso(p);
+        this._actualizarCorazon(p);
+        this._actualizarVelo(p);
+        this.ui.setProgreso(p);
         this.ui.setActivo(this.recorrido.momentoActivo());
       },
       /* Al salir del hero (entra el timeline con su propio WebGL): pausa total */
@@ -115,9 +118,22 @@ class HeroInmersivo {
     });
   }
 
-  /* Velo crema del final: dissolve del portal hacia el timeline */
+  /* Corazón del landing: gira con el scroll y se esfuma al entrar al timeline */
+  _actualizarCorazon(progreso) {
+    /* Giro sobre su eje, proporcional al avance dentro del landing */
+    const land = Math.min(progreso / FASES.landingFin, 1);
+    this.corazon.setGiro(land * CONFIG.vueltasCorazon * Math.PI * 2);
+
+    /* Se esfuma en el tramo final del landing (antes de que empiece el timeline) */
+    const opacidad = 1 - THREE.MathUtils.smoothstep(
+      progreso, FASES.landingFin * 0.7, FASES.landingFin * 1.05
+    );
+    this.corazon.setOpacidad(opacidad);
+  }
+
+  /* Velo crema del final: dissolve de la última card hacia la pantalla de cierre */
   _actualizarVelo(progreso) {
-    const opacidad = THREE.MathUtils.smoothstep(progreso, 0.965, 1);
+    const opacidad = THREE.MathUtils.smoothstep(progreso, FASES.timelineFin + 0.015, 0.995);
     this.veloEl.style.opacity = opacidad.toFixed(3);
   }
 
@@ -184,29 +200,38 @@ class HeroInmersivo {
       /* Lenis SIEMPRE corre (el scroll debe seguir suave en el timeline) */
       this.lenis.raf(tiempoSeg * 1000);
 
-      if (!this.activo) return;
-
       /* Delta acotado: una pestaña dormida no dispara saltos gigantes */
       const dt = Math.min(deltaMs / 1000, 0.05);
+
+      /* El cursor personalizado se actualiza SIEMPRE, aún con el hero pausado.
+         (Si sólo corriera con el hero activo, en la pantalla final quedaría
+         congelado — y como el cursor nativo está oculto, parecería trabado.) */
+      this.cursor.actualizar(dt);
+
+      if (!this.activo) return;
+
       this.tiempo += dt;
 
       /* Cámara: progreso del scroll + parallax de mouse */
       this.recorrido.aplicarParallax(this.mouseNDC, dt);
       this.recorrido.actualizar();
 
+      /* Intensidad del fondo: tenue durante el landing (corazón solo, imagen
+         limpia) y sube al entrar al timeline. Se "van agregando" con el scroll. */
+      const intensidadFondo = 0.16 + 0.84 * THREE.MathUtils.smoothstep(
+        this.recorrido.progreso, 0, FASES.landingFin * 0.85
+      );
+
       /* Piezas animadas */
-      this.particulas.actualizar(dt, this.tiempo, this.dpr);
+      this.particulas.actualizar(dt, this.tiempo, this.dpr, intensidadFondo);
       this.corazon.actualizar(dt, this.tiempo, this.mouseNDC, this.camara, this.dpr);
-      this.organico.actualizar(dt, this.tiempo, this.dpr);
+      this.organico.actualizar(dt, this.tiempo, this.dpr, intensidadFondo);
       this.paneles.actualizar(dt, this.tiempo, this.camara);
       this.postproceso.actualizar(this.tiempo);
 
       /* Render: WebGL con post-proceso + capa CSS3D con la misma cámara */
       this.postproceso.render(dt);
       this.paneles.render(this.camara);
-
-      /* Cursor (fuera del canvas, pero comparte el bucle) */
-      this.cursor.actualizar(dt);
     });
   }
 }

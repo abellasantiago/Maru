@@ -16,7 +16,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
-import { CONFIG, PALETA } from './config.js';
+import { CONFIG, PALETA, POS_CORAZON } from './config.js';
 import { RUIDO_SIMPLEX_GLSL } from './ruido.js';
 
 /* Curva paramétrica clásica del corazón, normalizada a ~2.2 de alto */
@@ -42,12 +42,18 @@ function dentroDelCorazon(x, y, contorno) {
 export class Corazon {
   constructor(escena) {
     this.grupo = new THREE.Group();
-    this.grupo.position.set(0, 0, 0);
+    this.grupo.position.fromArray(POS_CORAZON);   // arriba en el mundo (ver config)
     escena.add(this.grupo);
 
     /* Fuerza de reacción al mouse (0..1), suavizada frame a frame */
     this.fuerzaMouse = 0;
     this.materiales = [];
+
+    /* Estado controlado por el scroll desde main.js:
+       ▸ rotacionScroll: giro sobre su eje mientras se scrollea el landing.
+       ▸ opacidad: 1 visible → 0 esfumado al entrar al timeline. */
+    this.rotacionScroll = 0;
+    this.opacidad = 1;
 
     this._construirCristal();
     this._construirLuz();
@@ -285,13 +291,23 @@ export class Corazon {
     );
   }
 
+  /* ── Control desde el scroll (main.js) ── */
+  setGiro(radianes) { this.rotacionScroll = radianes; }
+  setOpacidad(o) {
+    this.opacidad = o;
+    /* Cuando está totalmente esfumado, lo sacamos del render (ahorra draw calls) */
+    this.grupo.visible = o > 0.004;
+  }
+
   actualizar(dt, tiempo, mouseNDC, camara, dpr) {
+    if (!this.grupo.visible) return;   // esfumado: nada que animar
+
     /* Respiración: escala oscilante muy leve, loop infinito (~4 s) */
     const pulso = 1 + Math.sin(tiempo * 1.55) * CONFIG.amplitudRespiracion;
     this.grupo.scale.setScalar(pulso);
 
-    /* Rotación mínima, como suspendido en el espacio */
-    this.grupo.rotation.y = Math.sin(tiempo * 0.18) * 0.09;
+    /* Giro: leve vaivén de flotación + giro sobre su eje ligado al scroll */
+    this.grupo.rotation.y = Math.sin(tiempo * 0.18) * 0.09 + this.rotacionScroll;
 
     /* Cercanía del mouse en pantalla → reacción (brillo/vibración) */
     let objetivo = 0;
@@ -308,6 +324,8 @@ export class Corazon {
       if (m.uniforms.uTiempo) m.uniforms.uTiempo.value = tiempo;
       if (m.uniforms.uMouse) m.uniforms.uMouse.value = this.fuerzaMouse;
       if (m.uniforms.uDPR) m.uniforms.uDPR.value = dpr;
+      /* La opacidad maestra maneja el esfumado del corazón hacia el timeline */
+      if (m.uniforms.uOpacidad) m.uniforms.uOpacidad.value = this.opacidad;
     }
   }
 
