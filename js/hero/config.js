@@ -51,13 +51,14 @@ export const PALETA = {
   ▸ landingGiro..1: acelera con empalme suave hacia la velocidad del timeline,
     y el corazón se esfuma para dar paso a las cards.
 */
-/* Con --alto-recorrido: 2150vh, estos valores dejan el landing en ~450vh
-   (igual que antes) y estiran el timeline a ~1500vh → ~65vh de scroll por
-   card: navegación más pausada entre momentos. */
+/* Con --alto-recorrido: 3000vh y 31 cards, estos valores dejan el landing en
+   ~390vh (mismo que antes) y el timeline en ~2520vh → ~76vh de scroll por card
+   (se preserva el ritmo aunque haya más momentos que antes). Si cambia la
+   CANTIDAD de cards, reajustar --alto-recorrido para mantener el vh por card. */
 export const FASES = {
   landingGiro: 0.73,   // fracción del landing de descenso lineal (los "3-4 scrolls")
-  landingFin: 0.22,    // duración total del landing: más scroll = más lento
-  timelineFin: 0.95,   // fin del vuelo por las cards (después: velo + cierre)
+  landingFin: 0.13,    // duración total del landing: más scroll = más lento
+  timelineFin: 0.97,   // fin del vuelo por las cards (después: velo + cierre)
 };
 
 /* Posición INICIAL del corazón: bien arriba del mundo. La cámara arranca a su

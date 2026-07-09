@@ -21,7 +21,8 @@ import * as THREE from 'three';
 import { CONFIG, FASES, POS_CORAZON } from './config.js';
 import { MOMENTOS } from './momentos.js';
 
-const LEAD_POS = 5.5;   // cuánto por delante de la card se ubica la cámara al encuadrarla
+const LEAD_POS = 5.3;   // cuánto por delante de la card se ubica la cámara al encuadrarla
+                        // (calibrado para las cards 5:4: prominentes pero con aire alrededor)
 
 export class RecorridoCamara {
   constructor(camara) {

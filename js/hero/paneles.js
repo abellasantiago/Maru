@@ -37,16 +37,22 @@ export class PanelesVidrio {
       const el = document.createElement('div');
       el.className = 'panel-vidrio' + (momento.destacado ? ' destacado' : '');
       el.dataset.momento = momento.id;
+      /* .panel-interior es un div propio para la animación de entrada
+         (translateY/scale): el.style.transform ya lo usa CSS3DRenderer
+         para posicionar el panel en el espacio 3D, así que el "asentarse"
+         al aparecer necesita su propio elemento, sin pisarse. */
       el.innerHTML = `
-        <figure class="panel-foto">
-          <img src="${momento.foto}" alt="${momento.titulo}" draggable="false">
-          <div class="panel-grano"></div>
-        </figure>
-        <header class="panel-info">
-          <span class="panel-fecha">${momento.fecha}</span>
-          <span class="panel-palabra">${momento.titulo}</span>
-          ${momento.desc ? `<span class="panel-desc">${momento.desc}</span>` : ''}
-        </header>
+        <div class="panel-interior">
+          <figure class="panel-foto">
+            <img src="${momento.foto}" alt="${momento.titulo}" draggable="false">
+            <div class="panel-grano"></div>
+          </figure>
+          <header class="panel-info">
+            <span class="panel-fecha">${momento.fecha}</span>
+            <span class="panel-palabra">${momento.titulo}</span>
+            ${momento.desc ? `<span class="panel-desc">${momento.desc}</span>` : ''}
+          </header>
+        </div>
       `;
       el.addEventListener('click', () => alClickear(indice));
 
@@ -72,11 +78,29 @@ export class PanelesVidrio {
 
   actualizar(dt, tiempo, camara) {
     const deriva = MOVIMIENTO_REDUCIDO ? 0 : 1;
-    /* Sin fundido de entrada: las cards viven ABAJO en el mundo (y≈0) y la
-       cámara desciende desde arriba durante el landing, así que entran al
-       cuadro desde el borde inferior de la pantalla, físicamente, empujadas
-       por la navegación — como contenido que espera más abajo en el sitio.
-       (El corazón se esfuma al 80% del landing, justo antes de alcanzarlas.) */
+    /* Entrada suave, pero atada a la POSICIÓN de la cámara (no un timer
+       independiente): las cards viven abajo en el mundo y la cámara
+       desciende durante el landing, así que ya suben solas hacia el centro
+       por física de la escena. Acá sólo agregamos un fundido de opacidad
+       CORTO (0.4 unidades de cámara, ~60vh de scroll) para que ese ingreso
+       se sienta suave en vez de un corte duro — nunca un fade largo y
+       desconectado del scroll como el de antes.
+
+       El rango [Z_FIN_FADE, Z_INICIO_FADE] está calibrado (por medición
+       directa del borde superior en pantalla) para que el fundido TERMINE
+       justo cuando la card más próxima toca el borde inferior del viewport:
+       se materializa mientras asoma, nunca aparece ya armada a mitad de
+       pantalla.
+
+       Esto también resuelve el mismo problema de antes: con la cámara tan
+       alta (y=16) mirando en línea recta, las cards muy profundas del
+       corredor convergen matemáticamente cerca del centro de la pantalla
+       por pura distancia (el "horizonte") — asomarían prematuras si sólo
+       mirásemos NDC/distancia. Como el fundido es GLOBAL (mismo para todas,
+       según la cámara), ninguna se adelanta a su turno. */
+    const Z_INICIO_FADE = 9.41;
+    const Z_FIN_FADE = 8.96;
+    const revelado = 1 - THREE.MathUtils.smoothstep(camara.position.z, Z_FIN_FADE, Z_INICIO_FADE);
 
     for (const item of this.items) {
       /* ── Deriva de ingravidez: flotación lenta en posición y giro ── */
@@ -107,13 +131,14 @@ export class PanelesVidrio {
       /* Suavizado temporal para que el revelado respire, sin saltos */
       item.foco += (foco - item.foco) * Math.min(1, dt * 6);
       item.el.style.setProperty('--foco', item.foco.toFixed(3));
+      item.el.style.setProperty('--revelado', revelado.toFixed(3));
 
       /* ── Optimización (clave con 23 paneles): sólo pintamos los cercanos ──
          Los que quedan detrás de la cámara o muy lejos se ocultan; los de
          media distancia pierden el backdrop-filter (el blur es lo más caro).
          Usamos objeto.visible: el CSS3DRenderer lo traduce a display y, además,
          se saltea el cálculo de transform de los ocultos. */
-      item.objeto.visible = delante && distCamara < 48;
+      item.objeto.visible = revelado > 0.004 && delante && distCamara < 48;
       item.el.classList.toggle('lejos', distCamara > 24);
     }
   }

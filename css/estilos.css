@@ -45,10 +45,11 @@
   --fuente-display: 'Cormorant Garamond', Georgia, serif;
   --fuente-ui: 'Montserrat', 'Segoe UI', sans-serif;
 
-  /* Duración del viaje: altura del espaciador de scroll (landing + 23 cards + final).
-     2150vh reparte ~450vh para el landing y ~1500vh para el timeline (~65vh de
-     scroll por card: navegación pausada). Va de la mano con FASES en config.js. */
-  --alto-recorrido: 2150vh;
+  /* Duración del viaje: altura del espaciador de scroll (landing + 31 cards + final).
+     3000vh reparte ~390vh para el landing y ~2520vh para el timeline
+     (~76vh por card). Va de la mano con FASES en config.js: si cambia la
+     cantidad de cards, escalar este valor para mantener el vh por card. */
+  --alto-recorrido: 3000vh;
 }
 
 /* ── Base ────────────────────────────────────────────────────── */
@@ -389,8 +390,17 @@ body {
 */
 .panel-vidrio {
   --foco: 0;
-  width: 440px;
-  height: 320px;
+  /* --revelado: fundido corto de aparición (lo controla paneles.js según la
+     posición de cámara, no un timer). El transform de este elemento ya lo
+     pisa CSS3DRenderer (posición 3D) — por eso la opacidad va acá, pero el
+     translateY/scale de "asentarse" vive en .panel-interior (ver abajo). */
+  --revelado: 1;
+  opacity: var(--revelado);
+  /* Formato 5:4 (apenas horizontal, casi cuadrada). La foto llena la card
+     con object-fit:cover, así cualquier proporción entra recortando lo que
+     sobra (las verticales pierden un poco de arriba/abajo). */
+  width: 470px;
+  height: 376px;
   padding: 14px;
   border-radius: 20px;
   background: linear-gradient(
@@ -407,6 +417,20 @@ body {
     inset 0 0 22px rgba(245, 239, 230, 0.04);
   pointer-events: auto;
   overflow: hidden;
+}
+/* Contenedor interno: acá vive el translateY/scale de "asentarse" al
+   terminar de entrar (mismo tamaño que el área con padding de .panel-vidrio,
+   así los left/right/bottom de .panel-info calzan igual que antes). Un
+   elemento con transform es automáticamente containing block para sus
+   descendientes position:absolute, así que .panel-info sigue funcionando
+   igual que cuando colgaba directo de .panel-vidrio. */
+.panel-interior {
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 100%;
+  transform:
+    translateY(calc((1 - var(--revelado)) * 22px))
+    scale(calc(0.94 + var(--revelado) * 0.06));
 }
 /* Brillo del borde superior, como luz rasante sobre el vidrio */
 .panel-vidrio::before {
@@ -468,9 +492,9 @@ body {
 
 .panel-info {
   position: absolute;
-  left: 30px;
-  right: 30px;
-  bottom: 26px;
+  left: 28px;
+  right: 28px;
+  bottom: 24px;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -480,7 +504,7 @@ body {
 }
 .panel-fecha {
   font-size: 9px;
-  letter-spacing: 0.32em;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--color-rojo-claro);
   text-shadow: 0 1px 8px rgba(26, 5, 8, 0.9);
@@ -669,7 +693,7 @@ body {
     bottom: 22px;
   }
   .pista-scroll { display: none; }
-  .panel-vidrio { width: 330px; height: 250px; padding: 11px; }
-  .panel-palabra { font-size: 21px; }
+  .panel-vidrio { width: 320px; height: 256px; padding: 11px; }
+  .panel-palabra { font-size: 22px; }
   .panel-info { left: 24px; bottom: 20px; }
 }
