@@ -1,32 +1,46 @@
 /* ═══════════════════════════════════════════════════════════════
-   Corazón central del hero — pieza MODULAR y reemplazable.
+   Corazón central del hero — point cloud rojo en 3D.
 
-   Dos variantes conviven para poder compararlas en vivo (toggle en
-   la UI, arriba a la derecha):
+   Miles de partículas rojas llenan un corazón 3D con la SILUETA de
+   la curva ♥ clásica (surco profundo, punta elegante) inflada en
+   profundidad como un almohadón: de frente es un corazón perfecto,
+   girado tiene panza y cuerpo. La nube:
 
-   ▸ "cristal": trazo de vidrio — tubo fino siguiendo la curva
-     paramétrica del corazón + relleno traslúcido con fresnel.
-   ▸ "luz": nube de partículas que dibujan el corazón (contorno +
-     interior), antesala de la futura dirección "Corazón de luz"
-     (ensamblado desde puntos dispersos — ya aprobada aparte).
+   ▸ respira y vibra con vida propia (ruido orgánico en GPU)
+   ▸ REPELE al cursor: las partículas se apartan en 3D alrededor
+     del punto donde el mouse toca el plano del corazón, y vuelven
+     solas a su lugar
+   ▸ gira sobre su eje con el scroll (setGiro, lo maneja main.js)
+   ▸ al avanzar el landing SE DESARMA: cada partícula vuela hacia
+     su propio punto de dispersión (setDesarme 0..1). El destino
+     final de esas partículas queda abierto — hoy se disuelven en
+     el mundo; mañana pueden re-armarse en otra forma.
 
-   Contrato público (NO cambiar al reemplazar la pieza):
-     new Corazon(escena) · setVariante(nombre) · actualizar(dt, tiempo, mouseNDC, camara) · destruir()
-   Todo lo interno puede reescribirse sin tocar el resto del hero.
+   Contrato público (main.js):
+     new Corazon(escena) · setGiro(rad) · setPosicion(v)
+     · setDesarme(0..1) · actualizar(dt, tiempo, mouseNDC, camara, dpr)
+     · destruir()
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
 import { CONFIG, PALETA, POS_CORAZON } from './config.js';
 import { RUIDO_SIMPLEX_GLSL } from './ruido.js';
 
-/* Curva paramétrica clásica del corazón, normalizada a ~2.2 de alto */
-function puntoCorazon(t, escala = 0.07) {
+/* ── La forma: curva paramétrica CLÁSICA del corazón (surco profundo,
+   lóbulos llenos, punta elegante) inflada en profundidad como un
+   almohadón. La silueta frontal es un ♥ de verdad — no la versión
+   implícita regordeta que probamos antes. ── */
+
+const ESCALA = 0.11;         // 16·2·escala ≈ 3.5 de ancho, ~3.1 de alto
+const CENTRADO_Y = 2.75;     // centra el rango vertical de la curva
+
+function puntoCorazon2D(t) {
   const x = 16 * Math.pow(Math.sin(t), 3);
   const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-  return new THREE.Vector3(x * escala, (y + 2.5) * escala, 0);
+  return { x: x * ESCALA, y: (y + CENTRADO_Y) * ESCALA };
 }
 
-/* Test punto-dentro-de-polígono (2D) para rellenar el interior */
+/* Test punto-dentro-de-polígono (2D) contra el contorno del corazón */
 function dentroDelCorazon(x, y, contorno) {
   let dentro = false;
   for (let i = 0, j = contorno.length - 1; i < contorno.length; j = i++) {
@@ -39,256 +53,231 @@ function dentroDelCorazon(x, y, contorno) {
   return dentro;
 }
 
+/* Distancia mínima de un punto al contorno (para inflar el almohadón) */
+function distanciaAlContorno(x, y, contorno) {
+  let min = Infinity;
+  for (const c of contorno) {
+    const dx = x - c.x, dy = y - c.y;
+    const d = dx * dx + dy * dy;
+    if (d < min) min = d;
+  }
+  return Math.sqrt(min);
+}
+
+/* Semiespesor del almohadón según qué tan adentro está el punto:
+   panza llena al centro, afinándose hacia el borde (silueta nítida) */
+const PROFUNDIDAD_MAX = 0.7;
+function semiEspesor(dBorde) {
+  return PROFUNDIDAD_MAX * Math.sqrt(Math.min(dBorde / 0.48, 1));
+}
+
 export class Corazon {
   constructor(escena) {
     this.grupo = new THREE.Group();
     this.grupo.position.fromArray(POS_CORAZON);   // arriba en el mundo (ver config)
     escena.add(this.grupo);
 
-    /* Fuerza de reacción al mouse (0..1), suavizada frame a frame */
-    this.fuerzaMouse = 0;
-    this.materiales = [];
-
-    /* Estado controlado por el scroll desde main.js:
-       ▸ rotacionScroll: giro sobre su eje mientras se scrollea el landing.
-       ▸ opacidad: 1 visible → 0 esfumado al entrar al timeline. */
+    /* Estado controlado por el scroll desde main.js */
     this.rotacionScroll = 0;
-    this.opacidad = 1;
+    this.desarme = 0;        // 0 = corazón armado · 1 = totalmente disperso
+    this.opacidad = 1;       // derivada del desarme (fade del final)
+    this.fuerzaMouse = 0;    // presencia del cursor, suavizada
 
-    this._construirCristal();
-    this._construirLuz();
+    this._construirNube();
 
-    this.variante = 'cristal';
-    this.varianteCristal.visible = true;
-    this.varianteLuz.visible = false;
+    /* Temporales para proyectar el mouse al plano del corazón */
+    this._rayo = new THREE.Ray();
+    this._plano = new THREE.Plane();
+    this._normal = new THREE.Vector3();
+    this._v = new THREE.Vector3();
+    this._punto = new THREE.Vector3();
   }
 
-  /* ── Variante A: corazón de cristal (trazo de vidrio + fresnel) ── */
-  _construirCristal() {
-    this.varianteCristal = new THREE.Group();
+  _construirNube() {
+    const cantidad = CONFIG.particulasCorazon;
+    const posiciones = new Float32Array(cantidad * 3);
+    const dispersas = new Float32Array(cantidad * 3);
+    const semillas = new Float32Array(cantidad);
+    const tamanios = new Float32Array(cantidad);
+    const brillos = new Float32Array(cantidad);
+    const superficies = new Float32Array(cantidad);
 
-    const puntos = [];
+    const chispas = new Float32Array(cantidad);
+
+    /* Contorno fino de la curva (test de interior + distancias + banda) */
+    const contorno = [];
     for (let i = 0; i < 140; i++) {
-      puntos.push(puntoCorazon((i / 140) * Math.PI * 2));
+      contorno.push(puntoCorazon2D((i / 140) * Math.PI * 2));
     }
-    const curva = new THREE.CatmullRomCurve3(puntos, true);
+    /* Rango vertical real de la curva (para el gradiente de luz) */
+    const yMin = -14.25 * ESCALA, yMax = 14.25 * ESCALA;
 
-    /* Trazo: tubo fino que el bloom convierte en filamento brillante */
-    const geoTubo = new THREE.TubeGeometry(curva, 260, 0.028, 10, true);
-    const matTubo = new THREE.ShaderMaterial({
+    const dir = new THREE.Vector3();
+    for (let i = 0; i < cantidad; i++) {
+      /* 22%: banda del CONTORNO (la silueta ♥ se dibuja nítida y encendida).
+         78%: relleno del almohadón por muestreo de rechazo. */
+      const enContorno = i < cantidad * 0.22;
+      let x, y, z, dBorde;
+
+      if (enContorno) {
+        const p = puntoCorazon2D(Math.random() * Math.PI * 2);
+        /* Apenas hacia adentro y con espesor propio: un trazo con cuerpo */
+        x = p.x * THREE.MathUtils.randFloat(0.94, 1.0);
+        y = p.y * THREE.MathUtils.randFloat(0.94, 1.0);
+        dBorde = 0.03;
+        z = THREE.MathUtils.randFloatSpread(2 * semiEspesor(0.08));
+      } else {
+        /* Caja de muestreo = bounding box de la curva a ESCALA actual */
+        let intentos = 0;
+        do {
+          x = THREE.MathUtils.randFloat(-16.1 * ESCALA, 16.1 * ESCALA);
+          y = THREE.MathUtils.randFloat(-14.4 * ESCALA, 14.4 * ESCALA);
+          intentos++;
+        } while (!dentroDelCorazon(x, y, contorno) && intentos < 50);
+        dBorde = distanciaAlContorno(x, y, contorno);
+        z = THREE.MathUtils.randFloatSpread(2 * semiEspesor(dBorde));
+      }
+
+      const esSuperficie =
+        (enContorno || dBorde < 0.09 || Math.abs(z) > semiEspesor(dBorde) * 0.8) ? 1 : 0;
+      /* ~4%: chispas — puntitos rosa claro que titilan fuerte (vida de joya) */
+      const esChispa = Math.random() < 0.04 ? 1 : 0;
+
+      posiciones[i * 3 + 0] = x;
+      posiciones[i * 3 + 1] = y;
+      posiciones[i * 3 + 2] = z;
+
+      /* Punto de dispersión propio: dirección al azar (leve sesgo hacia
+         arriba y afuera), lejos — el desarme del scroll viaja hacia ahí */
+      dir.randomDirection();
+      dir.y = dir.y * 0.7 + 0.35;
+      dir.normalize().multiplyScalar(THREE.MathUtils.randFloat(2.5, 8.5));
+      dispersas[i * 3 + 0] = dir.x;
+      dispersas[i * 3 + 1] = dir.y;
+      dispersas[i * 3 + 2] = dir.z;
+
+      semillas[i] = Math.random() * 100;
+      /* Luz desde arriba: los lóbulos más vivos, la punta más profunda */
+      const altura = THREE.MathUtils.clamp((y - yMin) / (yMax - yMin), 0, 1);
+      brillos[i] = THREE.MathUtils.clamp(Math.random() * 0.55 + altura * 0.45, 0, 1);
+      superficies[i] = esSuperficie;
+      chispas[i] = esChispa;
+      tamanios[i] = esChispa
+        ? THREE.MathUtils.randFloat(3.4, 5.4)
+        : esSuperficie
+          ? THREE.MathUtils.randFloat(2.3, 4.4)
+          : THREE.MathUtils.randFloat(1.4, 2.9);
+    }
+
+    const geometria = new THREE.BufferGeometry();
+    geometria.setAttribute('position', new THREE.BufferAttribute(posiciones, 3));
+    geometria.setAttribute('aDispersa', new THREE.BufferAttribute(dispersas, 3));
+    geometria.setAttribute('semilla', new THREE.BufferAttribute(semillas, 1));
+    geometria.setAttribute('tamanio', new THREE.BufferAttribute(tamanios, 1));
+    geometria.setAttribute('aBrillo', new THREE.BufferAttribute(brillos, 1));
+    geometria.setAttribute('aSuperficie', new THREE.BufferAttribute(superficies, 1));
+    geometria.setAttribute('aChispa', new THREE.BufferAttribute(chispas, 1));
+
+    this.material = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
       uniforms: {
         uTiempo: { value: 0 },
-        uMouse: { value: 0 },
+        uDPR: { value: 1 },
+        uDesarme: { value: 0 },
         uOpacidad: { value: 1 },
-        uColorBase: { value: PALETA.rojoClaro },
-        uColorBorde: { value: PALETA.dorado },
+        uFuerza: { value: 0 },
+        uMouseLocal: { value: new THREE.Vector3(99, 99, 99) },  // lejos al arrancar
+        uColorRojo: { value: PALETA.rojo },
+        uColorVivo: { value: PALETA.rojoVivo },
+        uColorClaro: { value: PALETA.rojoClaro },
       },
       vertexShader: /* glsl */ `
-        varying vec3 vNormalVista;
-        varying vec3 vPosVista;
+        ${RUIDO_SIMPLEX_GLSL}
+        attribute vec3 aDispersa;
+        attribute float semilla;
+        attribute float tamanio;
+        attribute float aBrillo;
+        attribute float aSuperficie;
+        attribute float aChispa;
+        uniform float uTiempo;
+        uniform float uDPR;
+        uniform float uDesarme;
+        uniform float uFuerza;
+        uniform vec3 uMouseLocal;
+        varying float vSemilla;
+        varying float vBrillo;
+        varying float vSuperficie;
+        varying float vChispa;
         void main() {
-          vNormalVista = normalize(normalMatrix * normal);
-          vec4 pv = modelViewMatrix * vec4(position, 1.0);
-          vPosVista = pv.xyz;
+          vSemilla = semilla;
+          vBrillo = aBrillo;
+          vSuperficie = aSuperficie;
+          vChispa = aChispa;
+
+          vec3 p = position;
+
+          /* Vida propia: vibración orgánica CONTENIDA (la silueta debe
+             quedar nítida), que crece recién al desarmarse */
+          float amp = 0.018 + uDesarme * 0.24;
+          p.x += snoise(vec3(position.yz * 1.8, uTiempo * 0.32 + semilla)) * amp;
+          p.y += snoise(vec3(position.zx * 1.8, uTiempo * 0.28 + semilla)) * amp;
+          p.z += snoise(vec3(position.xy * 1.8, uTiempo * 0.30 + semilla)) * amp;
+
+          /* Repulsión del cursor en 3D (sólo con el corazón armado):
+             las partículas se apartan del punto tocado y vuelven solas.
+             Radio acorde al corazón grande (~2.7 de alto). */
+          vec3 delta = p - uMouseLocal;
+          float d = length(delta);
+          float rep = uFuerza * 0.55 * exp(-d * d * 1.6) * (1.0 - uDesarme);
+          p += (delta / max(d, 0.05)) * rep;
+
+          /* Desarme: cada partícula viaja hacia su punto de dispersión */
+          p += aDispersa * uDesarme;
+
+          vec4 pv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = tamanio * uDPR * (40.0 / max(-pv.z, 0.001));
+          gl_PointSize = min(gl_PointSize, 9.0 * uDPR);
           gl_Position = projectionMatrix * pv;
         }
       `,
       fragmentShader: /* glsl */ `
         uniform float uTiempo;
-        uniform float uMouse;
         uniform float uOpacidad;
-        uniform vec3 uColorBase;
-        uniform vec3 uColorBorde;
-        varying vec3 vNormalVista;
-        varying vec3 vPosVista;
-        void main() {
-          /* Fresnel: los bordes rasantes brillan como filo de vidrio.
-             El clamp evita base negativa en pow (NaN que el bloom esparce). */
-          vec3 haciaCamara = normalize(-vPosVista);
-          float fresnel = pow(clamp(1.0 - abs(dot(vNormalVista, haciaCamara)), 0.0, 1.0), 1.6);
-          vec3 color = mix(uColorBase, uColorBorde, fresnel);
-          /* El mouse cercano intensifica el brillo, sutil */
-          float brillo = 0.9 + fresnel * 0.9 + uMouse * 0.5;
-          gl_FragColor = vec4(color * brillo, (0.5 + fresnel * 0.5) * uOpacidad);
-        }
-      `,
-    });
-    this.varianteCristal.add(new THREE.Mesh(geoTubo, matTubo));
-
-    /* Relleno: lámina traslúcida apenas visible detrás del trazo */
-    const forma = new THREE.Shape();
-    puntos.forEach((p, i) => (i === 0 ? forma.moveTo(p.x, p.y) : forma.lineTo(p.x, p.y)));
-    const geoLamina = new THREE.ShapeGeometry(forma, 24);
-    const matLamina = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending,
-      uniforms: {
-        uMouse: { value: 0 },
-        uOpacidad: { value: 1 },
-        uColor: { value: PALETA.rojo },
-      },
-      vertexShader: /* glsl */ `
-        varying vec2 vUv2;
-        void main() {
-          vUv2 = position.xy;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: /* glsl */ `
-        uniform float uMouse;
-        uniform float uOpacidad;
-        uniform vec3 uColor;
-        varying vec2 vUv2;
-        void main() {
-          /* Degradé vertical: más denso abajo, como cristal con peso */
-          float grad = smoothstep(1.3, -1.3, vUv2.y);
-          float alfa = (0.045 + grad * 0.075 + uMouse * 0.05) * uOpacidad;
-          gl_FragColor = vec4(uColor * 1.2, alfa);
-        }
-      `,
-    });
-    this.varianteCristal.add(new THREE.Mesh(geoLamina, matLamina));
-
-    this.materiales.push(matTubo, matLamina);
-    this._matsCristal = [matTubo, matLamina];
-    this.grupo.add(this.varianteCristal);
-  }
-
-  /* ── Variante B: corazón de luz (nube de partículas) ── */
-  _construirLuz() {
-    const cantidad = CONFIG.particulasCorazon;
-    const contorno = [];
-    for (let i = 0; i < 90; i++) {
-      contorno.push(puntoCorazon((i / 90) * Math.PI * 2));
-    }
-
-    const posiciones = new Float32Array(cantidad * 3);
-    const semillas = new Float32Array(cantidad);
-    const tamanios = new Float32Array(cantidad);
-
-    for (let i = 0; i < cantidad; i++) {
-      let p;
-      if (i < cantidad * 0.55) {
-        /* 55%: sobre el contorno, con leve espesor */
-        const base = puntoCorazon(Math.random() * Math.PI * 2);
-        p = base.add(new THREE.Vector3(
-          THREE.MathUtils.randFloatSpread(0.09),
-          THREE.MathUtils.randFloatSpread(0.09),
-          THREE.MathUtils.randFloatSpread(0.16)
-        ));
-      } else {
-        /* 45%: interior, por muestreo de rechazo contra el polígono */
-        let x, y, intentos = 0;
-        do {
-          x = THREE.MathUtils.randFloatSpread(2.4);
-          y = THREE.MathUtils.randFloat(-1.15, 1.05);
-          intentos++;
-        } while (!dentroDelCorazon(x, y, contorno) && intentos < 40);
-        p = new THREE.Vector3(x, y, THREE.MathUtils.randFloatSpread(0.22));
-      }
-      posiciones[i * 3 + 0] = p.x;
-      posiciones[i * 3 + 1] = p.y;
-      posiciones[i * 3 + 2] = p.z;
-      semillas[i] = Math.random() * 100;
-      tamanios[i] = THREE.MathUtils.randFloat(3, 8.5);
-    }
-
-    const geometria = new THREE.BufferGeometry();
-    geometria.setAttribute('position', new THREE.BufferAttribute(posiciones, 3));
-    geometria.setAttribute('semilla', new THREE.BufferAttribute(semillas, 1));
-    geometria.setAttribute('tamanio', new THREE.BufferAttribute(tamanios, 1));
-
-    const material = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      uniforms: {
-        uTiempo: { value: 0 },
-        uMouse: { value: 0 },
-        uOpacidad: { value: 1 },
-        uDPR: { value: 1 },
-        uColorA: { value: PALETA.rojoVivo },
-        uColorB: { value: PALETA.dorado },
-      },
-      vertexShader: /* glsl */ `
-        ${RUIDO_SIMPLEX_GLSL}
-        attribute float semilla;
-        attribute float tamanio;
-        uniform float uTiempo;
-        uniform float uMouse;
-        uniform float uDPR;
+        uniform vec3 uColorRojo;
+        uniform vec3 uColorVivo;
+        uniform vec3 uColorClaro;
         varying float vSemilla;
-        varying float vDist;
-        void main() {
-          vSemilla = semilla;
-          /* Vibración orgánica alrededor de su lugar; el mouse la amplifica */
-          float amp = 0.035 + uMouse * 0.06;
-          vec3 p = position;
-          p.x += snoise(vec3(position.yz * 2.0, uTiempo * 0.32 + semilla)) * amp;
-          p.y += snoise(vec3(position.zx * 2.0, uTiempo * 0.28 + semilla)) * amp;
-          p.z += snoise(vec3(position.xy * 2.0, uTiempo * 0.30 + semilla)) * amp;
-
-          vec4 posVista = modelViewMatrix * vec4(p, 1.0);
-          vDist = -posVista.z;
-          gl_PointSize = tamanio * uDPR * (40.0 / max(vDist, 0.001));
-          gl_Position = projectionMatrix * posVista;
-        }
-      `,
-      fragmentShader: /* glsl */ `
-        uniform float uTiempo;
-        uniform float uMouse;
-        uniform float uOpacidad;
-        uniform vec3 uColorA;
-        uniform vec3 uColorB;
-        varying float vSemilla;
+        varying float vBrillo;
+        varying float vSuperficie;
+        varying float vChispa;
         void main() {
           float d = length(gl_PointCoord - 0.5);
-          float disco = smoothstep(0.5, 0.06, d);
-          vec3 color = mix(uColorA, uColorB, fract(vSemilla * 0.37));
-          float titileo = 0.65 + 0.35 * sin(uTiempo * 1.4 + vSemilla * 3.0);
-          /* Alfa contenida: la suma aditiva de ~mil puntos + bloom quema
-             rápido; el corazón debe leerse como forma, no como mancha */
-          float alfa = disco * titileo * (0.34 + uMouse * 0.2) * uOpacidad;
+          float disco = smoothstep(0.5, 0.08, d);
+
+          /* Rojo profundo → rojo vivo según la luz (arriba más vivo);
+             la cáscara, apenas más clara: la silueta ♥ se lee nítida
+             mientras gira. Las chispas tiran a rosa claro. */
+          vec3 color = mix(uColorRojo, uColorVivo, vBrillo);
+          color = mix(color, uColorClaro, vSuperficie * 0.4 + vChispa * 0.55);
+
+          /* Titileo suave; las chispas laten mucho más hondo */
+          float onda = sin(uTiempo * (1.3 + vChispa * 1.2) + vSemilla * 3.0);
+          float titileo = mix(0.72 + 0.28 * onda, 0.35 + 0.65 * onda * onda, vChispa);
+
+          /* Alfa contenida: miles de puntos aditivos + bloom queman rápido;
+             el corazón debe leerse ROJO, no blanco */
+          float alfa = disco * titileo * (0.20 + vSuperficie * 0.15 + vChispa * 0.25) * uOpacidad;
           if (alfa < 0.004) discard;
-          gl_FragColor = vec4(color * (0.85 + uMouse * 0.35), alfa);
+          gl_FragColor = vec4(color, alfa);
         }
       `,
     });
 
-    this.varianteLuz = new THREE.Points(geometria, material);
-    this.varianteLuz.frustumCulled = false;
-    this.materiales.push(material);
-    this._matLuz = material;
-    this.grupo.add(this.varianteLuz);
-  }
-
-  /* Cambia de variante con un fundido cruzado corto */
-  setVariante(nombre) {
-    if (nombre === this.variante) return;
-    this.variante = nombre;
-
-    const entra = nombre === 'cristal' ? this.varianteCristal : this.varianteLuz;
-    const sale = nombre === 'cristal' ? this.varianteLuz : this.varianteCristal;
-    const matsEntra = nombre === 'cristal' ? this._matsCristal : [this._matLuz];
-    const matsSale = nombre === 'cristal' ? [this._matLuz] : this._matsCristal;
-
-    entra.visible = true;
-    matsEntra.forEach((m) =>
-      gsap.fromTo(m.uniforms.uOpacidad, { value: 0 }, { value: 1, duration: 0.8, ease: 'power2.out' })
-    );
-    matsSale.forEach((m) =>
-      gsap.to(m.uniforms.uOpacidad, {
-        value: 0,
-        duration: 0.5,
-        ease: 'power2.in',
-        onComplete: () => { sale.visible = false; },
-      })
-    );
+    this.nube = new THREE.Points(geometria, this.material);
+    this.nube.frustumCulled = false;
+    this.grupo.add(this.nube);
   }
 
   /* ── Control desde el scroll (main.js) ── */
@@ -299,14 +288,17 @@ export class Corazon {
      mientras el mundo se desplaza detrás (efecto Active Theory). */
   setPosicion(v) { this.grupo.position.copy(v); }
 
-  setOpacidad(o) {
-    this.opacidad = o;
-    /* Cuando está totalmente esfumado, lo sacamos del render (ahorra draw calls) */
-    this.grupo.visible = o > 0.004;
+  /** 0 = corazón armado · 1 = partículas totalmente dispersas.
+     El fade final ocurre sobre el último tramo del desarme. */
+  setDesarme(v) {
+    this.desarme = THREE.MathUtils.clamp(v, 0, 1);
+    this.opacidad = 1 - THREE.MathUtils.smoothstep(this.desarme, 0.78, 1.0);
+    /* Totalmente disperso y desvanecido: fuera del render (ahorra GPU) */
+    this.grupo.visible = this.opacidad > 0.004;
   }
 
   actualizar(dt, tiempo, mouseNDC, camara, dpr) {
-    if (!this.grupo.visible) return;   // esfumado: nada que animar
+    if (!this.grupo.visible) return;   // disperso: nada que animar
 
     /* Respiración: escala oscilante muy leve, loop infinito (~4 s) */
     const pulso = 1 + Math.sin(tiempo * 1.55) * CONFIG.amplitudRespiracion;
@@ -315,30 +307,37 @@ export class Corazon {
     /* Giro: leve vaivén de flotación + giro sobre su eje ligado al scroll */
     this.grupo.rotation.y = Math.sin(tiempo * 0.18) * 0.09 + this.rotacionScroll;
 
-    /* Cercanía del mouse en pantalla → reacción (brillo/vibración) */
+    /* ── Cursor → espacio local del corazón ──
+       Intersecamos el rayo del mouse con el plano que pasa por el corazón
+       mirando a cámara, y lo llevamos a coordenadas locales (así el punto
+       repelido acompaña también el GIRO del corazón). */
     let objetivo = 0;
     if (CONFIG.parallaxMouse > 0) {
-      const proyectado = this.grupo.position.clone().project(camara);
-      if (proyectado.z < 1) {
-        const dist = Math.hypot(mouseNDC.x - proyectado.x, mouseNDC.y - proyectado.y);
-        objetivo = 1 - THREE.MathUtils.smoothstep(dist, 0.12, 0.55);
+      this.grupo.updateMatrixWorld();
+      camara.getWorldDirection(this._normal);
+      this._plano.setFromNormalAndCoplanarPoint(this._normal, this.grupo.position);
+      this._v.set(mouseNDC.x, mouseNDC.y, 0.5).unproject(camara);
+      this._rayo.origin.copy(camara.position);
+      this._rayo.direction.copy(this._v.sub(camara.position)).normalize();
+      if (this._rayo.intersectPlane(this._plano, this._punto)) {
+        this.grupo.worldToLocal(this._punto);
+        this.material.uniforms.uMouseLocal.value.lerp(this._punto, Math.min(1, dt * 10));
+        /* La fuerza sube cuando el cursor está sobre el corazón (grande: ~3) */
+        objetivo = 1 - THREE.MathUtils.smoothstep(this._punto.length(), 1.8, 3.2);
       }
     }
     this.fuerzaMouse += (objetivo - this.fuerzaMouse) * Math.min(1, dt * 5);
 
-    for (const m of this.materiales) {
-      if (m.uniforms.uTiempo) m.uniforms.uTiempo.value = tiempo;
-      if (m.uniforms.uMouse) m.uniforms.uMouse.value = this.fuerzaMouse;
-      if (m.uniforms.uDPR) m.uniforms.uDPR.value = dpr;
-      /* La opacidad maestra maneja el esfumado del corazón hacia el timeline */
-      if (m.uniforms.uOpacidad) m.uniforms.uOpacidad.value = this.opacidad;
-    }
+    const u = this.material.uniforms;
+    u.uTiempo.value = tiempo;
+    u.uDPR.value = dpr;
+    u.uDesarme.value = this.desarme;
+    u.uOpacidad.value = this.opacidad;
+    u.uFuerza.value = this.fuerzaMouse;
   }
 
   destruir() {
-    this.grupo.traverse((o) => {
-      if (o.geometry) o.geometry.dispose();
-    });
-    this.materiales.forEach((m) => m.dispose());
+    this.nube.geometry.dispose();
+    this.material.dispose();
   }
 }

@@ -2,25 +2,27 @@
    Orquestador del hero inmersivo.
 
    Une todas las piezas sobre UN ÚNICO WebGLRenderer persistente:
-   ▸ escena WebGL (partículas + corazón + estructura orgánica)
-     con post-procesamiento (bloom cálido + grano + viñeta)
-   ▸ escena CSS3D (paneles de vidrio) con la MISMA cámara
+   ▸ escena WebGL — atmósfera (nebulosa + estrellas + amanecer),
+     velos de seda, bokeh + luciérnagas y corazón — con
+     post-procesamiento (bloom cálido + aberración + grano + viñeta)
+   ▸ escena CSS3D (paneles de vidrio + frases del descenso) con la
+     MISMA cámara
    ▸ Lenis (scroll suave) + ScrollTrigger (progreso 0..1) → cámara
    ▸ UI (sidebar, buscador, indicador, variantes del corazón)
    ▸ velo de transición hero → timeline
 
    El bucle corre con delta time real (no asume 60 fps) y se PAUSA
-   por completo cuando el usuario pasa a la sección del timeline
-   (que tiene su propio WebGL) o cuando la pestaña queda oculta —
-   así nunca competimos por contextos ni quemamos GPU de fondo.
+   por completo cuando el usuario pasa a la pantalla final o cuando
+   la pestaña queda oculta — nunca quemamos GPU de fondo.
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
 import { CONFIG, PALETA, MOVIMIENTO_REDUCIDO, FASES, POS_CORAZON } from './config.js';
 import { MOMENTOS } from './momentos.js';
-import { ParticulasAmbiente } from './particulas.js';
+import { Atmosfera } from './atmosfera.js';
+import { VelosSeda } from './velos.js';
+import { AmbienteEnsueno } from './ambiente.js';
 import { Corazon } from './corazon.js';
-import { EstructuraOrganica } from './organico.js';
 import { PanelesVidrio } from './paneles.js';
 import { RecorridoCamara } from './camara.js';
 import { PostProceso } from './postproceso.js';
@@ -54,15 +56,16 @@ class HeroInmersivo {
       CONFIG.fov,
       window.innerWidth / window.innerHeight,
       0.1,
-      140
+      CONFIG.camaraLejos           // el amanecer del final vive a ~z -280
     );
     /* Arranca a la altura del corazón (landing); el recorrido la baja al timeline */
     this.camara.position.set(0, POS_CORAZON[1], 10);
 
-    /* ── Piezas de la escena ── */
-    this.particulas = new ParticulasAmbiente(this.escena);
+    /* ── Piezas de la escena (de lo infinito a lo cercano) ── */
+    this.atmosfera = new Atmosfera(this.escena);
+    this.velos = new VelosSeda(this.escena);
+    this.ambiente = new AmbienteEnsueno(this.escena);
     this.corazon = new Corazon(this.escena);
-    this.organico = new EstructuraOrganica(this.escena);
     this.paneles = new PanelesVidrio(
       document.getElementById('capa-css3d'),
       (indice) => this.irAMomento(indice)
@@ -76,12 +79,11 @@ class HeroInmersivo {
     this.tiempo = 0;
     this.activo = true;          // ¿renderizamos este frame?
     this.veloEl = document.getElementById('velo-transicion');
+    this._progresoPrevio = 0;        // para medir la velocidad del scroll
+    this._velScroll = 0;             // velocidad suavizada (respiración del FOV)
 
     /* ── UI ── */
-    this.ui = new InterfazHero(
-      (indice) => this.irAMomento(indice),
-      (nombre) => this.corazon.setVariante(nombre)
-    );
+    this.ui = new InterfazHero((indice) => this.irAMomento(indice));
     this.ui.iniciar();
 
     this._configurarScroll();
@@ -112,14 +114,15 @@ class HeroInmersivo {
         this.ui.setProgreso(p);
         this.ui.setActivo(this.recorrido.momentoActivo());
       },
-      /* Al salir del hero (entra el timeline con su propio WebGL): pausa total */
+      /* Al salir del hero (pantalla final): pausa total */
       onLeave: () => this._pausar(),
       onEnterBack: () => this._reanudar(),
     });
   }
 
-  /* Corazón del landing: primero gira sobre su eje (casi quieto), luego se
-     desplaza hacia arriba y se esfuma para darle paso al timeline. */
+  /* Corazón del landing: gira sobre su eje con el scroll y, sobre el final
+     del descenso, SE DESARMA — cada partícula roja vuela hacia su punto de
+     dispersión y se disuelve en el mundo, dándole paso al timeline. */
   _actualizarCorazon(progreso) {
     /* Sub-progreso 0..1 dentro del landing */
     const land = Math.min(progreso / FASES.landingFin, 1);
@@ -127,11 +130,10 @@ class HeroInmersivo {
     /* Giro sobre su eje, proporcional al avance dentro del landing */
     this.corazon.setGiro(land * CONFIG.vueltasCorazon * Math.PI * 2);
 
-    /* Se esfuma ANTES de que el landing termine (queda totalmente ido al 80%
-       del landing): así nunca se superpone con la aparición de las cards,
-       que recién se funden al final del descenso (ver paneles.js). */
-    const opacidad = 1 - THREE.MathUtils.smoothstep(land, 0.5, 0.8);
-    this.corazon.setOpacidad(opacidad);
+    /* Desarme ANTES de que el landing termine (queda totalmente disperso
+       al 85% del landing): nunca se superpone con el foco de las cards,
+       que recién cobran cuerpo al final del descenso (ver paneles.js). */
+    this.corazon.setDesarme(THREE.MathUtils.smoothstep(land, 0.45, 0.85));
   }
 
   /* Velo crema del final: dissolve de la última card hacia la pantalla de cierre */
@@ -215,29 +217,41 @@ class HeroInmersivo {
 
       this.tiempo += dt;
 
-      /* Cámara: progreso del scroll + parallax de mouse */
+      /* Cámara: progreso del scroll + parallax de mouse + banking */
       this.recorrido.aplicarParallax(this.mouseNDC, dt);
-      this.recorrido.actualizar();
+      this.recorrido.actualizar(dt);
+
+      /* Respiración del FOV: scrollear rápido abre apenas el campo visual
+         (sensación de velocidad); al frenar vuelve solo. */
+      const vel = Math.abs(this.recorrido.progreso - this._progresoPrevio) / Math.max(dt, 1e-4);
+      this._progresoPrevio = this.recorrido.progreso;
+      this._velScroll += (vel - this._velScroll) * Math.min(1, dt * 3);
+      const fovObjetivo = CONFIG.fov + Math.min(this._velScroll * 90, 3.2);
+      if (Math.abs(this.camara.fov - fovObjetivo) > 0.02) {
+        this.camara.fov = fovObjetivo;
+        this.camara.updateProjectionMatrix();
+      }
 
       /* Durante el landing, el corazón se clava al punto de mirada de la
-         cámara: queda fijo en el centro girando mientras el mundo (partículas,
-         enredaderas) se desplaza con el scroll — efecto Active Theory. */
+         cámara: queda fijo en el centro girando mientras el mundo (velos,
+         pétalos, bokeh) se desplaza con el scroll — efecto Active Theory. */
       if (this.recorrido.progresoLanding < 1) {
         this.corazon.setPosicion(this.recorrido.corazonAncla);
       }
 
       /* Intensidad del fondo: contenida durante el landing (el corredor
          central ya está despejado, así el corazón se ve limpio) y sube al
-         entrar al timeline. Arranca en 0.35: suficiente presencia para que
+         entrar al timeline. Arranca en 0.5: presencia suficiente para que
          el desplazamiento del mundo se PERCIBA desde el primer scroll. */
-      const intensidadFondo = 0.35 + 0.65 * THREE.MathUtils.smoothstep(
+      const intensidadFondo = 0.5 + 0.5 * THREE.MathUtils.smoothstep(
         this.recorrido.progreso, 0, FASES.landingFin * 0.85
       );
 
       /* Piezas animadas */
-      this.particulas.actualizar(dt, this.tiempo, this.dpr, intensidadFondo);
+      this.atmosfera.actualizar(dt, this.tiempo, this.camara, this.dpr);
+      this.velos.actualizar(dt, this.tiempo, intensidadFondo);
+      this.ambiente.actualizar(dt, this.tiempo, this.dpr, intensidadFondo);
       this.corazon.actualizar(dt, this.tiempo, this.mouseNDC, this.camara, this.dpr);
-      this.organico.actualizar(dt, this.tiempo, this.dpr, intensidadFondo);
       this.paneles.actualizar(dt, this.tiempo, this.camara);
       this.postproceso.actualizar(this.tiempo);
 

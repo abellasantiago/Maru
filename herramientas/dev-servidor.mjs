@@ -60,7 +60,13 @@ http.createServer(async (req, res) => {
     let ruta = join(RAIZ, rutaLimpia);
     if (rutaLimpia === '/' || rutaLimpia === '\\') ruta = join(RAIZ, 'index.html');
     const datos = await readFile(ruta);
-    res.writeHead(200, { 'Content-Type': MIME[extname(ruta).toLowerCase()] || 'application/octet-stream' });
+    res.writeHead(200, {
+      'Content-Type': MIME[extname(ruta).toLowerCase()] || 'application/octet-stream',
+      /* DESARROLLO: nunca cachear. Los módulos ES se cachean muy agresivo y,
+         sin esto, el navegador sigue sirviendo la versión vieja del sitio
+         (JS/CSS) aunque los archivos en disco hayan cambiado. */
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+    });
     res.end(datos);
   } catch {
     res.writeHead(404);

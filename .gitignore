@@ -1,0 +1,15 @@
+# Capturas de verificación del dev-servidor (solo desarrollo)
+.capturas/
+
+# Artefactos del sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Herramientas de Claude Code (no son parte del sitio)
+.claude/skills/
+.claude/settings.local.json
+
+# Dependencias y logs (por si acaso)
+node_modules/
+*.log

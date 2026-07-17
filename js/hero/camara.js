@@ -18,7 +18,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
-import { CONFIG, FASES, POS_CORAZON } from './config.js';
+import { CONFIG, FASES, POS_CORAZON, MOVIMIENTO_REDUCIDO } from './config.js';
 import { MOMENTOS } from './momentos.js';
 
 const LEAD_POS = 5.3;   // cuánto por delante de la card se ubica la cámara al encuadrarla
@@ -99,6 +99,15 @@ export class RecorridoCamara {
 
     this._pos = new THREE.Vector3();
     this._look = new THREE.Vector3();
+
+    /* Banking: la cámara se ladea apenas hacia adentro de cada curva del
+       vuelo (como un avión), suavizado frame a frame. 0 fuera del timeline. */
+    this.roll = 0;
+    this._tangente = new THREE.Vector3();
+
+    /* Cámara viva: reloj propio para la deriva orgánica (independiente del
+       scroll). Nunca se resetea → el mundo respira sin cortes. */
+    this.tiempoVida = 0;
   }
 
   /** Progreso del scroll 0..1 */
@@ -113,9 +122,10 @@ export class RecorridoCamara {
     this.parallax.y += (mouseNDC.y * 0.17 * CONFIG.parallaxMouse - this.parallax.y) * k;
   }
 
-  actualizar() {
+  actualizar(dt = 0.016) {
     const p = THREE.MathUtils.clamp(this.progreso, 0, 1);
     let atenParallax = 1;
+    let rollObjetivo = 0;
 
     if (p <= FASES.landingFin) {
       /* ── LANDING (efecto Active Theory) ──
@@ -156,6 +166,10 @@ export class RecorridoCamara {
       this.curvaPos.getPoint(u, this._pos);
       this.curvaLook.getPoint(u, this._look);
 
+      /* Banking hacia adentro de la curva (según el rumbo lateral real) */
+      this.curvaPos.getTangent(u, this._tangente);
+      rollObjetivo = THREE.MathUtils.clamp(-this._tangente.x * 0.55, -0.1, 0.1);
+
     } else {
       /* ── FINAL: deriva hacia adelante mientras sube el velo ── */
       this.progresoLanding = 1;
@@ -166,9 +180,19 @@ export class RecorridoCamara {
       atenParallax = 1 - u;
     }
 
+    /* ── Cámara viva: deriva orgánica mínima ──
+       Suma un vaivén lentísimo de dos frecuencias a la POSICIÓN (antes del
+       lookAt, así la cámara re-apunta al mismo objetivo desde un punto que
+       flota → paralaje suave, "cámara en mano"). Se atenúa con el resto del
+       parallax, así calma en el cierre. En reduced-motion, derivaCamara = 0. */
+    this.tiempoVida += dt;
+    const ampDeriva = CONFIG.derivaCamara * atenParallax;
+    const derivaX = (Math.sin(this.tiempoVida * 0.23) * 0.7 + Math.sin(this.tiempoVida * 0.37 + 1.3) * 0.3) * ampDeriva;
+    const derivaY = (Math.cos(this.tiempoVida * 0.19) * 0.6 + Math.sin(this.tiempoVida * 0.41 + 0.7) * 0.25) * ampDeriva;
+
     this.camara.position.set(
-      this._pos.x + this.parallax.x * atenParallax,
-      this._pos.y + this.parallax.y * atenParallax,
+      this._pos.x + this.parallax.x * atenParallax + derivaX,
+      this._pos.y + this.parallax.y * atenParallax + derivaY,
       this._pos.z
     );
     this.camara.lookAt(
@@ -176,6 +200,12 @@ export class RecorridoCamara {
       this._look.y + this.parallax.y * 0.25 * atenParallax,
       this._look.z
     );
+
+    /* Ladeo suave DESPUÉS del lookAt (roll local sobre el eje de vista) +
+       un respiro de roll mínimo de la cámara viva. */
+    this.roll += (rollObjetivo - this.roll) * Math.min(1, dt * 1.8);
+    const rollVivo = CONFIG.derivaCamara > 0 ? Math.sin(this.tiempoVida * 0.26) * 0.0032 * atenParallax : 0;
+    this.camara.rotateZ(this.roll + rollVivo);
   }
 
   /** Índice de la card activa según el progreso (para la UI) */

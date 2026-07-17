@@ -1,7 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    Interfaz del hero: sidebar de momentos, buscador, indicador de
-   panel activo con flechas, alternador de variante del corazón y
-   pista de scroll.
+   panel activo con flechas y pista de scroll.
 
    Todo navega llamando a `irAMomento(indice)`, que provee main.js
    (scroll suave de Lenis hasta el ancla de cámara del momento).
@@ -22,9 +21,8 @@ function normalizar(texto) {
 export class InterfazHero {
   /**
    * @param {(indice:number)=>void} irAMomento  navega al momento i
-   * @param {(nombre:string)=>void} cambiarVariante  variante del corazón
    */
-  constructor(irAMomento, cambiarVariante) {
+  constructor(irAMomento) {
     this.irAMomento = irAMomento;
     this.indiceActivo = 0;
 

@@ -19,6 +19,13 @@ import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer
 import { CONFIG, MOVIMIENTO_REDUCIDO } from './config.js';
 import { MOMENTOS } from './momentos.js';
 
+/* Frase que flota EN EL ESPACIO durante el descenso del landing: la cámara
+   la pasa de largo (parallax real, no overlay). Vive a mitad del descenso
+   (el mundo baja de y=16 a y≈0). */
+const FRASES = [
+  { texto: 'un viaje por nuestra historia', pos: [2.5, 8.6, -3], rotY: -0.12 },
+];
+
 export class PanelesVidrio {
   /**
    * @param {THREE.Scene} escenaCSS  escena exclusiva del CSS3DRenderer
@@ -33,6 +40,10 @@ export class PanelesVidrio {
 
     this.items = [];
 
+    /* El tilt/brillo de las cards vive sólo con puntero fino (hay hover) y
+       sin reduced-motion; en táctil las cards quedan planas y estables. */
+    const soportaTilt = !MOVIMIENTO_REDUCIDO && window.matchMedia('(pointer: fine)').matches;
+
     MOMENTOS.forEach((momento, indice) => {
       const el = document.createElement('div');
       el.className = 'panel-vidrio' + (momento.destacado ? ' destacado' : '');
@@ -43,18 +54,42 @@ export class PanelesVidrio {
          al aparecer necesita su propio elemento, sin pisarse. */
       el.innerHTML = `
         <div class="panel-interior">
-          <figure class="panel-foto">
-            <img src="${momento.foto}" alt="${momento.titulo}" draggable="false">
-            <div class="panel-grano"></div>
-          </figure>
-          <header class="panel-info">
-            <span class="panel-fecha">${momento.fecha}</span>
-            <span class="panel-palabra">${momento.titulo}</span>
-            ${momento.desc ? `<span class="panel-desc">${momento.desc}</span>` : ''}
-          </header>
+          <div class="panel-tilt">
+            <figure class="panel-foto">
+              <img src="${momento.foto}" alt="${momento.titulo}" draggable="false">
+              <div class="panel-grano"></div>
+            </figure>
+            <header class="panel-info">
+              <span class="panel-fecha">${momento.fecha}</span>
+              <span class="panel-palabra">${momento.titulo}</span>
+              ${momento.desc ? `<span class="panel-desc">${momento.desc}</span>` : ''}
+            </header>
+            <div class="panel-brillo" aria-hidden="true"></div>
+          </div>
         </div>
       `;
       el.addEventListener('click', () => alClickear(indice));
+
+      /* Tilt 3D + brillo especular al pasar el cursor: la card se inclina
+         como un objeto con peso y la luz le resbala por el vidrio. Sólo con
+         puntero fino y sin reduced-motion (en táctil no hay hover). */
+      if (soportaTilt) {
+        el.addEventListener('pointermove', (e) => {
+          const r = el.getBoundingClientRect();
+          const rx = (e.clientX - r.left) / r.width;
+          const ry = (e.clientY - r.top) / r.height;
+          el.style.setProperty('--tiltY', ((rx - 0.5) * 12).toFixed(2) + 'deg');
+          el.style.setProperty('--tiltX', (-(ry - 0.5) * 12).toFixed(2) + 'deg');
+          el.style.setProperty('--mx', (rx * 100).toFixed(1) + '%');
+          el.style.setProperty('--my', (ry * 100).toFixed(1) + '%');
+          el.classList.add('tilt-activo');
+        }, { passive: true });
+        el.addEventListener('pointerleave', () => {
+          el.style.setProperty('--tiltX', '0deg');
+          el.style.setProperty('--tiltY', '0deg');
+          el.classList.remove('tilt-activo');
+        });
+      }
 
       const objeto = new CSS3DObject(el);
       /* Un div de 440px pasa a medir 4.4 unidades de mundo */
@@ -73,34 +108,25 @@ export class PanelesVidrio {
       });
     });
 
+    /* ── Frases del descenso (mismo espacio 3D que los paneles) ── */
+    this.frases = FRASES.map((frase, i) => {
+      const el = document.createElement('div');
+      el.className = 'frase-viaje';
+      el.textContent = frase.texto;
+
+      const objeto = new CSS3DObject(el);
+      objeto.scale.setScalar(CONFIG.escalaCSS3D);
+      objeto.position.fromArray(frase.pos);
+      objeto.rotation.y = frase.rotY;
+      this.escenaCSS.add(objeto);
+      return { el, objeto, baseX: frase.pos[0], fase: i * 2.4 };
+    });
+
     this._v = new THREE.Vector3(); // temporal reutilizable
   }
 
   actualizar(dt, tiempo, camara) {
     const deriva = MOVIMIENTO_REDUCIDO ? 0 : 1;
-    /* Entrada suave, pero atada a la POSICIÓN de la cámara (no un timer
-       independiente): las cards viven abajo en el mundo y la cámara
-       desciende durante el landing, así que ya suben solas hacia el centro
-       por física de la escena. Acá sólo agregamos un fundido de opacidad
-       CORTO (0.4 unidades de cámara, ~60vh de scroll) para que ese ingreso
-       se sienta suave en vez de un corte duro — nunca un fade largo y
-       desconectado del scroll como el de antes.
-
-       El rango [Z_FIN_FADE, Z_INICIO_FADE] está calibrado (por medición
-       directa del borde superior en pantalla) para que el fundido TERMINE
-       justo cuando la card más próxima toca el borde inferior del viewport:
-       se materializa mientras asoma, nunca aparece ya armada a mitad de
-       pantalla.
-
-       Esto también resuelve el mismo problema de antes: con la cámara tan
-       alta (y=16) mirando en línea recta, las cards muy profundas del
-       corredor convergen matemáticamente cerca del centro de la pantalla
-       por pura distancia (el "horizonte") — asomarían prematuras si sólo
-       mirásemos NDC/distancia. Como el fundido es GLOBAL (mismo para todas,
-       según la cámara), ninguna se adelanta a su turno. */
-    const Z_INICIO_FADE = 9.41;
-    const Z_FIN_FADE = 8.96;
-    const revelado = 1 - THREE.MathUtils.smoothstep(camara.position.z, Z_FIN_FADE, Z_INICIO_FADE);
 
     for (const item of this.items) {
       /* ── Deriva de ingravidez: flotación lenta en posición y giro ── */
@@ -131,15 +157,41 @@ export class PanelesVidrio {
       /* Suavizado temporal para que el revelado respire, sin saltos */
       item.foco += (foco - item.foco) * Math.min(1, dt * 6);
       item.el.style.setProperty('--foco', item.foco.toFixed(3));
+
+      /* ── Revelado por DISTANCIA, individual ──
+         El timeline NO se ve de arranque: cada card está totalmente
+         invisible (revelado 0) hasta que la cámara se le acerca bastante,
+         recién ahí empieza a asomar — oscura y velada primero, con cuerpo
+         y luz plena sólo ya cerca. Sin piso: de lejos no hay nada, ni
+         insinuado. Umbrales angostos (11 → 5) para que despierte tarde,
+         cerca del momento en que va a quedar en foco. */
+      const revelado = 1 - THREE.MathUtils.smoothstep(distCamara, 5, 11);
       item.el.style.setProperty('--revelado', revelado.toFixed(3));
 
-      /* ── Optimización (clave con 23 paneles): sólo pintamos los cercanos ──
-         Los que quedan detrás de la cámara o muy lejos se ocultan; los de
-         media distancia pierden el backdrop-filter (el blur es lo más caro).
-         Usamos objeto.visible: el CSS3DRenderer lo traduce a display y, además,
-         se saltea el cálculo de transform de los ocultos. */
-      item.objeto.visible = revelado > 0.004 && delante && distCamara < 48;
+      /* ── Optimización: sólo pintamos lo razonablemente cercano ──
+         Los paneles detrás de la cámara, muy profundos o aún no revelados
+         se ocultan; los de media distancia pierden el backdrop-filter (el
+         blur es lo más caro). Usamos objeto.visible: el CSS3DRenderer lo
+         traduce a display y, además, se saltea el cálculo de transform de
+         los ocultos. */
+      item.objeto.visible = delante && distCamara < 95 && revelado > 0.004;
       item.el.classList.toggle('lejos', distCamara > 24);
+    }
+
+    /* ── Frases del descenso: visibles mientras la cámara pasa a su altura ──
+       Se encienden al entrar en cuadro (|Δy| chico) y sólo existen en el
+       landing (la cámara del timeline vuela a y≈0..1: la compuerta las apaga). */
+    const compuertaLanding = THREE.MathUtils.smoothstep(camara.position.y, 1.2, 2.2);
+    for (const frase of this.frases) {
+      const dy = Math.abs(camara.position.y - frase.objeto.position.y);
+      const opacidad = (1 - THREE.MathUtils.smoothstep(dy, 2.8, 4.5)) * compuertaLanding;
+      frase.objeto.visible = opacidad > 0.01;
+      if (frase.objeto.visible) {
+        frase.el.style.opacity = opacidad.toFixed(3);
+        /* Deriva mínima: flotan, no están clavadas */
+        frase.objeto.position.x =
+          frase.baseX + Math.sin(tiempo * 0.3 + frase.fase) * 0.15 * (MOVIMIENTO_REDUCIDO ? 0 : 1);
+      }
     }
   }
 

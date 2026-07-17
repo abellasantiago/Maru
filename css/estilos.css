@@ -34,12 +34,12 @@
   --color-rojo: #b21e35;
   --color-rojo-vivo: #c8283f;
   --color-rojo-claro: #e0596a;
+  --color-rosa: #d98f9c;         /* rosa empolvado: velos de seda y bokeh */
   --color-beige: #e8dcc8;        /* ajustar tono exacto durante implementación */
 
   /* Derivados del hero (siguen la paleta, nada frío) */
   --color-fondo-3d: #1a0508;     /* bordó casi negro: profundidad sin negro puro */
   --color-dorado: #e6b87d;       /* acento cálido para partículas y glow */
-  --color-vidrio: rgba(245, 239, 230, 0.06);
   --color-vidrio-borde: rgba(255, 255, 255, 0.10);
 
   --fuente-display: 'Cormorant Garamond', Georgia, serif;
@@ -150,28 +150,12 @@ body {
   flex-direction: column;
   gap: 2px;
 }
-.monograma-letras {
-  font-family: var(--fuente-display);
-  font-size: 26px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-shadow: 0 0 18px rgba(224, 89, 106, 0.45);
-}
-/* El "&" entre la S y la M: rojo, claro y legible (no la ligadura caligráfica) */
-.monograma-letras em {
-  font-family: var(--fuente-ui);
-  font-style: normal;
-  font-weight: 600;
-  color: var(--color-rojo-vivo);
-  font-size: 17px;
-  margin: 0 2px;
-  text-shadow: 0 0 12px rgba(200, 40, 63, 0.5);
-}
 .monograma-sub {
-  font-size: 9px;
-  letter-spacing: 0.34em;
+  font-size: 12px;
+  letter-spacing: 0.38em;
   text-transform: uppercase;
-  opacity: 0.55;
+  opacity: 0.75;
+  text-shadow: 0 0 14px rgba(224, 89, 106, 0.35);
 }
 
 /* ── Nav superior derecha con latido ─────────────────────────── */
@@ -432,6 +416,34 @@ body {
     translateY(calc((1 - var(--revelado)) * 22px))
     scale(calc(0.94 + var(--revelado) * 0.06));
 }
+/* Tilt 3D + brillo especular al pasar el cursor (peso real del vidrio).
+   La perspectiva es propia de .panel-tilt (transform: perspective(...)), así
+   no depende de que los ancestros conserven el 3D. El tilt lo setea paneles.js
+   (--tiltX/--tiltY) y el brillo sigue al cursor (--mx/--my). */
+.panel-tilt {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform: perspective(900px) rotateX(var(--tiltX, 0deg)) rotateY(var(--tiltY, 0deg));
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.panel-brillo {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.35),
+    rgba(255, 255, 255, 0.06) 30%,
+    transparent 55%
+  );
+  mix-blend-mode: screen;
+  transition: opacity 0.35s ease;
+}
+.panel-vidrio.tilt-activo .panel-brillo { opacity: 1; }
 /* Brillo del borde superior, como luz rasante sobre el vidrio */
 .panel-vidrio::before {
   content: '';
@@ -464,11 +476,13 @@ body {
   height: 100%;
   object-fit: cover;
   display: block;
-  /* Revelado: de lejos la foto está desenfocada y apagada; en foco, nítida */
+  /* Revelado doble: de lejos la card entera está OSCURA (--revelado, por
+     distancia de cámara) y la foto desenfocada/apagada (--foco); al
+     acercarse se esclarece, y en foco queda nítida y luminosa. */
   filter:
     blur(calc((1 - var(--foco)) * 7px))
     saturate(calc(0.65 + var(--foco) * 0.45))
-    brightness(calc(0.82 + var(--foco) * 0.22));
+    brightness(calc((0.82 + var(--foco) * 0.22) * (0.45 + var(--revelado) * 0.55)));
   transform: scale(calc(1.09 - var(--foco) * 0.09));
 }
 /* Grano propio del panel: se disuelve cuando la foto entra en foco */
@@ -545,17 +559,40 @@ body {
   -webkit-backdrop-filter: none;
 }
 
+/* ═══════════════ FRASES DEL DESCENSO (CSS3D) ═══════════════ */
+
+/*
+  Frases cortas que flotan EN EL ESPACIO 3D durante el descenso del landing:
+  al scrollear pasan de largo como carteles suspendidos (parallax real).
+  La opacidad la maneja paneles.js según la altura de la cámara.
+*/
+.frase-viaje {
+  width: 480px;
+  text-align: center;
+  font-family: var(--fuente-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 36px;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  color: var(--color-crema);
+  text-shadow:
+    0 0 26px rgba(230, 184, 125, 0.35),
+    0 2px 18px rgba(26, 5, 8, 0.65);
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
 /* ═══════════════ CURSOR CEREZAS ═══════════════ */
 
-#cursor-cereza, #cursor-halo {
+#cursor-cereza {
   position: fixed;
   top: 0;
   left: 0;
   z-index: 100;
   pointer-events: none;
   opacity: 0;                    /* aparece con el primer movimiento del mouse */
-}
-#cursor-cereza {
   width: 26px;
   height: 39px;                  /* mantiene el aspecto 32:48 del viewBox */
   margin: -2px 0 0 -2px;         /* la punta del tallo (3,3) coincide con el mouse */
@@ -591,16 +628,6 @@ body {
 }
 #cursor-cereza.interactivo .cereza-fruta { fill: var(--color-rojo-claro); }
 .cereza-brillo { fill: rgba(245, 239, 230, 0.8); }
-
-#cursor-halo {
-  width: 34px;
-  height: 34px;
-  margin: -17px 0 0 -17px;       /* centrado en la posición (con retardo/lerp) */
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(224, 89, 106, 0.22), transparent 65%);
-  transition: opacity 0.3s, transform 0.35s ease;
-}
-#cursor-halo.interactivo { transform: scale(1.9); }
 
 /* ═══════════════ RECORRIDO Y TIMELINE ═══════════════ */
 
@@ -639,13 +666,6 @@ body {
   font-size: clamp(48px, 8vw, 96px);
   line-height: 1.05;
   color: var(--color-bordo-oscuro);
-}
-.final-firma {
-  font-family: var(--fuente-display);
-  font-style: italic;
-  font-size: 16px;
-  color: var(--color-bordo);
-  opacity: 0.7;
 }
 .final-corazon {
   margin-top: 8px;
