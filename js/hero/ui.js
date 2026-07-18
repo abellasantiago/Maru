@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    Interfaz del hero: sidebar de momentos, buscador, indicador de
-   panel activo con flechas y pista de scroll.
+   panel activo con flechas y contador de tiempo juntos.
 
    Todo navega llamando a `irAMomento(indice)`, que provee main.js
    (scroll suave de Lenis hasta el ancla de cámara del momento).
@@ -8,6 +8,10 @@
 
 import { MOMENTOS } from './momentos.js';
 import { FASES } from './config.js';
+import { ContadorJuntos } from './contador.js';
+
+/* Canción del sitio: arranca/pausa clickeando la cápsula Santi ♥ Maru */
+const RUTA_CANCION = 'assets/musica/beautiful-crazy.mp3';
 
 /* Normaliza texto para buscar: minúsculas y sin tildes */
 function normalizar(texto) {
@@ -85,9 +89,59 @@ export class InterfazHero {
       }
     });
 
-    /* ── Pista de scroll: desaparece con el primer desplazamiento ── */
-    this.pista = document.getElementById('pista-scroll');
-    this.pistaOculta = false;
+    /* ── Contador de tiempo juntos (bajo el corazón, sólo en el landing) ── */
+    this.contadorEl = document.getElementById('contador-juntos');
+    this.contador = new ContadorJuntos(this.contadorEl);
+
+    /* ── Música: la cápsula Santi ♥ Maru es el botón de play/pausa ── */
+    this._configurarMusica();
+  }
+
+  /* La canción se carga recién en el primer click (si el mp3 no está,
+     no ensuciamos la carga inicial con un 404) y entra/sale con un
+     fade suave. El latido de la cápsula se enciende mientras suena. */
+  _configurarMusica() {
+    const pill = document.getElementById('nav-pill');
+    this.audio = null;
+    this._fadeAudio = null;
+
+    pill.addEventListener('click', () => {
+      if (!this.audio) {
+        this.audio = new Audio(RUTA_CANCION);
+        this.audio.loop = true;
+        this.audio.volume = 0;
+      }
+
+      if (this.audio.paused) {
+        this.audio.play().then(() => {
+          pill.classList.add('tocando');
+          this._fundirVolumen(0.85, 1600);
+        }).catch(() => {
+          console.warn(`No encontré la canción en ${RUTA_CANCION}`);
+        });
+      } else {
+        pill.classList.remove('tocando');
+        this._fundirVolumen(0, 500, () => this.audio.pause());
+      }
+    });
+  }
+
+  /* Fade lineal de volumen con rAF; cancela el fade anterior si lo hay */
+  _fundirVolumen(destino, duracionMs, alTerminar) {
+    if (this._fadeAudio) cancelAnimationFrame(this._fadeAudio);
+    const desde = this.audio.volume;
+    const t0 = performance.now();
+    const paso = (t) => {
+      const k = Math.min(1, (t - t0) / duracionMs);
+      this.audio.volume = desde + (destino - desde) * k;
+      if (k < 1) {
+        this._fadeAudio = requestAnimationFrame(paso);
+      } else {
+        this._fadeAudio = null;
+        if (alTerminar) alTerminar();
+      }
+    };
+    this._fadeAudio = requestAnimationFrame(paso);
   }
 
   /** Actualiza sidebar + contador según el momento activo */
@@ -101,8 +155,8 @@ export class InterfazHero {
 
   /** Progreso 0..1 del hero: muestra/oculta la UI según la fase del recorrido */
   setProgreso(progreso) {
-    /* Pista "deslizá" sólo al comienzo del landing */
-    this.pista.classList.toggle('oculto', progreso >= 0.03);
+    /* Contador de tiempo juntos: sólo al comienzo del landing */
+    this.contadorEl.classList.toggle('oculto', progreso >= 0.03);
 
     /* La UI de cards (sidebar, buscador, indicador) vive sólo en el timeline:
        oculta durante el landing del corazón y cuando llega la pantalla final. */
@@ -117,7 +171,7 @@ export class InterfazHero {
   }
 
   /** Estado inicial: marca el primer momento y deja la UI en modo landing
-     (sidebar/buscador/indicador ocultos, pista visible) desde el primer frame. */
+     (sidebar/buscador/indicador ocultos, contador visible) desde el primer frame. */
   iniciar() {
     this.itemsSidebar[0].classList.add('activo');
     this.setProgreso(0);

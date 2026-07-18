@@ -23,7 +23,7 @@ import { MOMENTOS } from './momentos.js';
    la pasa de largo (parallax real, no overlay). Vive a mitad del descenso
    (el mundo baja de y=16 a y≈0). */
 const FRASES = [
-  { texto: 'un viaje por nuestra historia', pos: [2.5, 8.6, -3], rotY: -0.12 },
+  { texto: 'un viaje por nuestra historia', pos: [0, 8.6, -3], rotY: 0 },
 ];
 
 export class PanelesVidrio {
@@ -184,7 +184,7 @@ export class PanelesVidrio {
     const compuertaLanding = THREE.MathUtils.smoothstep(camara.position.y, 1.2, 2.2);
     for (const frase of this.frases) {
       const dy = Math.abs(camara.position.y - frase.objeto.position.y);
-      const opacidad = (1 - THREE.MathUtils.smoothstep(dy, 2.8, 4.5)) * compuertaLanding;
+      const opacidad = (1 - THREE.MathUtils.smoothstep(dy, 2.8, 4.5)) * compuertaLanding * 0.7;
       frase.objeto.visible = opacidad > 0.01;
       if (frase.objeto.visible) {
         frase.el.style.opacity = opacidad.toFixed(3);

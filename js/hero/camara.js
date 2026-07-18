@@ -195,11 +195,12 @@ export class RecorridoCamara {
       this._pos.y + this.parallax.y * atenParallax + derivaY,
       this._pos.z
     );
-    this.camara.lookAt(
-      this._look.x + this.parallax.x * 0.4 * atenParallax,
-      this._look.y + this.parallax.y * 0.25 * atenParallax,
-      this._look.z
-    );
+    /* La mirada apunta SIEMPRE al punto exacto (sin el offset de parallax/
+       deriva que sí lleva la posición): así el corazón —anclado a este mismo
+       punto durante el landing— queda perfectamente fijo en el centro óptico
+       de la cámara, coincidiendo con el "11:11" y la flecha (ambos fijos en
+       el centro de la pantalla), mientras el resto del mundo sí parallax-ea. */
+    this.camara.lookAt(this._look.x, this._look.y, this._look.z);
 
     /* Ladeo suave DESPUÉS del lookAt (roll local sobre el eje de vista) +
        un respiro de roll mínimo de la cámara viva. */

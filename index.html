@@ -39,9 +39,7 @@
   <!-- ═══════════════ INTERFAZ DEL HERO ═══════════════ -->
 
   <!-- Monograma (arriba a la izquierda) -->
-  <header class="ui monograma" id="monograma">
-    <span class="monograma-sub">nuestro recorrido</span>
-  </header>
+  <header class="ui monograma" id="monograma"></header>
 
   <!-- Nav superior derecha: cápsula con latido de corazón entre los nombres -->
   <nav class="ui nav-pill" id="nav-pill" aria-label="Nosotros">
@@ -75,11 +73,9 @@
     <button type="button" class="indicador-flecha" id="indicador-next" aria-label="Momento siguiente">&#8250;&#8250;</button>
   </div>
 
-  <!-- Pista de scroll (desaparece al primer desplazamiento) -->
-  <div class="ui pista-scroll" id="pista-scroll" aria-hidden="true">
-    <span>deslizá para viajar</span>
-    <svg viewBox="0 0 16 24"><path d="M3 8 L8 14 L13 8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-  </div>
+  <!-- Contador en vivo: cuánto llevamos juntos (desde el 20/09/2025 16:00).
+       Vive bajo el corazón durante el landing; el texto lo arma js/hero/contador.js -->
+  <div class="ui contador-juntos" id="contador-juntos"></div>
 
   <!-- Cursor personalizado: cerezas dobles (logo de Pachá) que cuelgan desde la punta del cursor -->
   <div id="cursor-cereza" aria-hidden="true">
