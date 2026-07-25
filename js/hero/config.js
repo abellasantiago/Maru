@@ -111,4 +111,12 @@ export const CONFIG = {
 
   /* CSS3D: 1 unidad de mundo = 100px de panel (escala 0.01) */
   escalaCSS3D: 0.01,
+
+  /* Supersample de las cards: el CSS3DRenderer las agranda en pantalla (2–4×
+     en monitores grandes/HiDPI) y las rasteriza a su tamaño de layout → se
+     ven blandas. Maquetamos cada card a ×supersampleCards px (ver var(--ss)
+     en .panel-vidrio) y dividimos su escala 3D por el mismo factor, así el
+     tamaño en el mundo no cambia pero la textura tiene más resolución.
+     En mobile bajamos a 1.5 para no gastar memoria de GPU de más. */
+  supersampleCards: ES_MOBILE ? 1.5 : 2,
 };

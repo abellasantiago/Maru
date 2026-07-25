@@ -415,6 +415,14 @@ body {
 */
 .panel-vidrio {
   --foco: 0;
+  /* --ss: factor de SUPERSAMPLE de la card. El CSS3DRenderer rasteriza cada
+     card a su tamaño de layout y después la AGRANDA en pantalla (~2–4× en
+     monitores grandes/HiDPI) → se ve blanda. Con --ss maquetamos la card al
+     doble de px y paneles.js divide su escala 3D por --ss, así el tamaño en
+     el mundo es idéntico pero la textura tiene el doble de resolución.
+     paneles.js sobreescribe este valor desde CONFIG.supersampleCards; el 2 de
+     acá es sólo el fallback. Poner 1 desactiva el supersample. */
+  --ss: 2;
   /* --revelado: fundido corto de aparición (lo controla paneles.js según la
      posición de cámara, no un timer). El transform de este elemento ya lo
      pisa CSS3DRenderer (posición 3D) — por eso la opacidad va acá, pero el
@@ -423,23 +431,24 @@ body {
   opacity: var(--revelado);
   /* Formato 5:4 (apenas horizontal, casi cuadrada). La foto llena la card
      con object-fit:cover, así cualquier proporción entra recortando lo que
-     sobra (las verticales pierden un poco de arriba/abajo). */
-  width: 470px;
-  height: 376px;
-  padding: 14px;
-  border-radius: 20px;
+     sobra (las verticales pierden un poco de arriba/abajo). Todas las medidas
+     van multiplicadas por var(--ss) para el supersample. */
+  width: calc(470px * var(--ss));
+  height: calc(376px * var(--ss));
+  padding: calc(14px * var(--ss));
+  border-radius: calc(20px * var(--ss));
   background: linear-gradient(
     135deg,
     rgba(245, 239, 230, 0.09),
     rgba(245, 239, 230, 0.03) 45%,
     rgba(224, 89, 106, 0.05)
   );
-  border: 1px solid var(--color-vidrio-borde);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border: max(1px, calc(1px * var(--ss))) solid var(--color-vidrio-borde);
+  backdrop-filter: blur(calc(12px * var(--ss)));
+  -webkit-backdrop-filter: blur(calc(12px * var(--ss)));
   box-shadow:
-    0 0 calc(18px + var(--foco) * 26px) rgba(200, 40, 63, calc(0.10 + var(--foco) * 0.16)),
-    inset 0 0 22px rgba(245, 239, 230, 0.04);
+    0 0 calc((18px + var(--foco) * 26px) * var(--ss)) rgba(200, 40, 63, calc(0.10 + var(--foco) * 0.16)),
+    inset 0 0 calc(22px * var(--ss)) rgba(245, 239, 230, 0.04);
   pointer-events: auto;
   overflow: hidden;
 }
@@ -454,7 +463,7 @@ body {
   height: 100%;
   transform-origin: 50% 100%;
   transform:
-    translateY(calc((1 - var(--revelado)) * 22px))
+    translateY(calc((1 - var(--revelado)) * 22px * var(--ss)))
     scale(calc(0.94 + var(--revelado) * 0.06));
 }
 /* Tilt 3D + brillo especular al pasar el cursor (peso real del vidrio).
@@ -465,14 +474,14 @@ body {
   position: relative;
   width: 100%;
   height: 100%;
-  transform: perspective(900px) rotateX(var(--tiltX, 0deg)) rotateY(var(--tiltY, 0deg));
+  transform: perspective(calc(900px * var(--ss))) rotateX(var(--tiltX, 0deg)) rotateY(var(--tiltY, 0deg));
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
 }
 .panel-brillo {
   position: absolute;
   inset: 0;
-  border-radius: 10px;
+  border-radius: calc(10px * var(--ss));
   pointer-events: none;
   opacity: 0;
   background: radial-gradient(
@@ -491,7 +500,7 @@ body {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  padding: 1px;
+  padding: max(1px, calc(1px * var(--ss)));
   background: linear-gradient(
     160deg,
     rgba(255, 255, 255, calc(0.22 + var(--foco) * 0.2)),
@@ -509,7 +518,7 @@ body {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 10px;
+  border-radius: calc(10px * var(--ss));
   overflow: hidden;
 }
 .panel-foto img {
@@ -519,9 +528,10 @@ body {
   display: block;
   /* Revelado doble: de lejos la card entera está OSCURA (--revelado, por
      distancia de cámara) y la foto desenfocada/apagada (--foco); al
-     acercarse se esclarece, y en foco queda nítida y luminosa. */
+     acercarse se esclarece, y en foco queda nítida y luminosa. El blur de
+     profundidad se escala con --ss para que se vea igual a la card 2×. */
   filter:
-    blur(calc((1 - var(--foco)) * 7px))
+    blur(calc((1 - var(--foco)) * 7px * var(--ss)))
     saturate(calc(0.65 + var(--foco) * 0.45))
     brightness(calc((0.82 + var(--foco) * 0.22) * (0.45 + var(--revelado) * 0.55)));
   transform: scale(calc(1.09 - var(--foco) * 0.09));
@@ -547,51 +557,51 @@ body {
 
 .panel-info {
   position: absolute;
-  left: 28px;
-  right: 28px;
-  bottom: 24px;
+  left: calc(28px * var(--ss));
+  right: calc(28px * var(--ss));
+  bottom: calc(24px * var(--ss));
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: calc(5px * var(--ss));
   opacity: calc(0.2 + var(--foco) * 0.8);
-  transform: translateY(calc((1 - var(--foco)) * 8px));
+  transform: translateY(calc((1 - var(--foco)) * 8px * var(--ss)));
   pointer-events: none;
 }
 .panel-fecha {
-  font-size: 9px;
+  font-size: calc(9px * var(--ss));
   letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--color-rojo-claro);
-  text-shadow: 0 1px 8px rgba(26, 5, 8, 0.9);
+  text-shadow: 0 1px calc(8px * var(--ss)) rgba(26, 5, 8, 0.9);
 }
 .panel-palabra {
   font-family: var(--fuente-display);
   font-style: italic;
   font-weight: 600;
-  font-size: 30px;
+  font-size: calc(30px * var(--ss));
   line-height: 1.05;
   letter-spacing: 0.02em;
   color: var(--color-crema);
-  text-shadow: 0 1px 14px rgba(26, 5, 8, 0.85);
+  text-shadow: 0 1px calc(14px * var(--ss)) rgba(26, 5, 8, 0.85);
 }
 .panel-desc {
   font-family: var(--fuente-ui);
-  font-size: 11px;
+  font-size: calc(11px * var(--ss));
   line-height: 1.45;
   letter-spacing: 0.02em;
   color: var(--color-beige);
   max-width: 30ch;
   /* La descripción sólo se revela cuando la card está bien enfocada */
   opacity: calc(var(--foco) * var(--foco));
-  text-shadow: 0 1px 10px rgba(26, 5, 8, 0.95);
+  text-shadow: 0 1px calc(10px * var(--ss)) rgba(26, 5, 8, 0.95);
 }
 
 /* Hito destacado (nos pusimos de novios): marco y glow dorados */
 .panel-vidrio.destacado {
   border-color: rgba(230, 184, 125, 0.4);
   box-shadow:
-    0 0 calc(24px + var(--foco) * 34px) rgba(230, 184, 125, calc(0.14 + var(--foco) * 0.22)),
-    inset 0 0 26px rgba(230, 184, 125, 0.06);
+    0 0 calc((24px + var(--foco) * 34px) * var(--ss)) rgba(230, 184, 125, calc(0.14 + var(--foco) * 0.22)),
+    inset 0 0 calc(26px * var(--ss)) rgba(230, 184, 125, 0.06);
 }
 .panel-vidrio.destacado .panel-fecha { color: var(--color-dorado); }
 /* Los paneles lejanos sueltan el backdrop-filter (el blur es lo más caro) */
@@ -760,7 +770,12 @@ body {
     width: calc(100vw - 48px);
     bottom: 56px;
   }
-  .panel-vidrio { width: 320px; height: 256px; padding: 11px; }
-  .panel-palabra { font-size: 22px; }
-  .panel-info { left: 24px; bottom: 20px; }
+  /* Card mobile más chica, pero manteniendo el supersample (× var(--ss)) */
+  .panel-vidrio {
+    width: calc(320px * var(--ss));
+    height: calc(256px * var(--ss));
+    padding: calc(11px * var(--ss));
+  }
+  .panel-palabra { font-size: calc(22px * var(--ss)); }
+  .panel-info { left: calc(24px * var(--ss)); bottom: calc(20px * var(--ss)); }
 }

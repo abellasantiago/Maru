@@ -44,10 +44,16 @@ export class PanelesVidrio {
        sin reduced-motion; en táctil las cards quedan planas y estables. */
     const soportaTilt = !MOVIMIENTO_REDUCIDO && window.matchMedia('(pointer: fine)').matches;
 
+    /* Factor de supersample: la card se maqueta a ×SS px (var(--ss) en CSS) y
+       su escala 3D se divide por SS, así ocupa el mismo tamaño en el mundo con
+       el doble de resolución de textura (nitidez en pantallas grandes/HiDPI). */
+    const SS = CONFIG.supersampleCards;
+
     MOMENTOS.forEach((momento, indice) => {
       const el = document.createElement('div');
       el.className = 'panel-vidrio' + (momento.destacado ? ' destacado' : '');
       el.dataset.momento = momento.id;
+      el.style.setProperty('--ss', SS);
       /* .panel-interior es un div propio para la animación de entrada
          (translateY/scale): el.style.transform ya lo usa CSS3DRenderer
          para posicionar el panel en el espacio 3D, así que el "asentarse"
@@ -56,7 +62,7 @@ export class PanelesVidrio {
         <div class="panel-interior">
           <div class="panel-tilt">
             <figure class="panel-foto">
-              <img src="${momento.foto}" alt="${momento.titulo}" draggable="false">
+              <img src="${momento.foto}" alt="${momento.titulo}" draggable="false" style="object-position: ${momento.encuadre}">
               <div class="panel-grano"></div>
             </figure>
             <header class="panel-info">
@@ -92,8 +98,9 @@ export class PanelesVidrio {
       }
 
       const objeto = new CSS3DObject(el);
-      /* Un div de 440px pasa a medir 4.4 unidades de mundo */
-      objeto.scale.setScalar(CONFIG.escalaCSS3D);
+      /* La card mide ×SS px, así que dividimos la escala por SS para que su
+         tamaño en el mundo quede idéntico (supersample sin cambiar el layout). */
+      objeto.scale.setScalar(CONFIG.escalaCSS3D / SS);
       objeto.position.fromArray(momento.posicion);
       objeto.rotation.fromArray(momento.rotacion);
       this.escenaCSS.add(objeto);

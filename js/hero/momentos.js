@@ -14,43 +14,50 @@
        (Opcional) `claves: ['playa','verano']` agrega palabras extra al
        buscador; el buscador ya usa el título y la fecha igual.
 
-   ▸ Para reemplazar/rotar una foto: pisá el archivo assets/fotos/Momento-NN.jpg
+   ▸ Para reemplazar/rotar una foto: pisá el archivo assets/fotos/Momento-NN.webp
+
+   ▸ ENCUADRE: la card recorta la foto con object-fit:cover (5:4). Si el
+     sujeto queda descentrado, ajustá `encuadre` de esa línea — son las
+     mismas dos coordenadas de CSS object-position: 'horizontal vertical'
+     en % (0% 0% = esquina superior izquierda, 100% 100% = inferior
+     derecha). Por defecto '50% 50%' (centrado). Para subir el encuadre
+     (mostrar más de la parte de ARRIBA de la foto) bajá el segundo
+     número, ej. '50% 20%'; para bajarlo, subilo, ej. '50% 80%'.
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Contenido de cada momento (en orden de recorrido) ──
    Una línea por foto. Completá titulo y fecha; el resto se arma solo. */
 const DATOS = [
-  { titulo: '', fecha: '' },   // 01 → Momento-01.jpg
-  { titulo: '', fecha: '' },   // 02 → Momento-02.jpg
-  { titulo: '', fecha: '' },   // 03 → Momento-03.jpg
-  { titulo: '', fecha: '' },   // 04 → Momento-04.jpg
-  { titulo: '', fecha: '' },   // 05 → Momento-05.jpg
-  { titulo: '', fecha: '' },   // 06 → Momento-06.jpg
-  { titulo: '', fecha: '' },   // 07 → Momento-07.jpg
-  { titulo: '', fecha: '' },   // 08 → Momento-08.jpg
-  { titulo: '', fecha: '' },   // 09 → Momento-09.jpg
-  { titulo: '', fecha: '' },   // 10 → Momento-10.jpg  (foto horizontal)
-  { titulo: '', fecha: '' },   // 11 → Momento-11.jpg
-  { titulo: '', fecha: '' },   // 12 → Momento-12.jpg
-  { titulo: '', fecha: '' },   // 13 → Momento-13.jpg
-  { titulo: '', fecha: '' },   // 14 → Momento-14.jpg
-  { titulo: '', fecha: '' },   // 15 → Momento-15.jpg
-  { titulo: '', fecha: '' },   // 16 → Momento-16.jpg
-  { titulo: '', fecha: '' },   // 17 → Momento-17.jpg  ⚠ FALTA esta foto: agregala o borrá esta línea
-  { titulo: '', fecha: '' },   // 18 → Momento-18.jpg
-  { titulo: '', fecha: '' },   // 19 → Momento-19.jpg
-  { titulo: '', fecha: '' },   // 20 → Momento-20.jpg
-  { titulo: '', fecha: '' },   // 21 → Momento-21.jpg
-  { titulo: '', fecha: '' },   // 22 → Momento-22.jpg
-  { titulo: '', fecha: '' },   // 23 → Momento-23.jpg
-  { titulo: '', fecha: '' },   // 24 → Momento-24.jpg
-  { titulo: '', fecha: '' },   // 25 → Momento-25.jpg
-  { titulo: '', fecha: '' },   // 26 → Momento-26.jpg
-  { titulo: '', fecha: '' },   // 27 → Momento-27.jpg
-  { titulo: '', fecha: '' },   // 28 → Momento-28.jpg  (foto horizontal)
-  { titulo: '', fecha: '' },   // 29 → Momento-29.jpg
-  { titulo: '', fecha: '' },   // 30 → Momento-30.jpg
-  { titulo: '', fecha: '' },   // 31 → Momento-31.jpg
+  { titulo: '', fecha: '', encuadre: '50% 55%' },   // 01 → Momento-01.jpg
+  { titulo: '', fecha: '', encuadre: '50% 50%' },   // 02 → Momento-02.jpg
+  { titulo: '', fecha: '', encuadre: '50% 31%' },   // 03 → Momento-03.jpg
+  { titulo: '', fecha: '', encuadre: '50% 40%' },   // 04 → Momento-04.jpg
+  { titulo: '', fecha: '', encuadre: '50% 30%' },   // 05 → Momento-05.jpg
+  { titulo: '', fecha: '', encuadre: '50% 55%' },   // 06 → Momento-06.jpg
+  { titulo: '', fecha: '', encuadre: '50% 45%' },   // 07 → Momento-07.jpg
+  { titulo: '', fecha: '', encuadre: '50% 50%' },   // 08 → Momento-08.jpg
+  { titulo: '', fecha: '', encuadre: '50% 45%' },   // 09 → Momento-09.jpg
+  { titulo: '', fecha: '', encuadre: '50% 50%' },   // 10 → Momento-10.jpg  (foto horizontal)
+  { titulo: '', fecha: '', encuadre: '50% 60%' },   // 11 → Momento-11.jpg
+  { titulo: '', fecha: '', encuadre: '50% 60%' },   // 12 → Momento-12.jpg
+  { titulo: '', fecha: '', encuadre: '50% 35%' },   // 13 → Momento-13.jpg
+  { titulo: '', fecha: '', encuadre: '50% 50%' },   // 14 → Momento-14.jpg
+  { titulo: '', fecha: '', encuadre: '50% 47%' },   // 15 → Momento-15.jpg
+  { titulo: '', fecha: '', encuadre: '50% 35%' },   // 16 → Momento-16.jpg
+  { titulo: '', fecha: '', encuadre: '50% 35%' },   // 17 → Momento-17.jpg 
+  { titulo: '', fecha: '', encuadre: '50% 51%' },   // 18 → Momento-18.jpg
+  { titulo: '', fecha: '', encuadre: '50% 45%' },   // 19 → Momento-19.jpg
+  { titulo: '', fecha: '', encuadre: '50% 70%' },   // 20 → Momento-20.jpg
+  { titulo: '', fecha: '', encuadre: '50% 50%' },   // 21 → Momento-21.jpg
+  { titulo: '', fecha: '', encuadre: '50% 20%' },   // 22 → Momento-22.jpg
+  { titulo: '', fecha: '', encuadre: '50% 45%' },   // 23 → Momento-23.jpg
+  { titulo: '', fecha: '', encuadre: '50% 60%' },   // 24 → Momento-24.jpg
+  { titulo: '', fecha: '', encuadre: '50% 40%' },   // 25 → Momento-25.jpg
+  { titulo: '', fecha: '', encuadre: '50% 45%' },   // 26 → Momento-26.jpg
+  { titulo: '', fecha: '', encuadre: '50% 50%' },   // 27 → Momento-27.jpg
+  { titulo: '', fecha: '', encuadre: '50% 40%' },   // 28 → Momento-28.jpg  (foto horizontal)
+  { titulo: '', fecha: '', encuadre: '50% 55%' },   // 29 → Momento-29.jpg
+  { titulo: '', fecha: '', encuadre: '50% 45%' },   // 30 → Momento-30.jpg
 ];
 
 /* ── Disposición 3D: parámetros del "corredor" de cards ── */
@@ -90,7 +97,8 @@ export const MOMENTOS = DATOS.map((d, i) => ({
   titulo: (d.titulo && d.titulo.trim()) ? d.titulo : GENERICO.titulo,
   fecha: (d.fecha && d.fecha.trim()) ? d.fecha : GENERICO.fecha,
   desc: (d.desc !== undefined) ? d.desc : GENERICO.desc,
-  foto: `assets/fotos/Momento-${String(i + 1).padStart(2, '0')}.jpg`,
+  foto: `assets/fotos/Momento-${String(i + 1).padStart(2, '0')}.webp`,
+  encuadre: d.encuadre || '50% 50%',
   ...disponer(i),
 }));
 
