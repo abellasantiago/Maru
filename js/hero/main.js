@@ -2,9 +2,10 @@
    Orquestador del hero inmersivo.
 
    Une todas las piezas sobre UN ÚNICO WebGLRenderer persistente:
-   ▸ escena WebGL — atmósfera (nebulosa + estrellas + amanecer),
-     velos de seda, bokeh + luciérnagas y corazón — con
-     post-procesamiento (bloom cálido + aberración + grano + viñeta)
+   ▸ escena WebGL — atmósfera (nebulosa + estrellas + fugaces +
+     amanecer), velos de seda, bokeh + luciérnagas, rayos de luz y
+     corazón — con post-procesamiento (bloom cálido + aberración +
+     grano + viñeta)
    ▸ escena CSS3D (paneles de vidrio + frases del descenso) con la
      MISMA cámara
    ▸ Lenis (scroll suave) + ScrollTrigger (progreso 0..1) → cámara
@@ -23,6 +24,7 @@ import { Atmosfera } from './atmosfera.js';
 import { VelosSeda } from './velos.js';
 import { AmbienteEnsueno } from './ambiente.js';
 import { Corazon } from './corazon.js';
+import { Rayos } from './rayos.js';
 import { PanelesVidrio } from './paneles.js';
 import { RecorridoCamara } from './camara.js';
 import { PostProceso } from './postproceso.js';
@@ -34,6 +36,18 @@ gsap.registerPlugin(ScrollTrigger);
 
 class HeroInmersivo {
   constructor() {
+    /* ── Arranque siempre desde el principio ──
+       Al refrescar, el navegador restaura el scroll anterior: el hero se
+       montaba con la cámara en el landing mientras el scroll decía "mitad
+       del timeline", y en ese cuadro suelto el amanecer (un resplandor
+       enorme y cálido) llenaba la pantalla. De ahí el destello rojo.
+       Con esto, un refresh siempre vuelve al comienzo del viaje. */
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+    /* El navegador puede restaurar el scroll DESPUÉS de que corra esto, así
+       que lo volvemos a poner en cero cuando termina de cargar todo. */
+    window.addEventListener('load', () => window.scrollTo(0, 0), { once: true });
+
     /* ── Renderer único y persistente ── */
     this.lienzo = document.getElementById('lienzo-webgl');
     this.renderizador = new THREE.WebGLRenderer({
@@ -65,6 +79,7 @@ class HeroInmersivo {
     this.atmosfera = new Atmosfera(this.escena);
     this.velos = new VelosSeda(this.escena);
     this.ambiente = new AmbienteEnsueno(this.escena);
+    this.rayos = new Rayos(this.escena);
     this.corazon = new Corazon(this.escena);
     this.paneles = new PanelesVidrio(
       document.getElementById('capa-css3d'),
@@ -76,9 +91,19 @@ class HeroInmersivo {
 
     /* ── Estado ── */
     this.mouseNDC = new THREE.Vector2(0, 0);
+    /* ¿El visitante movió el puntero alguna vez? mouseNDC arranca en (0,0),
+       que es el centro EXACTO de la pantalla — o sea, justo encima del
+       corazón. Sin este flag, el corazón nace con un agujero de repulsión
+       en el medio, como si el cursor estuviera clavado ahí. */
+    this.hayMouse = false;
     this.tiempo = 0;
     this.activo = true;          // ¿renderizamos este frame?
     this.veloEl = document.getElementById('velo-transicion');
+    this.veloCargaEl = document.getElementById('velo-carga');
+    /* Red de seguridad: si el bucle nunca llegara a dibujar (WebGL caído,
+       pestaña en segundo plano al abrir), el velo igual se retira y nadie
+       se queda mirando una pantalla vacía. */
+    setTimeout(() => this._retirarVeloCarga(), 2500);
     this._progresoPrevio = 0;        // para medir la velocidad del scroll
     this._velScroll = 0;             // velocidad suavizada (respiración del FOV)
 
@@ -158,6 +183,7 @@ class HeroInmersivo {
     window.addEventListener('pointermove', (e) => {
       this.mouseNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
       this.mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      this.hayMouse = true;
     }, { passive: true });
 
     window.addEventListener('resize', () => this._redimensionar());
@@ -196,6 +222,12 @@ class HeroInmersivo {
     this._fueraDelHero = false;
     this.lienzo.style.visibility = 'visible';
     document.getElementById('capa-css3d').style.visibility = 'visible';
+  }
+
+  _retirarVeloCarga() {
+    if (this._veloRetirado) return;
+    this._veloRetirado = true;
+    this.veloCargaEl.classList.add('listo');
   }
 
   /* ── Bucle único: Lenis + escena, con delta time real ── */
@@ -239,6 +271,16 @@ class HeroInmersivo {
         this.corazon.setPosicion(this.recorrido.corazonAncla);
       }
 
+      /* Rayos de luz: viven exactamente lo que dura el corazón. Nacen
+         cuando la lluvia de la entrada termina de armarlo y se apagan
+         mientras se desarma — nunca asoman en el timeline. */
+      this.rayos.setIntensidad(
+        THREE.MathUtils.smoothstep(this.corazon.entrada, 0.55, 1) *
+        (1 - THREE.MathUtils.smoothstep(this.recorrido.progresoLanding, 0.5, 0.92))
+      );
+      this.rayos.setAncla(this.recorrido.corazonAncla, this.camara);
+      this.rayos.actualizar(this.tiempo);
+
       /* Intensidad del fondo: contenida durante el landing (el corredor
          central ya está despejado, así el corazón se ve limpio) y sube al
          entrar al timeline. Arranca en 0.5: presencia suficiente para que
@@ -247,17 +289,27 @@ class HeroInmersivo {
         this.recorrido.progreso, 0, FASES.landingFin * 0.85
       );
 
-      /* Piezas animadas */
-      this.atmosfera.actualizar(dt, this.tiempo, this.camara, this.dpr);
+      /* Piezas animadas. El ambiente recibe además el parallax de mouse:
+         lo que está CERCA se corre contra la cámara y lo lejano no se
+         entera → el mundo gana capas en vez de moverse en bloque. */
+      /* El ancla va sólo mientras el corazón esté en pantalla: es lo que las
+         fugaces esquivan. Ya disperso, el ancla queda vieja y no hay nada
+         que esquivar. */
+      this.atmosfera.actualizar(dt, this.tiempo, this.camara, this.dpr,
+        this.corazon.grupo.visible ? this.recorrido.corazonAncla : null);
       this.velos.actualizar(dt, this.tiempo, intensidadFondo);
-      this.ambiente.actualizar(dt, this.tiempo, this.dpr, intensidadFondo);
-      this.corazon.actualizar(dt, this.tiempo, this.mouseNDC, this.camara, this.dpr);
+      this.ambiente.actualizar(dt, this.tiempo, this.dpr, intensidadFondo, this.recorrido.parallax);
+      this.corazon.actualizar(dt, this.tiempo, this.mouseNDC, this.camara, this.dpr, this.hayMouse);
       this.paneles.actualizar(dt, this.tiempo, this.camara);
       this.postproceso.actualizar(this.tiempo);
 
       /* Render: WebGL con post-proceso + capa CSS3D con la misma cámara */
       this.postproceso.render(dt);
       this.paneles.render(this.camara);
+
+      /* Ya hay imagen de verdad en pantalla: recién ahora sacamos el velo
+         de carga (si lo sacáramos antes, se vería el cuadro en blanco). */
+      this._retirarVeloCarga();
     });
   }
 }

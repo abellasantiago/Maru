@@ -6,6 +6,11 @@
    profundidad como un almohadón: de frente es un corazón perfecto,
    girado tiene panza y cuerpo. La nube:
 
+   ▸ ENTRA CAYENDO: al cargar el sitio las partículas llueven desde
+     bien arriba y desembocan en la forma, armándola de abajo hacia
+     arriba (la punta primero, los lóbulos al final). Mientras caen
+     son chispas encendidas; al asentarse se calman. Es sólo la
+     entrada: el corazón que queda es exactamente el de siempre.
    ▸ respira y vibra con vida propia (ruido orgánico en GPU)
    ▸ REPELE al cursor: las partículas se apartan en 3D alrededor
      del punto donde el mouse toca el plano del corazón, y vuelven
@@ -19,7 +24,7 @@
    Contrato público (main.js):
      new Corazon(escena) · setGiro(rad) · setPosicion(v)
      · setDesarme(0..1) · actualizar(dt, tiempo, mouseNDC, camara, dpr)
-     · destruir()
+     · entrada (0..1, sólo lectura) · destruir()
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
@@ -71,6 +76,12 @@ function semiEspesor(dBorde) {
   return PROFUNDIDAD_MAX * Math.sqrt(Math.min(dBorde / 0.48, 1));
 }
 
+/* Fracción de la entrada que se va en ESCALONAR la lluvia. El resto
+   (1 − esto) es lo que tarda cada partícula en su propia caída: con
+   0.58 las primeras ya están asentadas mientras las últimas recién
+   salen, que es lo que hace que el corazón se "llene" y no aparezca. */
+const ESCALONADO_ENTRADA = 0.58;
+
 export class Corazon {
   constructor(escena) {
     this.grupo = new THREE.Group();
@@ -82,6 +93,10 @@ export class Corazon {
     this.desarme = 0;        // 0 = corazón armado · 1 = totalmente disperso
     this.opacidad = 1;       // derivada del desarme (fade del final)
     this.fuerzaMouse = 0;    // presencia del cursor, suavizada
+
+    /* Entrada: avanza con el reloj real (no con el scroll) apenas carga
+       el sitio. 0 = lluvia arriba · 1 = corazón armado. */
+    this.entrada = 0;
 
     this._construirNube();
 
@@ -97,6 +112,8 @@ export class Corazon {
     const cantidad = CONFIG.particulasCorazon;
     const posiciones = new Float32Array(cantidad * 3);
     const dispersas = new Float32Array(cantidad * 3);
+    const caidas = new Float32Array(cantidad * 3);
+    const retardos = new Float32Array(cantidad);
     const semillas = new Float32Array(cantidad);
     const tamanios = new Float32Array(cantidad);
     const brillos = new Float32Array(cantidad);
@@ -156,9 +173,20 @@ export class Corazon {
       dispersas[i * 3 + 1] = dir.y;
       dispersas[i * 3 + 2] = dir.z;
 
+      /* ── Entrada: de dónde cae esta partícula y cuándo ──
+         Sale de una columna de luz bien arriba, apenas más ancha que el
+         corazón (así la lluvia "desemboca" en la forma en vez de caer en
+         un cilindro perfecto). El retardo va mayormente con la ALTURA de
+         su destino: se llena de abajo hacia arriba —la punta primero, los
+         lóbulos al final— con un resto al azar para que no sea un barrido. */
+      caidas[i * 3 + 0] = x * 0.45 + THREE.MathUtils.randFloatSpread(2.4);
+      caidas[i * 3 + 1] = THREE.MathUtils.randFloat(6.5, 19);
+      caidas[i * 3 + 2] = z * 0.45 + THREE.MathUtils.randFloatSpread(2.0);
+
       semillas[i] = Math.random() * 100;
       /* Luz desde arriba: los lóbulos más vivos, la punta más profunda */
       const altura = THREE.MathUtils.clamp((y - yMin) / (yMax - yMin), 0, 1);
+      retardos[i] = THREE.MathUtils.clamp(altura * 0.64 + Math.random() * 0.36, 0, 1);
       brillos[i] = THREE.MathUtils.clamp(Math.random() * 0.55 + altura * 0.45, 0, 1);
       superficies[i] = esSuperficie;
       chispas[i] = esChispa;
@@ -172,6 +200,8 @@ export class Corazon {
     const geometria = new THREE.BufferGeometry();
     geometria.setAttribute('position', new THREE.BufferAttribute(posiciones, 3));
     geometria.setAttribute('aDispersa', new THREE.BufferAttribute(dispersas, 3));
+    geometria.setAttribute('aCaida', new THREE.BufferAttribute(caidas, 3));
+    geometria.setAttribute('aRetardo', new THREE.BufferAttribute(retardos, 1));
     geometria.setAttribute('semilla', new THREE.BufferAttribute(semillas, 1));
     geometria.setAttribute('tamanio', new THREE.BufferAttribute(tamanios, 1));
     geometria.setAttribute('aBrillo', new THREE.BufferAttribute(brillos, 1));
@@ -186,6 +216,7 @@ export class Corazon {
         uTiempo: { value: 0 },
         uDPR: { value: 1 },
         uDesarme: { value: 0 },
+        uEntrada: { value: 0 },
         uOpacidad: { value: 1 },
         uFuerza: { value: 0 },
         uMouseLocal: { value: new THREE.Vector3(99, 99, 99) },  // lejos al arrancar
@@ -196,6 +227,8 @@ export class Corazon {
       vertexShader: /* glsl */ `
         ${RUIDO_SIMPLEX_GLSL}
         attribute vec3 aDispersa;
+        attribute vec3 aCaida;
+        attribute float aRetardo;
         attribute float semilla;
         attribute float tamanio;
         attribute float aBrillo;
@@ -204,12 +237,14 @@ export class Corazon {
         uniform float uTiempo;
         uniform float uDPR;
         uniform float uDesarme;
+        uniform float uEntrada;
         uniform float uFuerza;
         uniform vec3 uMouseLocal;
         varying float vSemilla;
         varying float vBrillo;
         varying float vSuperficie;
         varying float vChispa;
+        varying float vEntrada;
         void main() {
           vSemilla = semilla;
           vBrillo = aBrillo;
@@ -218,19 +253,40 @@ export class Corazon {
 
           vec3 p = position;
 
+          /* ── Entrada: la partícula cae desde su punto en el cielo ──
+             Cada una espera su turno (aRetardo) y hace su propia caída
+             dentro de la ventana restante. easeOutCubic: se descuelga
+             rápido y aterriza suave, sin frenazo. */
+          float caida = clamp(
+            (uEntrada - aRetardo * ${ESCALONADO_ENTRADA.toFixed(2)}) /
+            ${(1 - ESCALONADO_ENTRADA).toFixed(2)}, 0.0, 1.0);
+          vEntrada = caida;
+          /* easeOutCubic por multiplicación, no con pow(): más barato y sin
+             el riesgo de NaN que tiene pow() con base negativa. */
+          float resta = 1.0 - caida;
+          float llegada = 1.0 - resta * resta * resta;
+          float enElAire = 1.0 - llegada;
+
+          /* Va perdiendo altura y, de paso, se mece: la lluvia se curva
+             hacia la forma en vez de caer en líneas rectas. */
+          p += aCaida * enElAire;
+          p.x += sin(uTiempo * 1.6 + semilla * 5.7) * 0.22 * enElAire;
+          p.z += cos(uTiempo * 1.3 + semilla * 4.1) * 0.16 * enElAire;
+
           /* Vida propia: vibración orgánica CONTENIDA (la silueta debe
-             quedar nítida), que crece recién al desarmarse */
-          float amp = 0.018 + uDesarme * 0.24;
+             quedar nítida), que crece recién al desarmarse. Mientras la
+             partícula viaja no vibra: el trazo de la caída queda limpio. */
+          float amp = (0.018 + uDesarme * 0.24) * llegada;
           p.x += snoise(vec3(position.yz * 1.8, uTiempo * 0.32 + semilla)) * amp;
           p.y += snoise(vec3(position.zx * 1.8, uTiempo * 0.28 + semilla)) * amp;
           p.z += snoise(vec3(position.xy * 1.8, uTiempo * 0.30 + semilla)) * amp;
 
-          /* Repulsión del cursor en 3D (sólo con el corazón armado):
+          /* Repulsión del cursor en 3D (sólo con el corazón ya armado):
              las partículas se apartan del punto tocado y vuelven solas.
              Radio acorde al corazón grande (~2.7 de alto). */
           vec3 delta = p - uMouseLocal;
           float d = length(delta);
-          float rep = uFuerza * 0.55 * exp(-d * d * 1.6) * (1.0 - uDesarme);
+          float rep = uFuerza * 0.55 * exp(-d * d * 1.6) * (1.0 - uDesarme) * llegada;
           p += (delta / max(d, 0.05)) * rep;
 
           /* Desarme: cada partícula viaja hacia su punto de dispersión */
@@ -238,7 +294,9 @@ export class Corazon {
 
           vec4 pv = modelViewMatrix * vec4(p, 1.0);
           gl_PointSize = tamanio * uDPR * (40.0 / max(-pv.z, 0.001));
-          gl_PointSize = min(gl_PointSize, 9.0 * uDPR);
+          /* Cayendo es una gota de luz un poco más gorda que en reposo */
+          gl_PointSize *= 1.0 + 0.45 * enElAire;
+          gl_PointSize = min(gl_PointSize, 11.0 * uDPR);
           gl_Position = projectionMatrix * pv;
         }
       `,
@@ -252,6 +310,7 @@ export class Corazon {
         varying float vBrillo;
         varying float vSuperficie;
         varying float vChispa;
+        varying float vEntrada;
         void main() {
           float d = length(gl_PointCoord - 0.5);
           float disco = smoothstep(0.5, 0.08, d);
@@ -266,10 +325,20 @@ export class Corazon {
           float onda = sin(uTiempo * (1.3 + vChispa * 1.2) + vSemilla * 3.0);
           float titileo = mix(0.72 + 0.28 * onda, 0.35 + 0.65 * onda * onda, vChispa);
 
+          /* ── Entrada ──
+             La partícula no existe hasta que se descuelga (así las que
+             esperan turno no se ven flotando arriba), y mientras cae es
+             una chispa encendida que se apaga al asentarse. */
+          float aparecer = smoothstep(0.0, 0.10, vEntrada);
+          float cayendo = 1.0 + 1.25 * (1.0 - smoothstep(0.30, 1.0, vEntrada));
+
           /* Alfa contenida: miles de puntos aditivos + bloom queman rápido;
              el corazón debe leerse ROJO, no blanco */
-          float alfa = disco * titileo * (0.20 + vSuperficie * 0.15 + vChispa * 0.25) * uOpacidad;
-          if (alfa < 0.004) discard;
+          float alfa = disco * titileo * (0.20 + vSuperficie * 0.15 + vChispa * 0.25)
+                     * uOpacidad * aparecer * cayendo;
+          if (!(alfa > 0.004)) discard;      // negado: así también cae el NaN
+          /* Cayendo tira apenas al claro: gota de luz antes que brasa */
+          color = mix(color, uColorClaro, (cayendo - 1.0) * 0.30);
           gl_FragColor = vec4(color, alfa);
         }
       `,
@@ -297,8 +366,19 @@ export class Corazon {
     this.grupo.visible = this.opacidad > 0.004;
   }
 
-  actualizar(dt, tiempo, mouseNDC, camara, dpr) {
+  /**
+   * @param {boolean} hayMouse  ¿el visitante movió el puntero alguna vez?
+   *   Sin esto, mouseNDC arranca en (0,0) —el centro exacto de la pantalla,
+   *   que es donde vive el corazón— y el corazón nacía con un agujero de
+   *   repulsión en el medio, como si el cursor estuviera clavado ahí.
+   */
+  actualizar(dt, tiempo, mouseNDC, camara, dpr, hayMouse = false) {
     if (!this.grupo.visible) return;   // disperso: nada que animar
+
+    /* Entrada: corre con el reloj real, una sola vez, apenas carga el sitio */
+    if (this.entrada < 1) {
+      this.entrada = Math.min(this.entrada + dt / CONFIG.duracionEntrada, 1);
+    }
 
     /* Respiración: escala oscilante muy leve, loop infinito (~4 s) */
     const pulso = 1 + Math.sin(tiempo * 1.55) * CONFIG.amplitudRespiracion;
@@ -312,7 +392,7 @@ export class Corazon {
        mirando a cámara, y lo llevamos a coordenadas locales (así el punto
        repelido acompaña también el GIRO del corazón). */
     let objetivo = 0;
-    if (CONFIG.parallaxMouse > 0) {
+    if (CONFIG.parallaxMouse > 0 && hayMouse) {
       this.grupo.updateMatrixWorld();
       camara.getWorldDirection(this._normal);
       this._plano.setFromNormalAndCoplanarPoint(this._normal, this.grupo.position);
@@ -332,6 +412,7 @@ export class Corazon {
     u.uTiempo.value = tiempo;
     u.uDPR.value = dpr;
     u.uDesarme.value = this.desarme;
+    u.uEntrada.value = this.entrada;
     u.uOpacidad.value = this.opacidad;
     u.uFuerza.value = this.fuerzaMouse;
   }

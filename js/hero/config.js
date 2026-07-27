@@ -92,6 +92,20 @@ export const CONFIG = {
   amplitudRespiracion: MOVIMIENTO_REDUCIDO ? 0.008 : 0.022,
   vueltasCorazon: MOVIMIENTO_REDUCIDO ? 0.6 : 1.25,   // giros completos durante el landing
 
+  /* Entrada del corazón (segundos): las partículas caen desde arriba y
+     lo van ARMANDO de abajo hacia arriba, hasta cerrar la silueta ♥. */
+  duracionEntrada: MOVIMIENTO_REDUCIDO ? 1.0 : 3.0,
+
+  /* Estrellas fugaces: cuántas pueden cruzar el cielo a la vez. Con 2 y
+     esperas largas casi siempre se ve una sola — un detalle, no un show. */
+  cantidadFugaces: MOVIMIENTO_REDUCIDO ? 0 : 2,
+  esperaFugaz: [9, 23],          // segundos de calma entre cruce y cruce
+
+  /* Resplandor detrás del corazón: alfa máximo del abanico. Bajísimo a
+     propósito — tiene que leerse como aire con luz, nunca como gráfico.
+     Subir de ~0.06 empieza a notarse como "rayos" dibujados. */
+  intensidadRayos: MOVIMIENTO_REDUCIDO ? 0.012 : 0.026,
+
   /* Cámara viva: deriva orgánica mínima e independiente del scroll, para
      que el mundo nunca quede del todo quieto (sensación de cámara en mano). */
   derivaCamara: MOVIMIENTO_REDUCIDO ? 0 : 0.07,

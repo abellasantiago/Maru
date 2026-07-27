@@ -13,6 +13,10 @@
 
    Ambas capas despejan un corredor central (el descenso del corazón
    y el tubo del timeline): la imagen importante queda siempre limpia.
+
+   Son también la CAPA CERCANA del parallax de mouse: se desplazan
+   CONTRA la cámara (ver uParallax), y sólo lo que está cerca reacciona
+   —lo lejano queda quieto—, que es exactamente como funciona la vista.
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
@@ -90,6 +94,7 @@ export class AmbienteEnsueno {
         uDPR: { value: 1 },
         uAmplitud: { value: MOVIMIENTO_REDUCIDO ? 0.2 : 0.8 },
         uIntensidad: { value: 1 },
+        uParallax: { value: new THREE.Vector2() },
         uColorCrema: { value: PALETA.crema },
         uColorOro: { value: PALETA.dorado },
         uColorRosa: { value: PALETA.rosa },
@@ -103,6 +108,7 @@ export class AmbienteEnsueno {
         uniform float uTiempo;
         uniform float uDPR;
         uniform float uAmplitud;
+        uniform vec2 uParallax;
         varying float vSemilla;
         varying float vMezcla;
         varying float vAlfaBase;
@@ -121,6 +127,12 @@ export class AmbienteEnsueno {
 
           vec4 pv = modelViewMatrix * vec4(p, 1.0);
           vDist = -pv.z;
+
+          /* Parallax por capas: el bokeh es la capa CERCANA, así que se
+             corre CONTRA la cámara y exagera su desplazamiento. El efecto
+             se apaga con la distancia — lo lejano casi no se entera. */
+          pv.xy -= uParallax * 0.95 * (1.0 - smoothstep(6.0, 55.0, vDist));
+
           gl_PointSize = tamanio * uDPR * (46.0 / max(vDist, 0.001));
           gl_PointSize = clamp(gl_PointSize, 0.0, 100.0 * uDPR);
           gl_Position = projectionMatrix * pv;
@@ -199,6 +211,7 @@ export class AmbienteEnsueno {
         uDPR: { value: 1 },
         uAmplitud: { value: MOVIMIENTO_REDUCIDO ? 0.15 : 0.5 },
         uIntensidad: { value: 1 },
+        uParallax: { value: new THREE.Vector2() },
         uColorA: { value: PALETA.dorado },
         uColorB: { value: PALETA.rojoClaro },
       },
@@ -210,6 +223,7 @@ export class AmbienteEnsueno {
         uniform float uTiempo;
         uniform float uDPR;
         uniform float uAmplitud;
+        uniform vec2 uParallax;
         varying float vSemilla;
         varying float vMezcla;
         varying float vDist;
@@ -226,6 +240,11 @@ export class AmbienteEnsueno {
 
           vec4 pv = modelViewMatrix * vec4(p, 1.0);
           vDist = -pv.z;
+
+          /* La capa MÁS cercana del parallax: se corre contra la cámara
+             más que el bokeh, y sólo las que están a la mano reaccionan. */
+          pv.xy -= uParallax * 1.25 * (1.0 - smoothstep(3.0, 40.0, vDist));
+
           gl_PointSize = tamanio * uDPR * (40.0 / max(vDist, 0.001));
           gl_PointSize = clamp(gl_PointSize, 0.0, 14.0 * uDPR);
           gl_Position = projectionMatrix * pv;
@@ -265,11 +284,12 @@ export class AmbienteEnsueno {
     this.luciernagas = puntos;
   }
 
-  actualizar(dt, tiempo, dpr, intensidad = 1) {
+  actualizar(dt, tiempo, dpr, intensidad = 1, parallax = null) {
     for (const m of this.materiales) {
       m.uniforms.uTiempo.value = tiempo;
       m.uniforms.uDPR.value = dpr;
       m.uniforms.uIntensidad.value = intensidad;
+      if (parallax) m.uniforms.uParallax.value.copy(parallax);
     }
   }
 
