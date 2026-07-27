@@ -261,7 +261,10 @@ export class Corazon {
             (uEntrada - aRetardo * ${ESCALONADO_ENTRADA.toFixed(2)}) /
             ${(1 - ESCALONADO_ENTRADA).toFixed(2)}, 0.0, 1.0);
           vEntrada = caida;
-          float llegada = 1.0 - pow(1.0 - caida, 3.0);
+          /* easeOutCubic por multiplicación, no con pow(): más barato y sin
+             el riesgo de NaN que tiene pow() con base negativa. */
+          float resta = 1.0 - caida;
+          float llegada = 1.0 - resta * resta * resta;
           float enElAire = 1.0 - llegada;
 
           /* Va perdiendo altura y, de paso, se mece: la lluvia se curva
@@ -333,7 +336,7 @@ export class Corazon {
              el corazón debe leerse ROJO, no blanco */
           float alfa = disco * titileo * (0.20 + vSuperficie * 0.15 + vChispa * 0.25)
                      * uOpacidad * aparecer * cayendo;
-          if (alfa < 0.004) discard;
+          if (!(alfa > 0.004)) discard;      // negado: así también cae el NaN
           /* Cayendo tira apenas al claro: gota de luz antes que brasa */
           color = mix(color, uColorClaro, (cayendo - 1.0) * 0.30);
           gl_FragColor = vec4(color, alfa);

@@ -70,8 +70,12 @@ export class Rayos {
           float base = giro + ondula;
 
           /* Dos lóbulos MUY anchos y sin bordes: exponente bajo = esfumado.
-             Nunca llega a 0, así no hay contraste duro entre haz y fondo. */
-          float haces = 0.35 + 0.65 * pow(0.5 + 0.5 * sin(base * 2.0), 1.6);
+             Nunca llega a 0, así no hay contraste duro entre haz y fondo.
+             La base va acotada a la fuerza: pow() de un negativo devuelve
+             NaN, y un NaN acá lo esparce el blur del bloom por media
+             pantalla en forma de rectángulo negro. */
+          float lobulo = clamp(0.5 + 0.5 * sin(base * 2.0), 0.0, 1.0);
+          float haces = 0.35 + 0.65 * pow(lobulo, 1.6);
 
           /* Centro despejado (ahí va el corazón) y disolución larguísima
              hacia afuera: jamás se ve el rectángulo ni dónde termina */
@@ -80,7 +84,7 @@ export class Rayos {
           vec3 color = mix(uColorOro, uColorRosa, smoothstep(0.15, 0.85, r));
 
           float alfa = haces * radial * uIntensidad;
-          if (alfa < 0.002) discard;
+          if (!(alfa > 0.002)) discard;      // negado: así también cae el NaN
           gl_FragColor = vec4(color, alfa);
         }
       `,

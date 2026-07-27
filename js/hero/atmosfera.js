@@ -255,13 +255,19 @@ export class Atmosfera {
           varying vec2 vUv;
           void main() {
             /* Transversal: un núcleo finísimo con un halo apenas insinuado */
-            float t = abs(vUv.y - 0.5) * 2.0;
+            float t = clamp(abs(vUv.y - 0.5) * 2.0, 0.0, 1.0);
             float nucleo = exp(-t * t * 52.0);
             float halo   = exp(-t * t * 8.0) * 0.22;
 
-            /* A lo largo: la cola se apaga, la cabeza es el punto encendido */
-            float cola = pow(vUv.x, 3.2);
-            float cabeza = smoothstep(0.88, 1.0, vUv.x);
+            /* A lo largo: la cola se apaga, la cabeza es el punto encendido.
+               Ojo con pow(): en los bordes la interpolación puede entregar un
+               vUv.x apenas negativo, y elevar un negativo a potencia da NaN.
+               Un solo pixel NaN acá se vuelve un RECTÁNGULO negro gigante
+               después del blur separable del bloom. Por eso: base acotada y
+               multiplicación en vez de pow. */
+            float x = clamp(vUv.x, 0.0, 1.0);
+            float cola = x * x * x;
+            float cabeza = smoothstep(0.88, 1.0, x);
 
             /* Envolvente: entra rápido y se apaga ANTES de frenar, así nunca
                se la ve detenerse ni desaparecer de golpe */
@@ -271,7 +277,10 @@ export class Atmosfera {
             vec3 color = mix(uColorB, uColorA, cola);   // cabeza crema, cola dorada
 
             float alfa = luz * env * uOpacidad * uDespeje;
-            if (alfa < 0.004) discard;
+            /* Descarte a prueba de NaN: comparando "menor que" un NaN NO se
+               descarta (toda comparación con NaN es falsa) y termina escrito
+               en el buffer, envenenando el bloom. Negado, el NaN sí cae. */
+            if (!(alfa > 0.004)) discard;
             gl_FragColor = vec4(color, alfa);
           }
         `,
@@ -318,15 +327,16 @@ export class Atmosfera {
 
     fugaz.pos.copy(this._adelante)
       .addScaledVector(this._derecha, medioAncho * THREE.MathUtils.randFloat(-0.72, 0.72))
-      .addScaledVector(this._arriba, medioAlto * THREE.MathUtils.randFloat(0.55, 0.95))
+      .addScaledVector(this._arriba, medioAlto * THREE.MathUtils.randFloat(0.64, 0.96))
       .setLength(RADIO_FUGAZ);
 
-    /* Rumbo: hacia un costado (al azar) y en diagonal hacia abajo, pero
-       con poca caída — se apaga arriba, nunca baja hasta el corazón */
+    /* Rumbo: hacia un costado (al azar) y en diagonal hacia abajo, pero con
+       MUY poca caída: si bajan mucho entran en la zona de despeje del
+       corazón y se apagan casi todo el vuelo (quedan invisibles). */
     const lado = Math.random() < 0.5 ? -1 : 1;
     fugaz.dir.copy(this._derecha)
-      .multiplyScalar(lado * THREE.MathUtils.randFloat(0.6, 1.0))
-      .addScaledVector(this._arriba, -THREE.MathUtils.randFloat(0.3, 0.65));
+      .multiplyScalar(lado * THREE.MathUtils.randFloat(0.75, 1.0))
+      .addScaledVector(this._arriba, -THREE.MathUtils.randFloat(0.16, 0.42));
 
     /* Tangente al domo: la fugaz corre POR el cielo, no lo atraviesa */
     this._normal.copy(fugaz.pos).normalize();
@@ -387,7 +397,10 @@ export class Atmosfera {
       if (anclaCorazon) {
         this._alCorazon.copy(anclaCorazon).sub(camara.position).normalize();
         const angulo = Math.acos(THREE.MathUtils.clamp(this._normal.dot(this._alCorazon), -1, 1));
-        despeje = THREE.MathUtils.smoothstep(angulo, 0.30, 0.58);
+        /* El corazón mide ~0.17 rad de radio angular: apagada del todo hasta
+           0.24 (bien despejado) y a pleno desde 0.42. Más ancho que esto y
+           las fugaces viven apagadas, porque el cuadro entero mide 0.45. */
+        despeje = THREE.MathUtils.smoothstep(angulo, 0.24, 0.42);
       }
       fugaz.material.uniforms.uDespeje.value = despeje;
     }
