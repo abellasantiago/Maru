@@ -2,9 +2,10 @@
    Orquestador del hero inmersivo.
 
    Une todas las piezas sobre UN ÚNICO WebGLRenderer persistente:
-   ▸ escena WebGL — atmósfera (nebulosa + estrellas + amanecer),
-     velos de seda, bokeh + luciérnagas y corazón — con
-     post-procesamiento (bloom cálido + aberración + grano + viñeta)
+   ▸ escena WebGL — atmósfera (nebulosa + estrellas + fugaces +
+     amanecer), velos de seda, bokeh + luciérnagas, rayos de luz y
+     corazón — con post-procesamiento (bloom cálido + aberración +
+     grano + viñeta)
    ▸ escena CSS3D (paneles de vidrio + frases del descenso) con la
      MISMA cámara
    ▸ Lenis (scroll suave) + ScrollTrigger (progreso 0..1) → cámara
@@ -23,6 +24,7 @@ import { Atmosfera } from './atmosfera.js';
 import { VelosSeda } from './velos.js';
 import { AmbienteEnsueno } from './ambiente.js';
 import { Corazon } from './corazon.js';
+import { Rayos } from './rayos.js';
 import { PanelesVidrio } from './paneles.js';
 import { RecorridoCamara } from './camara.js';
 import { PostProceso } from './postproceso.js';
@@ -65,6 +67,7 @@ class HeroInmersivo {
     this.atmosfera = new Atmosfera(this.escena);
     this.velos = new VelosSeda(this.escena);
     this.ambiente = new AmbienteEnsueno(this.escena);
+    this.rayos = new Rayos(this.escena);
     this.corazon = new Corazon(this.escena);
     this.paneles = new PanelesVidrio(
       document.getElementById('capa-css3d'),
@@ -239,6 +242,16 @@ class HeroInmersivo {
         this.corazon.setPosicion(this.recorrido.corazonAncla);
       }
 
+      /* Rayos de luz: viven exactamente lo que dura el corazón. Nacen
+         cuando la lluvia de la entrada termina de armarlo y se apagan
+         mientras se desarma — nunca asoman en el timeline. */
+      this.rayos.setIntensidad(
+        THREE.MathUtils.smoothstep(this.corazon.entrada, 0.55, 1) *
+        (1 - THREE.MathUtils.smoothstep(this.recorrido.progresoLanding, 0.5, 0.92))
+      );
+      this.rayos.setAncla(this.recorrido.corazonAncla, this.camara);
+      this.rayos.actualizar(this.tiempo);
+
       /* Intensidad del fondo: contenida durante el landing (el corredor
          central ya está despejado, así el corazón se ve limpio) y sube al
          entrar al timeline. Arranca en 0.5: presencia suficiente para que
@@ -247,10 +260,12 @@ class HeroInmersivo {
         this.recorrido.progreso, 0, FASES.landingFin * 0.85
       );
 
-      /* Piezas animadas */
+      /* Piezas animadas. El ambiente recibe además el parallax de mouse:
+         lo que está CERCA se corre contra la cámara y lo lejano no se
+         entera → el mundo gana capas en vez de moverse en bloque. */
       this.atmosfera.actualizar(dt, this.tiempo, this.camara, this.dpr);
       this.velos.actualizar(dt, this.tiempo, intensidadFondo);
-      this.ambiente.actualizar(dt, this.tiempo, this.dpr, intensidadFondo);
+      this.ambiente.actualizar(dt, this.tiempo, this.dpr, intensidadFondo, this.recorrido.parallax);
       this.corazon.actualizar(dt, this.tiempo, this.mouseNDC, this.camara, this.dpr);
       this.paneles.actualizar(dt, this.tiempo, this.camara);
       this.postproceso.actualizar(this.tiempo);

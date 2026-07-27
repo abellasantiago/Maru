@@ -11,6 +11,11 @@
    el color son pliegues suaves bordó→rosa con la luz dorada rozando
    el borde superior, y el alfa NUNCA pasa de ~0.13: se miran A TRAVÉS,
    jamás tapan el corazón ni las cards.
+
+   Son la capa LEJANA del parallax: no llevan ningún desplazamiento
+   propio a propósito. Como la cámara pivota sobre el punto de mirada
+   (ver camara.js), lo lejano ya se corre distinto que lo cercano por
+   pura geometría — el efecto por capas vive sólo en bokeh/luciérnagas.
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
