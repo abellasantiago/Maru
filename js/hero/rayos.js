@@ -63,18 +63,19 @@ export class Rayos {
           float a = atan(p.y, p.x);
 
           /* El abanico entero gira lentísimo (una vuelta cada ~5 min) y
-             el ruido lo deforma: los haces respiran y nunca se repiten. */
+             el ruido lo deforma bastante: no se leen "rayos" dibujados
+             sino zonas de aire más cálido que otras. */
           float giro = a + uTiempo * 0.021;
-          float ondula = snoise(vec3(cos(giro) * 1.6, sin(giro) * 1.6, uTiempo * 0.035)) * 0.42;
+          float ondula = snoise(vec3(cos(giro) * 1.6, sin(giro) * 1.6, uTiempo * 0.035)) * 0.75;
           float base = giro + ondula;
 
-          /* Tres haces anchos + unas hebras finas encima */
-          float haces = pow(0.5 + 0.5 * sin(base * 3.0), 6.0) * 0.8
-                      + pow(0.5 + 0.5 * sin(base * 7.0 - uTiempo * 0.05), 15.0) * 0.35;
+          /* Dos lóbulos MUY anchos y sin bordes: exponente bajo = esfumado.
+             Nunca llega a 0, así no hay contraste duro entre haz y fondo. */
+          float haces = 0.35 + 0.65 * pow(0.5 + 0.5 * sin(base * 2.0), 1.6);
 
-          /* Centro despejado (ahí va el corazón) y disolución antes del
-             borde del plano: jamás se ve el rectángulo */
-          float radial = smoothstep(0.05, 0.40, r) * (1.0 - smoothstep(0.46, 0.98, r));
+          /* Centro despejado (ahí va el corazón) y disolución larguísima
+             hacia afuera: jamás se ve el rectángulo ni dónde termina */
+          float radial = smoothstep(0.08, 0.52, r) * (1.0 - smoothstep(0.55, 1.0, r));
 
           vec3 color = mix(uColorOro, uColorRosa, smoothstep(0.15, 0.85, r));
 

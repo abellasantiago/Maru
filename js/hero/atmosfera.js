@@ -66,6 +66,7 @@ export class Atmosfera {
     this._derecha = new THREE.Vector3();
     this._arriba = new THREE.Vector3();
     this._normal = new THREE.Vector3();
+    this._alCorazon = new THREE.Vector3();
     this._ejeX = new THREE.Vector3();
     this._ejeY = new THREE.Vector3();
     this._ejeZ = new THREE.Vector3();
@@ -234,6 +235,7 @@ export class Atmosfera {
         uniforms: {
           uVida: { value: 0 },
           uOpacidad: { value: 0.7 },
+          uDespeje: { value: 1 },      // 0 cerca del corazón: nunca le pasa por encima
           uColorA: { value: PALETA.crema },
           uColorB: { value: PALETA.dorado },
         },
@@ -247,6 +249,7 @@ export class Atmosfera {
         fragmentShader: /* glsl */ `
           uniform float uVida;
           uniform float uOpacidad;
+          uniform float uDespeje;
           uniform vec3 uColorA;
           uniform vec3 uColorB;
           varying vec2 vUv;
@@ -267,7 +270,7 @@ export class Atmosfera {
             float luz = (nucleo + halo) * cola + cabeza * nucleo * 1.3;
             vec3 color = mix(uColorB, uColorA, cola);   // cabeza crema, cola dorada
 
-            float alfa = luz * env * uOpacidad;
+            float alfa = luz * env * uOpacidad * uDespeje;
             if (alfa < 0.004) discard;
             gl_FragColor = vec4(color, alfa);
           }
@@ -315,7 +318,7 @@ export class Atmosfera {
 
     fugaz.pos.copy(this._adelante)
       .addScaledVector(this._derecha, medioAncho * THREE.MathUtils.randFloat(-0.72, 0.72))
-      .addScaledVector(this._arriba, medioAlto * THREE.MathUtils.randFloat(0.42, 0.92))
+      .addScaledVector(this._arriba, medioAlto * THREE.MathUtils.randFloat(0.55, 0.95))
       .setLength(RADIO_FUGAZ);
 
     /* Rumbo: hacia un costado (al azar) y en diagonal hacia abajo, pero
@@ -341,24 +344,27 @@ export class Atmosfera {
     fugaz.mesh.visible = true;
   }
 
-  _actualizarFugaces(dt, camara) {
+  _actualizarFugaces(dt, camara, anclaCorazon) {
     for (const fugaz of this.fugaces) {
-      /* En calma: descontando los segundos hasta el próximo cruce */
       if (!fugaz.mesh.visible) {
+        /* En calma: descontando los segundos hasta el próximo cruce */
         fugaz.espera -= dt;
-        if (fugaz.espera <= 0) this._lanzarFugaz(fugaz, camara);
-        continue;
+        if (fugaz.espera > 0) continue;
+        this._lanzarFugaz(fugaz, camara);
+        /* Sin `continue`: el plano DEBE ubicarse y orientarse en este mismo
+           frame. Si no, pasa un cuadro entero con la transformación anterior
+           —encima de la cámara— y se ve un rectángulo enorme cruzando. */
+      } else {
+        fugaz.vida += dt / fugaz.duracion;
+        if (fugaz.vida >= 1) {
+          fugaz.mesh.visible = false;
+          fugaz.espera = THREE.MathUtils.randFloat(CONFIG.esperaFugaz[0], CONFIG.esperaFugaz[1]);
+          continue;
+        }
+        /* Avanza y vuelve a pegarse al domo (círculo máximo) */
+        fugaz.pos.addScaledVector(fugaz.dir, fugaz.velocidad * dt).setLength(RADIO_FUGAZ);
       }
 
-      fugaz.vida += dt / fugaz.duracion;
-      if (fugaz.vida >= 1) {
-        fugaz.mesh.visible = false;
-        fugaz.espera = THREE.MathUtils.randFloat(CONFIG.esperaFugaz[0], CONFIG.esperaFugaz[1]);
-        continue;
-      }
-
-      /* Avanza y vuelve a pegarse al domo (círculo máximo) */
-      fugaz.pos.addScaledVector(fugaz.dir, fugaz.velocidad * dt).setLength(RADIO_FUGAZ);
       this._normal.copy(fugaz.pos).normalize();
       fugaz.dir.addScaledVector(this._normal, -fugaz.dir.dot(this._normal)).normalize();
 
@@ -371,6 +377,19 @@ export class Atmosfera {
       fugaz.mesh.quaternion.setFromRotationMatrix(this._base);
       fugaz.mesh.position.copy(fugaz.pos);
       fugaz.material.uniforms.uVida.value = fugaz.vida;
+
+      /* ── El corazón SIEMPRE adelante ──
+         Nada puede pasar por encima de él. Como todo el hero es aditivo, la
+         profundidad no alcanza (sumar es sumar, venga de adelante o de
+         atrás): lo que hacemos es apagar la fugaz cuando su recorrido la
+         acerca a la dirección donde está el corazón. */
+      let despeje = 1;
+      if (anclaCorazon) {
+        this._alCorazon.copy(anclaCorazon).sub(camara.position).normalize();
+        const angulo = Math.acos(THREE.MathUtils.clamp(this._normal.dot(this._alCorazon), -1, 1));
+        despeje = THREE.MathUtils.smoothstep(angulo, 0.30, 0.58);
+      }
+      fugaz.material.uniforms.uDespeje.value = despeje;
     }
   }
 
@@ -419,7 +438,7 @@ export class Atmosfera {
     escena.add(this.halo);
   }
 
-  actualizar(dt, tiempo, camara, dpr) {
+  actualizar(dt, tiempo, camara, dpr, anclaCorazon = null) {
     /* El cielo acompaña a la cámara: envolvente e infinito, sin parallax */
     this.cielo.position.copy(camara.position);
     this.materialDomo.uniforms.uTiempo.value = tiempo;
@@ -427,7 +446,7 @@ export class Atmosfera {
     this.materialEstrellas.uniforms.uTiempo.value = tiempo;
     this.materialEstrellas.uniforms.uDPR.value = dpr;
 
-    this._actualizarFugaces(dt, camara);
+    this._actualizarFugaces(dt, camara, anclaCorazon);
 
     /* El amanecer NACE durante el viaje: apagado en el landing (si no,
        asoma como un puntito pegado al corazón), se va encendiendo a medida

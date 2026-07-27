@@ -363,7 +363,13 @@ export class Corazon {
     this.grupo.visible = this.opacidad > 0.004;
   }
 
-  actualizar(dt, tiempo, mouseNDC, camara, dpr) {
+  /**
+   * @param {boolean} hayMouse  ¿el visitante movió el puntero alguna vez?
+   *   Sin esto, mouseNDC arranca en (0,0) —el centro exacto de la pantalla,
+   *   que es donde vive el corazón— y el corazón nacía con un agujero de
+   *   repulsión en el medio, como si el cursor estuviera clavado ahí.
+   */
+  actualizar(dt, tiempo, mouseNDC, camara, dpr, hayMouse = false) {
     if (!this.grupo.visible) return;   // disperso: nada que animar
 
     /* Entrada: corre con el reloj real, una sola vez, apenas carga el sitio */
@@ -383,7 +389,7 @@ export class Corazon {
        mirando a cámara, y lo llevamos a coordenadas locales (así el punto
        repelido acompaña también el GIRO del corazón). */
     let objetivo = 0;
-    if (CONFIG.parallaxMouse > 0) {
+    if (CONFIG.parallaxMouse > 0 && hayMouse) {
       this.grupo.updateMatrixWorld();
       camara.getWorldDirection(this._normal);
       this._plano.setFromNormalAndCoplanarPoint(this._normal, this.grupo.position);

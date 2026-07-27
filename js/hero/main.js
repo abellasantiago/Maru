@@ -36,6 +36,18 @@ gsap.registerPlugin(ScrollTrigger);
 
 class HeroInmersivo {
   constructor() {
+    /* ── Arranque siempre desde el principio ──
+       Al refrescar, el navegador restaura el scroll anterior: el hero se
+       montaba con la cámara en el landing mientras el scroll decía "mitad
+       del timeline", y en ese cuadro suelto el amanecer (un resplandor
+       enorme y cálido) llenaba la pantalla. De ahí el destello rojo.
+       Con esto, un refresh siempre vuelve al comienzo del viaje. */
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+    /* El navegador puede restaurar el scroll DESPUÉS de que corra esto, así
+       que lo volvemos a poner en cero cuando termina de cargar todo. */
+    window.addEventListener('load', () => window.scrollTo(0, 0), { once: true });
+
     /* ── Renderer único y persistente ── */
     this.lienzo = document.getElementById('lienzo-webgl');
     this.renderizador = new THREE.WebGLRenderer({
@@ -79,9 +91,19 @@ class HeroInmersivo {
 
     /* ── Estado ── */
     this.mouseNDC = new THREE.Vector2(0, 0);
+    /* ¿El visitante movió el puntero alguna vez? mouseNDC arranca en (0,0),
+       que es el centro EXACTO de la pantalla — o sea, justo encima del
+       corazón. Sin este flag, el corazón nace con un agujero de repulsión
+       en el medio, como si el cursor estuviera clavado ahí. */
+    this.hayMouse = false;
     this.tiempo = 0;
     this.activo = true;          // ¿renderizamos este frame?
     this.veloEl = document.getElementById('velo-transicion');
+    this.veloCargaEl = document.getElementById('velo-carga');
+    /* Red de seguridad: si el bucle nunca llegara a dibujar (WebGL caído,
+       pestaña en segundo plano al abrir), el velo igual se retira y nadie
+       se queda mirando una pantalla vacía. */
+    setTimeout(() => this._retirarVeloCarga(), 2500);
     this._progresoPrevio = 0;        // para medir la velocidad del scroll
     this._velScroll = 0;             // velocidad suavizada (respiración del FOV)
 
@@ -161,6 +183,7 @@ class HeroInmersivo {
     window.addEventListener('pointermove', (e) => {
       this.mouseNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
       this.mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      this.hayMouse = true;
     }, { passive: true });
 
     window.addEventListener('resize', () => this._redimensionar());
@@ -199,6 +222,12 @@ class HeroInmersivo {
     this._fueraDelHero = false;
     this.lienzo.style.visibility = 'visible';
     document.getElementById('capa-css3d').style.visibility = 'visible';
+  }
+
+  _retirarVeloCarga() {
+    if (this._veloRetirado) return;
+    this._veloRetirado = true;
+    this.veloCargaEl.classList.add('listo');
   }
 
   /* ── Bucle único: Lenis + escena, con delta time real ── */
@@ -263,16 +292,24 @@ class HeroInmersivo {
       /* Piezas animadas. El ambiente recibe además el parallax de mouse:
          lo que está CERCA se corre contra la cámara y lo lejano no se
          entera → el mundo gana capas en vez de moverse en bloque. */
-      this.atmosfera.actualizar(dt, this.tiempo, this.camara, this.dpr);
+      /* El ancla va sólo mientras el corazón esté en pantalla: es lo que las
+         fugaces esquivan. Ya disperso, el ancla queda vieja y no hay nada
+         que esquivar. */
+      this.atmosfera.actualizar(dt, this.tiempo, this.camara, this.dpr,
+        this.corazon.grupo.visible ? this.recorrido.corazonAncla : null);
       this.velos.actualizar(dt, this.tiempo, intensidadFondo);
       this.ambiente.actualizar(dt, this.tiempo, this.dpr, intensidadFondo, this.recorrido.parallax);
-      this.corazon.actualizar(dt, this.tiempo, this.mouseNDC, this.camara, this.dpr);
+      this.corazon.actualizar(dt, this.tiempo, this.mouseNDC, this.camara, this.dpr, this.hayMouse);
       this.paneles.actualizar(dt, this.tiempo, this.camara);
       this.postproceso.actualizar(this.tiempo);
 
       /* Render: WebGL con post-proceso + capa CSS3D con la misma cámara */
       this.postproceso.render(dt);
       this.paneles.render(this.camara);
+
+      /* Ya hay imagen de verdad en pantalla: recién ahora sacamos el velo
+         de carga (si lo sacáramos antes, se vería el cuadro en blanco). */
+      this._retirarVeloCarga();
     });
   }
 }

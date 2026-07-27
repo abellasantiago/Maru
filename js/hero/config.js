@@ -101,9 +101,10 @@ export const CONFIG = {
   cantidadFugaces: MOVIMIENTO_REDUCIDO ? 0 : 2,
   esperaFugaz: [9, 23],          // segundos de calma entre cruce y cruce
 
-  /* Rayos de luz detrás del corazón (god rays): alfa máximo del abanico.
-     Muy bajo a propósito — se leen como aire con luz, no como gráfico. */
-  intensidadRayos: MOVIMIENTO_REDUCIDO ? 0.05 : 0.115,
+  /* Resplandor detrás del corazón: alfa máximo del abanico. Bajísimo a
+     propósito — tiene que leerse como aire con luz, nunca como gráfico.
+     Subir de ~0.06 empieza a notarse como "rayos" dibujados. */
+  intensidadRayos: MOVIMIENTO_REDUCIDO ? 0.012 : 0.026,
 
   /* Cámara viva: deriva orgánica mínima e independiente del scroll, para
      que el mundo nunca quede del todo quieto (sensación de cámara en mano). */

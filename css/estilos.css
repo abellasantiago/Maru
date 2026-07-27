@@ -108,6 +108,21 @@ body {
   100% { transform: translate(0, 0); }
 }
 
+/* Velo de carga: arranca tapando todo con el mismo fondo del mundo 3D y se
+   va recién cuando el hero ya dibujó. Sin esto, entre el primer paint y el
+   primer frame de WebGL se cuela un destello (el amanecer del final asoma
+   a pantalla completa si el navegador restauró el scroll). */
+#velo-carga {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--color-fondo-3d);
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.55s ease;
+}
+#velo-carga.listo { opacity: 0; }
+
 /* Velo de transición hero → timeline (lo controla GSAP con el scroll) */
 #velo-transicion {
   position: fixed;
