@@ -107,9 +107,12 @@ export class Rayos {
     this.malla.quaternion.copy(camara.quaternion);
   }
 
-  /** 0..1 — apagado del todo se va del render (ahorra un pase a pantalla completa) */
+  /** 0..2.2 — 1 es el reposo. Se admite pasarse de 1 para el ESTALLIDO del
+     desarme (la luz que el corazón tenía contenida se escapa con las
+     brasas); apagado del todo se va del render, que ahorra un pase a
+     pantalla completa. */
   setIntensidad(v) {
-    const i = THREE.MathUtils.clamp(v, 0, 1);
+    const i = THREE.MathUtils.clamp(v, 0, 2.2);
     this.material.uniforms.uIntensidad.value = i * CONFIG.intensidadRayos;
     this.malla.visible = i > 0.004;
   }

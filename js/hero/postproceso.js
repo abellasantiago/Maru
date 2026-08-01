@@ -138,6 +138,15 @@ export class PostProceso {
     this.pasoGrano.uniforms.uTiempo.value = tiempo;
   }
 
+  /**
+   * Multiplicador del bloom (1 = el de siempre). Lo usa el desarme del
+   * corazón: cuando las brasas se sueltan, el cuadro entero se enciende
+   * un poco y vuelve solo — el fuego contagia la luz de toda la toma.
+   */
+  setImpulsoBrillo(factor) {
+    this.bloom.strength = CONFIG.bloom.fuerza * factor;
+  }
+
   render(dt) {
     this.composer.render(dt);
   }

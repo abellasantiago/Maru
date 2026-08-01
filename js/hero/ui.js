@@ -10,8 +10,10 @@ import { MOMENTOS } from './momentos.js';
 import { FASES } from './config.js';
 import { ContadorJuntos } from './contador.js';
 
-/* Canción del sitio: arranca/pausa clickeando la cápsula Santi ♥ Maru */
+/* Canción del sitio. Arranca sola con el click de la obertura (junto a la
+   lluvia del corazón) y desde ahí se pausa/reanuda con la cápsula Santi ♥ Maru. */
 const RUTA_CANCION = 'assets/musica/beautiful-crazy.mp3';
+const VOLUMEN_CANCION = 0.85;
 
 /* Normaliza texto para buscar: minúsculas y sin tildes */
 function normalizar(texto) {
@@ -97,33 +99,45 @@ export class InterfazHero {
     this._configurarMusica();
   }
 
-  /* La canción se carga recién en el primer click (si el mp3 no está,
-     no ensuciamos la carga inicial con un 404) y entra/sale con un
-     fade suave. El latido de la cápsula se enciende mientras suena. */
+  /* La canción se PRECARGA desde el arranque para que entre exacta con el
+     click de la obertura (si esperáramos al click, el primer compás llegaría
+     tarde). Entra y sale siempre con un fundido de volumen, y el latido de
+     la cápsula se acelera mientras suena. */
   _configurarMusica() {
-    const pill = document.getElementById('nav-pill');
-    this.audio = null;
+    this.pill = document.getElementById('nav-pill');
     this._fadeAudio = null;
 
-    pill.addEventListener('click', () => {
-      if (!this.audio) {
-        this.audio = new Audio(RUTA_CANCION);
-        this.audio.loop = true;
-        this.audio.volume = 0;
-      }
+    this.audio = new Audio(RUTA_CANCION);
+    this.audio.loop = true;
+    this.audio.preload = 'auto';
+    this.audio.volume = 0;
 
-      if (this.audio.paused) {
-        this.audio.play().then(() => {
-          pill.classList.add('tocando');
-          this._fundirVolumen(0.85, 1600);
-        }).catch(() => {
-          console.warn(`No encontré la canción en ${RUTA_CANCION}`);
-        });
-      } else {
-        pill.classList.remove('tocando');
-        this._fundirVolumen(0, 500, () => this.audio.pause());
-      }
+    this.pill.addEventListener('click', () => this.alternarCancion());
+  }
+
+  /**
+   * Arranca la canción con un fundido de entrada.
+   * @param {number} duracionFundido  ms del swell (la obertura pide uno
+   *   largo: la canción tiene que CRECER con la lluvia del corazón, no
+   *   entrar de golpe).
+   */
+  reproducirCancion(duracionFundido = 1600) {
+    return this.audio.play().then(() => {
+      this.pill.classList.add('tocando');
+      this._fundirVolumen(VOLUMEN_CANCION, duracionFundido);
+    }).catch(() => {
+      console.warn(`No pude reproducir la canción (${RUTA_CANCION})`);
     });
+  }
+
+  pausarCancion() {
+    this.pill.classList.remove('tocando');
+    this._fundirVolumen(0, 500, () => this.audio.pause());
+  }
+
+  alternarCancion() {
+    if (this.audio.paused) this.reproducirCancion();
+    else this.pausarCancion();
   }
 
   /* Fade lineal de volumen con rAF; cancela el fade anterior si lo hay */

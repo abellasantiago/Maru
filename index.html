@@ -24,7 +24,7 @@
   }
   </script>
 </head>
-<body>
+<body class="obertura-activa">
 
   <!-- ═══════════════ CAPAS FIJAS DE LA ESCENA 3D ═══════════════ -->
   <!-- Un único canvas WebGL persistente para todo el hero -->
@@ -38,6 +38,24 @@
   <!-- Tapa la pantalla hasta que el hero dibuja su primer cuadro: entre el
        primer paint y el primer frame de WebGL se colaba un destello -->
   <div id="velo-carga" aria-hidden="true"></div>
+
+  <!-- ═══════════════ OBERTURA (antes de la primera partícula) ═══════════════ -->
+  <!--
+    Lo primero que se ve: oscuridad, una línea suspendida y una invitación
+    mínima a tocar. El hero YA está vivo detrás — sólo que tapado. Al tocar,
+    la oscuridad se quema desde el punto exacto del click (iris), arranca la
+    canción y se suelta la lluvia que arma el corazón.
+    El texto y el ritmo viven en js/hero/obertura.js (LINEA / INVITACION / RITMO).
+    Nace por encima del velo de carga y del MISMO color, así el relevo entre
+    los dos es invisible.
+  -->
+  <div class="obertura" id="obertura" data-interactivo>
+    <div class="obertura-halo" aria-hidden="true"></div>
+    <div class="obertura-interior">
+      <p class="obertura-linea" id="obertura-linea"></p>
+      <button type="button" class="obertura-invitacion" id="obertura-invitacion"></button>
+    </div>
+  </div>
 
   <!-- ═══════════════ INTERFAZ DEL HERO ═══════════════ -->
 

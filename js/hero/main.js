@@ -18,7 +18,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
-import { CONFIG, PALETA, MOVIMIENTO_REDUCIDO, FASES, POS_CORAZON } from './config.js';
+import { CONFIG, PALETA, MOVIMIENTO_REDUCIDO, FASES, DESARME, POS_CORAZON } from './config.js';
 import { MOMENTOS } from './momentos.js';
 import { Atmosfera } from './atmosfera.js';
 import { VelosSeda } from './velos.js';
@@ -30,6 +30,7 @@ import { RecorridoCamara } from './camara.js';
 import { PostProceso } from './postproceso.js';
 import { CursorCereza } from './cursor.js';
 import { InterfazHero } from './ui.js';
+import { Obertura } from './obertura.js';
 
 /* gsap, ScrollTrigger y Lenis llegan como globales desde /js/vendor/ */
 gsap.registerPlugin(ScrollTrigger);
@@ -111,6 +112,23 @@ class HeroInmersivo {
     this.ui = new InterfazHero((indice) => this.irAMomento(indice));
     this.ui.iniciar();
 
+    /* ── La obertura ──
+       El sitio no empieza al cargar: empieza cuando Maru toca la pantalla.
+       Ese gesto es lo que arranca la canción (el navegador no deja sonar
+       audio antes de una interacción real), suelta la lluvia del corazón
+       y abre el iris. Hasta entonces el mundo ya está vivo, pero tapado. */
+    this.obertura = new Obertura({
+      alTocar: () => this.ui.reproducirCancion(3600),
+      alSoltarLluvia: () => this.corazon.comenzarEntrada(),
+      alTerminar: () => {
+        this.lenis.start();
+        document.body.classList.remove('obertura-activa');
+      },
+    });
+    /* Sin obertura (por si faltara el markup) el corazón cae solo: el
+       sitio nunca queda esperando un click que no puede llegar. */
+    if (!this.obertura.activa) this.corazon.comenzarEntrada();
+
     this._configurarScroll();
     this._configurarEventos();
     this._iniciarBucle();
@@ -123,6 +141,9 @@ class HeroInmersivo {
       smoothWheel: true,
     });
     this.lenis.on('scroll', ScrollTrigger.update);
+    /* Mientras dura la obertura el recorrido está congelado: el viaje no
+       puede arrancar antes de que se abra el regalo. */
+    if (this.obertura.activa) this.lenis.stop();
 
     const recorridoEl = document.getElementById('recorrido');
 
@@ -145,20 +166,25 @@ class HeroInmersivo {
     });
   }
 
-  /* Corazón del landing: gira sobre su eje con el scroll y, sobre el final
-     del descenso, SE DESARMA — cada partícula roja vuela hacia su punto de
-     dispersión y se disuelve en el mundo, dándole paso al timeline. */
+  /* Corazón del landing, en dos tiempos:
+     ▸ GIRA sobre su eje mientras se desciende, y termina de girar JUSTO
+       cuando va a empezar a desarmarse — plantado de frente, mostrando
+       la silueta ♥ entera. Ese "se planta" es lo que le da peso al
+       momento siguiente (y si siguiera girando, se desarmaría de canto).
+     ▸ SE DESARMA EN BRASAS: cada partícula se suelta a su turno, se
+       enciende y la corriente se la lleva hacia el corredor. */
   _actualizarCorazon(progreso) {
     /* Sub-progreso 0..1 dentro del landing */
     const land = Math.min(progreso / FASES.landingFin, 1);
 
-    /* Giro sobre su eje, proporcional al avance dentro del landing */
-    this.corazon.setGiro(land * CONFIG.vueltasCorazon * Math.PI * 2);
+    /* El giro entero entra antes de DESARME.desde, con arranque y frenada
+       suaves (smoothstep): el corazón acelera, gira y se planta. */
+    const giro = THREE.MathUtils.smoothstep(land, 0, DESARME.desde);
+    this.corazon.setGiro(giro * CONFIG.vueltasCorazon * Math.PI * 2);
 
-    /* Desarme ANTES de que el landing termine (queda totalmente disperso
-       al 85% del landing): nunca se superpone con el foco de las cards,
-       que recién cobran cuerpo al final del descenso (ver paneles.js). */
-    this.corazon.setDesarme(THREE.MathUtils.smoothstep(land, 0.45, 0.85));
+    this.corazon.setDesarme(
+      THREE.MathUtils.smoothstep(land, DESARME.desde, DESARME.hasta)
+    );
   }
 
   /* Velo crema del final: dissolve de la última card hacia la pantalla de cierre */
@@ -224,10 +250,15 @@ class HeroInmersivo {
     document.getElementById('capa-css3d').style.visibility = 'visible';
   }
 
+  /* El mundo ya dibujó su primer cuadro: sacamos el velo de carga y recién
+     ahí la obertura empieza a revelar su línea (nunca sobre un cuadro en
+     blanco). El velo y la obertura son del mismo color, así que el relevo
+     entre los dos no se ve. */
   _retirarVeloCarga() {
     if (this._veloRetirado) return;
     this._veloRetirado = true;
     this.veloCargaEl.classList.add('listo');
+    this.obertura.presentar();
   }
 
   /* ── Bucle único: Lenis + escena, con delta time real ── */
@@ -273,13 +304,23 @@ class HeroInmersivo {
 
       /* Rayos de luz: viven exactamente lo que dura el corazón. Nacen
          cuando la lluvia de la entrada termina de armarlo y se apagan
-         mientras se desarma — nunca asoman en el timeline. */
+         mientras se desarma — nunca asoman en el timeline. Y justo cuando
+         las brasas se sueltan dan un ESTALLIDO: la luz que el corazón
+         tenía contenida se escapa con ellas. */
+      const soltandose = Math.sin(Math.PI * this.corazon.desarme);
       this.rayos.setIntensidad(
         THREE.MathUtils.smoothstep(this.corazon.entrada, 0.55, 1) *
-        (1 - THREE.MathUtils.smoothstep(this.recorrido.progresoLanding, 0.5, 0.92))
+        (1 - THREE.MathUtils.smoothstep(this.recorrido.progresoLanding, 0.5, 0.92)) *
+        (1 + soltandose * 0.45)
       );
       this.rayos.setAncla(this.recorrido.corazonAncla, this.camara);
       this.rayos.actualizar(this.tiempo);
+
+      /* El cuadro entero se enciende un poco mientras el río de brasas
+         está en el aire, y vuelve solo cuando terminan de apagarse.
+         Contenido a propósito: el bloom de este sitio tiene radio grande,
+         y pasarse acá lava el cuadro entero en vez de encenderlo. */
+      this.postproceso.setImpulsoBrillo(1 + soltandose * 0.14);
 
       /* Intensidad del fondo: contenida durante el landing (el corredor
          central ya está despejado, así el corazón se ve limpio) y sube al

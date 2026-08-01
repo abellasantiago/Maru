@@ -62,6 +62,13 @@ export const FASES = {
   timelineFin: 0.97,   // fin del vuelo por las cards (después: velo + cierre)
 };
 
+/* Cuándo se desarma el corazón, en fracción DEL LANDING. Es el reloj del
+   acto entero: el giro se completa en `desde` (el corazón se planta de
+   frente), ahí empieza a soltar brasas, y en `hasta` ya se apagó la
+   última — bastante antes de que el landing termine, así el río nunca se
+   superpone con las cards, que recién cobran cuerpo al final del descenso. */
+export const DESARME = { desde: 0.45, hasta: 0.85 };
+
 /* Posición INICIAL del corazón: bien arriba del mundo. La cámara arranca a su
    altura y desciende ~16 unidades (≈ 2 pantallas de mundo) hasta el timeline;
    durante el viaje el corazón se re-ancla al centro de la vista (camara.js),
@@ -90,11 +97,33 @@ export const CONFIG = {
   /* Corazón central: point cloud rojo (almohadón 3D de la curva ♥ clásica) */
   particulasCorazon: ES_MOBILE ? 3600 : 6500,
   amplitudRespiracion: MOVIMIENTO_REDUCIDO ? 0.008 : 0.022,
-  vueltasCorazon: MOVIMIENTO_REDUCIDO ? 0.6 : 1.25,   // giros completos durante el landing
+  /* Vueltas que da el corazón sobre su eje durante el landing. Tiene que
+     ser un ENTERO: el giro se completa justo antes de que empiece el
+     desarme y tiene que terminar MIRANDO DE FRENTE. Si quedara de perfil,
+     el corazón se desarmaría de canto —una columna— y se perdería la
+     silueta ♥ justo en el momento en que más importa verla. */
+  vueltasCorazon: 1,
 
   /* Entrada del corazón (segundos): las partículas caen desde arriba y
-     lo van ARMANDO de abajo hacia arriba, hasta cerrar la silueta ♥. */
-  duracionEntrada: MOVIMIENTO_REDUCIDO ? 1.0 : 3.0,
+     lo van ARMANDO de abajo hacia arriba, hasta cerrar la silueta ♥.
+     No arranca sola: la suelta el click de la obertura (ver obertura.js). */
+  duracionEntrada: MOVIMIENTO_REDUCIDO ? 1.0 : 3.2,
+
+  /* ── Desarme: el río de brasas ──
+     Al scrollear, el corazón no se dispersa al azar: cada partícula se
+     SUELTA como una brasa, cae y la corriente se la lleva hacia el
+     corredor (-Z, donde espera el amanecer). Perillas del efecto:
+     ▸ ecosBrasas: copias de la nube dibujadas un pelín "atrás en el
+       tiempo". Son la ESTELA de movimiento de cada brasa — lo que hace
+       que se lean como fuego y no como puntos que se trasladan.
+     ▸ retrasoEco: separación entre eco y eco, en unidades de desarme.
+       Más alto = estelas más largas (y más separadas entre sí).
+     ▸ remolinoBrasas: radianes de vórtice que gira el río mientras cae.
+     ▸ brasasCerca: fracción de partículas que pasan al ras del lente. */
+  ecosBrasas: MOVIMIENTO_REDUCIDO ? 0 : (ES_MOBILE ? 1 : 2),
+  retrasoEco: 0.011,
+  remolinoBrasas: MOVIMIENTO_REDUCIDO ? 0 : 0.62,
+  brasasCerca: MOVIMIENTO_REDUCIDO ? 0 : 0.07,
 
   /* Estrellas fugaces: cuántas pueden cruzar el cielo a la vez. Con 2 y
      esperas largas casi siempre se ve una sola — un detalle, no un show. */
