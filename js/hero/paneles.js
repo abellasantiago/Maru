@@ -119,14 +119,19 @@ export class PanelesVidrio {
     this.frases = FRASES.map((frase, i) => {
       const el = document.createElement('div');
       el.className = 'frase-viaje';
-      el.textContent = frase.texto;
+      /* El foco por distancia (más abajo) escala/desenfoca un hijo propio:
+         el.style.transform ya lo usa CSS3DRenderer para la posición 3D. */
+      const interior = document.createElement('div');
+      interior.className = 'frase-viaje-interior';
+      interior.textContent = frase.texto;
+      el.appendChild(interior);
 
       const objeto = new CSS3DObject(el);
       objeto.scale.setScalar(CONFIG.escalaCSS3D);
       objeto.position.fromArray(frase.pos);
       objeto.rotation.y = frase.rotY;
       this.escenaCSS.add(objeto);
-      return { el, objeto, baseX: frase.pos[0], fase: i * 2.4 };
+      return { el, objeto, baseX: frase.pos[0], fase: i * 2.4, foco: 0 };
     });
 
     this._v = new THREE.Vector3(); // temporal reutilizable
@@ -198,6 +203,16 @@ export class PanelesVidrio {
         /* Deriva mínima: flotan, no están clavadas */
         frase.objeto.position.x =
           frase.baseX + Math.sin(tiempo * 0.3 + frase.fase) * 0.15 * (MOVIMIENTO_REDUCIDO ? 0 : 1);
+
+        /* ── Foco por distancia REAL de cámara (no por altura): la frase
+           crece y se afila como un objeto al que la cámara se acerca de
+           verdad, en vez de sólo aparecer/desaparecer por opacidad. Umbrales
+           calibrados a su distancia mínima real en este recorrido (~10.1u:
+           la cámara nunca "entra" al texto, sólo pasa cerca). ── */
+        const distCamara = frase.objeto.position.distanceTo(camara.position);
+        const focoObjetivo = 1 - THREE.MathUtils.smoothstep(distCamara, 10.3, 13.8);
+        frase.foco += (focoObjetivo - frase.foco) * Math.min(1, dt * 4);
+        frase.el.style.setProperty('--foco', frase.foco.toFixed(3));
       }
     }
   }
