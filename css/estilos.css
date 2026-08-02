@@ -815,26 +815,55 @@ body.obertura-activa .ui {
 /* ═══════════════ FRASES DEL DESCENSO (CSS3D) ═══════════════ */
 
 /*
-  Frases cortas que flotan EN EL ESPACIO 3D durante el descenso del landing:
-  al scrollear pasan de largo como carteles suspendidos (parallax real).
-  La opacidad la maneja paneles.js según la altura de la cámara.
+  Frase corta que flota EN EL ESPACIO 3D durante el descenso del landing:
+  al scrollear la cámara la pasa de largo, como un cartel suspendido
+  (parallax real, no un overlay). CUÁNDO se ve lo decide paneles.js según
+  la altura de la cámara; acá vive el CÓMO se ve.
+
+  Dos cosas la integran al mundo en vez de dejarla pegada encima:
+  ▸ Nada de sombra oscura proyectada (eso es lo que la delataba como
+    calcomanía): sólo resplandor cálido, el mismo dorado/rosa del bloom,
+    como si la iluminara la propia escena.
+  ▸ Foco por distancia real de cámara (--foco, ver paneles.js): term
+    ina de afilarse y agrandarse apenas al acercarse, como cualquier
+    objeto del mundo — no aparece ya "hecha", entra en foco de verdad.
 */
 .frase-viaje {
-  width: 480px;
+  --foco: 0;
+  width: 620px;
   text-align: center;
   font-family: var(--fuente-display);
   font-style: italic;
   font-weight: 500;
-  font-size: 33px;
-  letter-spacing: 0.04em;
-  line-height: 1.2;
-  color: var(--color-crema);
-  text-shadow:
-    0 0 20px rgba(230, 184, 125, 0.2),
-    0 2px 14px rgba(26, 5, 8, 0.5);
+  font-size: 46px;
+  letter-spacing: 0.035em;
+  line-height: 1.25;
   opacity: 0;
   pointer-events: none;
   user-select: none;
+}
+/* Vive en un hijo propio porque .frase-viaje ya usa el.style.transform
+   para su posición 3D (CSS3DRenderer) — el foco no puede pisarlo. */
+.frase-viaje-interior {
+  position: relative;
+  color: var(--color-crema);   /* fallback si el navegador no soporta el degradé en texto */
+  background: linear-gradient(
+    100deg,
+    var(--color-dorado) 6%,
+    var(--color-crema) 42%,
+    var(--color-crema) 62%,
+    var(--color-rosa) 96%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transform: scale(calc(0.9 + var(--foco) * 0.12));
+  filter: blur(calc((1 - var(--foco)) * 6px));
+  /* El halo se abre a medida que entra en foco: cerca, la luz respira */
+  text-shadow:
+    0 0 calc(14px + 22px * var(--foco)) rgba(230, 184, 125, 0.45),
+    0 0 calc(46px + 40px * var(--foco)) rgba(217, 143, 156, 0.24),
+    0 0 90px rgba(200, 40, 63, 0.16);
 }
 
 /* ═══════════════ CURSOR CEREZAS ═══════════════ */
@@ -992,4 +1021,7 @@ body.obertura-activa .ui {
   }
   .panel-palabra { font-size: calc(22px * var(--ss)); }
   .panel-info { left: calc(24px * var(--ss)); bottom: calc(20px * var(--ss)); }
+  /* La frase vive en el MUNDO 3D: su tamaño en pantalla depende de cuánto
+     mundo entra en cuadro, y en vertical entra mucho menos que en 16:9. */
+  .frase-viaje { width: 340px; font-size: 27px; }
 }
