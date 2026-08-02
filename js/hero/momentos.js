@@ -28,36 +28,36 @@
 /* ── Contenido de cada momento (en orden de recorrido) ──
    Una línea por foto. Completá titulo y fecha; el resto se arma solo. */
 const DATOS = [
-  { titulo: '', fecha: '', encuadre: '50% 55%' },   // 01 → Momento-01.jpg
-  { titulo: '', fecha: '', encuadre: '50% 50%' },   // 02 → Momento-02.jpg
-  { titulo: '', fecha: '', encuadre: '50% 31%' },   // 03 → Momento-03.jpg
-  { titulo: '', fecha: '', encuadre: '50% 40%' },   // 04 → Momento-04.jpg
-  { titulo: '', fecha: '', encuadre: '50% 30%' },   // 05 → Momento-05.jpg
-  { titulo: '', fecha: '', encuadre: '50% 55%' },   // 06 → Momento-06.jpg
-  { titulo: '', fecha: '', encuadre: '50% 45%' },   // 07 → Momento-07.jpg
-  { titulo: '', fecha: '', encuadre: '50% 50%' },   // 08 → Momento-08.jpg
-  { titulo: '', fecha: '', encuadre: '50% 45%' },   // 09 → Momento-09.jpg
-  { titulo: '', fecha: '', encuadre: '50% 50%' },   // 10 → Momento-10.jpg  (foto horizontal)
-  { titulo: '', fecha: '', encuadre: '50% 60%' },   // 11 → Momento-11.jpg
-  { titulo: '', fecha: '', encuadre: '50% 60%' },   // 12 → Momento-12.jpg
-  { titulo: '', fecha: '', encuadre: '50% 35%' },   // 13 → Momento-13.jpg
-  { titulo: '', fecha: '', encuadre: '50% 50%' },   // 14 → Momento-14.jpg
-  { titulo: '', fecha: '', encuadre: '50% 47%' },   // 15 → Momento-15.jpg
-  { titulo: '', fecha: '', encuadre: '50% 35%' },   // 16 → Momento-16.jpg
-  { titulo: '', fecha: '', encuadre: '50% 35%' },   // 17 → Momento-17.jpg 
-  { titulo: '', fecha: '', encuadre: '50% 51%' },   // 18 → Momento-18.jpg
-  { titulo: '', fecha: '', encuadre: '50% 45%' },   // 19 → Momento-19.jpg
-  { titulo: '', fecha: '', encuadre: '50% 70%' },   // 20 → Momento-20.jpg
-  { titulo: '', fecha: '', encuadre: '50% 50%' },   // 21 → Momento-21.jpg
-  { titulo: '', fecha: '', encuadre: '50% 20%' },   // 22 → Momento-22.jpg
-  { titulo: '', fecha: '', encuadre: '50% 45%' },   // 23 → Momento-23.jpg
-  { titulo: '', fecha: '', encuadre: '50% 60%' },   // 24 → Momento-24.jpg
-  { titulo: '', fecha: '', encuadre: '50% 40%' },   // 25 → Momento-25.jpg
-  { titulo: '', fecha: '', encuadre: '50% 45%' },   // 26 → Momento-26.jpg
-  { titulo: '', fecha: '', encuadre: '50% 50%' },   // 27 → Momento-27.jpg
-  { titulo: '', fecha: '', encuadre: '50% 40%' },   // 28 → Momento-28.jpg  (foto horizontal)
-  { titulo: '', fecha: '', encuadre: '50% 55%' },   // 29 → Momento-29.jpg
-  { titulo: '', fecha: '', encuadre: '50% 45%' },   // 30 → Momento-30.jpg
+  { titulo: 'Colonia', fecha: '6 de abril 2025', encuadre: '50% 55%' },   // 01 → Momento-01.jpg
+  { titulo: 'Posada del Mar', fecha: '25 de agosto 2025', encuadre: '50% 50%' },   // 02 → Momento-02.jpg
+  { titulo: 'Lo de Tata', fecha: '25 de agosto', encuadre: '50% 31%' },   // 03 → Momento-03.jpg
+  { titulo: 'Finde Punta del Este', fecha: '5 de setiembre 2025', encuadre: '50% 40%' },   // 04 → Momento-04.jpg
+  { titulo: 'Chocamos la camioneta', fecha: '13 de setiembre de 2025', encuadre: '50% 30%' },   // 05 → Momento-05.jpg
+  { titulo: 'Nos pusimos de novios', fecha: '20 al 21 de setiembre de 2025', encuadre: '50% 55%' },   // 06 → Momento-06.jpg
+  { titulo: 'Chivipizza', fecha: '29 de agosto de 2025', encuadre: '50% 45%' },   // 07 → Momento-07.jpg
+  { titulo: 'Kilombito, Punta del Este', fecha: '10 de octubre de 2025', encuadre: '50% 50%' },   // 08 → Momento-08.jpg
+  { titulo: 'Bautismo Apon', fecha: '25 de octubre de 2025', encuadre: '50% 45%' },   // 09 → Momento-09.jpg
+  { titulo: 'Hockey de las pibas', fecha: '19 de octubre de 2025', encuadre: '50% 50%' },   // 10 → Momento-10.jpg  (foto horizontal)
+  { titulo: 'Escapada al camp', fecha: '31 de octubre de 2025', encuadre: '50% 60%' },   // 11 → Momento-11.jpg
+  { titulo: 'Airbnb para el finde y Keymood', fecha: '15 de noviembre de 2025', encuadre: '50% 60%' },   // 12 → Momento-12.jpg
+  { titulo: 'Cena en Vela', fecha: '20 de Noviembre', encuadre: '50% 35%' },   // 13 → Momento-13.jpg
+  { titulo: 'Exit', fecha: '9 de noviembre', encuadre: '50% 50%' },   // 14 → Momento-14.jpg
+  { titulo: 'Interno', fecha: '20 de diciembre de 2025', encuadre: '50% 47%' },   // 15 → Momento-15.jpg
+  { titulo: 'Las Toscas', fecha: '25 de Diciembre de 2025', encuadre: '50% 35%' },   // 16 → Momento-16.jpg
+  { titulo: 'Manzanar, 4 meses', fecha: '19 de Dibiembre de 2025', encuadre: '50% 35%' },   // 17 → Momento-17.jpg 
+  { titulo: 'Key Mood, Punta del Este', fecha: '28 de diciembre de 2025', encuadre: '50% 51%' },   // 18 → Momento-18.jpg
+  { titulo: 'Cumple de Mili Batlle', fecha: '28 de diciembre de 2025', encuadre: '50% 45%' },   // 19 → Momento-19.jpg
+  { titulo: 'Collage, empezamos el año juntos', fecha: '31 de diciembre de 2025', encuadre: '50% 70%' },   // 20 → Momento-20.jpg
+  { titulo: 'Adriatique', fecha: '4 de enero de 2026', encuadre: '50% 50%' },   // 21 → Momento-21.jpg
+  { titulo: 'Café Misterio', fecha: '20 de enero de 2026', encuadre: '50% 20%' },   // 22 → Momento-22.jpg
+  { titulo: 'Kilombito en el bosque', fecha: '31 de enero de 2026', encuadre: '50% 45%' },   // 23 → Momento-23.jpg
+  { titulo: 'La Pedrera', fecha: '13 de febrero de 2026', encuadre: '50% 60%' },   // 24 → Momento-24.jpg
+  { titulo: 'Familia Massei', fecha: '25 de enero de 2026', encuadre: '50% 40%' },   // 25 → Momento-25.jpg
+  { titulo: 'Casamiento Clari', fecha: '29 de febrero de 2026', encuadre: '50% 45%' },   // 26 → Momento-26.jpg
+  { titulo: 'Domos, Sierra de las Animas', fecha: '12 de marzo de 2026', encuadre: '50% 50%' },   // 27 → Momento-27.jpg
+  { titulo: 'Semana Santa en el campo', fecha: '30 de 2026', encuadre: '50% 40%' },   // 28 → Momento-28.jpg  (foto horizontal)
+  { titulo: 'Apto de Viole, Punta del Este', fecha: '15 de mayo de 2026', encuadre: '50% 55%' },   // 29 → Momento-29.jpg
+  { titulo: 'Maru se fue 2 meses de viaje', fecha: '29 de mayo de 2026', encuadre: '50% 45%' },   // 30 → Momento-30.jpg
 ];
 
 /* ── Disposición 3D: parámetros del "corredor" de cards ── */
