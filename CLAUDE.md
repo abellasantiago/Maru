@@ -41,6 +41,24 @@ Reglas que conviene tener en la cabeza antes de tocar el hero:
 
 ## Historial de cambios
 
+### 2026-08-02 (3) — feat: fecha de las cards con línea dorada, título sin itálica
+
+- Santi no estaba conforme con el texto de las cards del timeline. Se
+  armó un mockup comparando 6 tratamientos tipográficos posibles (con las
+  fuentes y paleta reales del sitio) y eligió **"línea de tiempo"**: la
+  fecha se integra con una rayita dorada antes en vez de flotar como
+  cartel suelto.
+- `panel-fecha` pasa de rojo-claro a `--color-dorado`, con tracking bajado
+  de 0.3em a 0.14em (0.3 se leía como cartel/alarma) y una `panel-fecha-raya`
+  nueva (línea de 14px) antes del texto.
+- Único ajuste sobre la opción elegida: el título (`panel-palabra`) pierde
+  la itálica — Santi lo pidió derecho, "que se lea normal". Queda en
+  Cormorant Garamond 600 upright en vez de italic 600.
+- El override `.destacado .panel-fecha { color: dorado }` se saca: quedó
+  redundante porque la fecha ya es dorada para todas las cards (el hito
+  especial se sigue distinguiendo por el marco/glow dorado de la card).
+- Rama: trabajado directo sobre `main`.
+
 ### 2026-08-02 (2) — feat: se saca el preludio entero, la canción arranca con el primer click
 
 - Veredicto de Santi sobre el umbral (ver entrada anterior, mismo día):
