@@ -133,193 +133,6 @@ body {
   pointer-events: none;
 }
 
-/* ═══════════════ OBERTURA ═══════════════ */
-
-/*
-  La primera pantalla del sitio: oscuridad, una línea suspendida y una
-  invitación mínima. Nace por ENCIMA del velo de carga (z 60) y del mismo
-  color, así el relevo entre los dos no se ve. El mundo 3D ya está vivo
-  detrás; con el click la lluvia del corazón se suelta y esta pantalla SE
-  CAE hacia abajo (obertura.js), en la misma dirección que las partículas:
-  las dos pantallas se leen como un solo movimiento continuo.
-*/
-.obertura {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: var(--color-fondo-3d);
-  cursor: pointer;
-  overflow: hidden;
-}
-/* Resplandor cálido que respira detrás de la línea: la oscuridad tiene
-   algo adentro desde antes de abrirse (nunca un rectángulo negro plano). */
-.obertura-halo {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: min(160vmax, 1700px);
-  height: min(160vmax, 1700px);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 50% 50%, rgba(200, 40, 63, 0.15), transparent 40%),
-    radial-gradient(circle at 50% 55%, rgba(230, 184, 125, 0.09), transparent 56%);
-  animation: obertura-respirar 9s ease-in-out infinite;
-}
-@keyframes obertura-respirar {
-  0%, 100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
-  50%      { opacity: 1;   transform: translate(-50%, -50%) scale(1.07); }
-}
-/* Viñeta propia: cierra la composición igual que la del post-proceso */
-.obertura::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 50% 50%, transparent 38%, rgba(0, 0, 0, 0.55));
-}
-/* Y el mismo grano de película del resto del sitio: la obertura pertenece
-   a la misma toma, no es una pantalla de carga pegada adelante. */
-.obertura::after {
-  content: '';
-  position: absolute;
-  inset: -60px;
-  pointer-events: none;
-  opacity: 0.5;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 0.95 0 0 0 0 0.9 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E");
-  animation: grano-baile 0.6s steps(3) infinite;
-}
-
-.obertura-interior {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.obertura-linea {
-  font-family: var(--fuente-display);
-  font-style: italic;
-  font-weight: 500;
-  font-size: clamp(31px, 5.6vw, 62px);
-  line-height: 1.16;
-  letter-spacing: 0.015em;
-  color: var(--color-crema);
-  max-width: 17ch;
-  text-shadow:
-    0 0 38px rgba(230, 184, 125, 0.22),
-    0 2px 20px rgba(26, 5, 8, 0.6);
-}
-/* Línea BREVE (una hora, una fecha): no es una frase que se lee, es un
-   número que se mira. Va grande y con las cifras PROPORCIONALES de la
-   fuente — las tabulares le dan al "1" una caja ancha y "11:11" se abre
-   en cinco signos sueltos en vez de leerse como una hora. */
-.obertura-linea.breve {
-  font-size: clamp(58px, 12vw, 132px);
-  line-height: 1.05;
-  letter-spacing: 0.012em;
-  max-width: none;
-}
-/* Cada pieza entra de desenfocada a nítida, subiendo: es el MISMO gesto
-   de revelado que usan las cards del timeline al entrar en foco. La
-   transición vive sólo en .revelada, así el estado inicial no se anima
-   al cargar (si no, se vería la línea armarse antes de tiempo). */
-.obertura-pieza {
-  display: inline-block;
-  opacity: 0;
-  filter: blur(18px);
-  transform: translateY(28px);
-  will-change: opacity, filter, transform;
-}
-.obertura-pieza.revelada {
-  opacity: 1;
-  filter: blur(0);
-  transform: translateY(0);
-  transition:
-    opacity 1.5s ease,
-    filter 1.5s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
-}
-/* Los dos puntos de una hora: separan, no son una cifra más — van un poco
-   más apagados y respiran despacio en el medio, como los de un reloj.
-   Muy suave: un latido, no un parpadeo digital. */
-.obertura-pieza.separador {
-  margin: 0 0.03em;
-  color: var(--color-beige);
-}
-.obertura-pieza.separador.revelada {
-  opacity: 0.75;
-  animation: obertura-reloj 2.6s ease-in-out 1.5s infinite;
-}
-@keyframes obertura-reloj { 0%, 100% { opacity: 0.75; } 50% { opacity: 0.34; } }
-
-/* La invitación asoma recién cuando la línea terminó de leerse (la clase
-   .lista la pone obertura.js), y desde ahí aparece y se va cada 3 segundos:
-   está lo justo para que se entienda, y no compite con el 11:11. */
-.obertura-invitacion {
-  margin-top: clamp(38px, 6vh, 62px);
-  background: none;
-  border: none;
-  padding: 10px 8px;
-  color: var(--color-beige);
-  font-family: var(--fuente-ui);
-  font-size: 9px;
-  font-weight: 400;
-  letter-spacing: 0.34em;
-  text-indent: 0.34em;            /* compensa el letter-spacing del final */
-  opacity: 0;
-  text-shadow: 0 0 12px rgba(230, 184, 125, 0.3);
-}
-.obertura.lista .obertura-invitacion {
-  animation: obertura-asomar 3s ease-in-out infinite;
-}
-@keyframes obertura-asomar {
-  0%, 100% { opacity: 0;    filter: blur(3px); }
-  14%      { opacity: 0.48; filter: blur(0); }
-  44%      { opacity: 0.48; filter: blur(0); }
-  62%      { opacity: 0;    filter: blur(3px); }
-}
-.obertura-invitacion:focus-visible {
-  outline: 1px solid rgba(230, 184, 125, 0.6);
-  outline-offset: 8px;
-  border-radius: 999px;
-}
-
-/* ── La caída ──
-   Al soltarse, la pantalla se descuelga hacia abajo (el tween vive en
-   obertura.js). El borde de ARRIBA va difuminado: lo que barre el cuadro
-   tiene que ser una línea blanda, no el canto de un rectángulo.
-   `no-repeat` es imprescindible — por defecto la máscara se repetiría
-   fuera de la caja y el grano (que sobresale 60px) reaparecería como una
-   banda dura justo encima del difuminado. */
-.obertura.cayendo {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 190px);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 190px);
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-  will-change: transform;
-}
-/* Al soltarse, la invitación deja de asomar: desde acá la maneja GSAP
-   (una animación CSS le ganaría al estilo en línea y seguiría titilando
-   mientras la pantalla cae). */
-.obertura.cayendo .obertura-invitacion { animation: none; }
-
-/* Mientras la obertura vive, la interfaz del hero no existe todavía:
-   entra sola (fundido de .ui) cuando main.js saca esta clase del body. */
-body.obertura-activa .ui {
-  opacity: 0 !important;
-  visibility: hidden;
-  pointer-events: none !important;
-}
-
 /* ═══════════════ INTERFAZ ═══════════════ */
 
 .ui {
@@ -770,15 +583,22 @@ body.obertura-activa .ui {
   pointer-events: none;
 }
 .panel-fecha {
-  font-size: calc(9px * var(--ss));
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--color-rojo-claro);
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--ss));
+  font-size: calc(10px * var(--ss));
+  letter-spacing: 0.14em;
+  color: var(--color-dorado);
   text-shadow: 0 1px calc(8px * var(--ss)) rgba(26, 5, 8, 0.9);
+}
+.panel-fecha-raya {
+  flex: 0 0 calc(14px * var(--ss));
+  height: max(1px, calc(1px * var(--ss)));
+  background: var(--color-dorado);
+  opacity: 0.6;
 }
 .panel-palabra {
   font-family: var(--fuente-display);
-  font-style: italic;
   font-weight: 600;
   font-size: calc(30px * var(--ss));
   line-height: 1.05;
@@ -805,7 +625,6 @@ body.obertura-activa .ui {
     0 0 calc((24px + var(--foco) * 34px) * var(--ss)) rgba(230, 184, 125, calc(0.14 + var(--foco) * 0.22)),
     inset 0 0 calc(26px * var(--ss)) rgba(230, 184, 125, 0.06);
 }
-.panel-vidrio.destacado .panel-fecha { color: var(--color-dorado); }
 /* Los paneles lejanos sueltan el backdrop-filter (el blur es lo más caro) */
 .panel-vidrio.lejos {
   backdrop-filter: none;
@@ -974,13 +793,6 @@ body.obertura-activa .ui {
   .nav-pill::before, .nav-pill::after { animation: none; opacity: 0; }
   .cereza-colgante { animation: none; }
   .final-corazon { animation: none; }
-  /* Obertura: la línea aparece sin desenfoque ni desplazamiento, nada
-     respira ni parpadea y la caída se reemplaza por un fundido (obertura.js).
-     La invitación queda fija en vez de asomar cada 3 s. */
-  .obertura::after, .obertura-halo { animation: none; }
-  .obertura-pieza { filter: none; transform: none; }
-  .obertura-pieza.revelada { transition: opacity 0.5s ease; animation: none; }
-  .obertura.lista .obertura-invitacion { animation: none; opacity: 0.48; }
 }
 
 /* Mobile: el hero se simplifica, la UI se reacomoda */
@@ -1008,11 +820,6 @@ body.obertura-activa .ui {
     width: calc(100vw - 48px);
     bottom: 56px;
   }
-  /* Obertura: la frase respira un poco más angosta (la línea breve ya se
-     ajusta sola con su clamp en vw) */
-  .obertura-linea { max-width: 13ch; letter-spacing: 0.01em; }
-  .obertura-linea.breve { max-width: none; }
-  .obertura-invitacion { letter-spacing: 0.28em; text-indent: 0.28em; }
   /* Card mobile más chica, pero manteniendo el supersample (× var(--ss)) */
   .panel-vidrio {
     width: calc(320px * var(--ss));

@@ -10,8 +10,9 @@ import { MOMENTOS } from './momentos.js';
 import { FASES } from './config.js';
 import { ContadorJuntos } from './contador.js';
 
-/* Canción del sitio. Arranca sola con el click de la obertura (junto a la
-   lluvia del corazón) y desde ahí se pausa/reanuda con la cápsula Santi ♥ Maru. */
+/* Canción del sitio. Arranca con el PRIMER click en cualquier parte del
+   sitio (ver _configurarMusica) y desde ahí se pausa/reanuda con la
+   cápsula Santi ♥ Maru. */
 const RUTA_CANCION = 'assets/musica/beautiful-crazy.mp3';
 const VOLUMEN_CANCION = 0.85;
 
@@ -99,10 +100,11 @@ export class InterfazHero {
     this._configurarMusica();
   }
 
-  /* La canción se PRECARGA desde el arranque para que entre exacta con el
-     click de la obertura (si esperáramos al click, el primer compás llegaría
-     tarde). Entra y sale siempre con un fundido de volumen, y el latido de
-     la cápsula se acelera mientras suena. */
+  /* La canción se PRECARGA desde el arranque para que entre lista apenas
+     llegue el primer click (si esperáramos a ese click para ni siquiera
+     empezar a cargar el mp3, el primer compás llegaría tarde). Entra y sale
+     siempre con un fundido de volumen, y el latido de la cápsula se acelera
+     mientras suena. */
   _configurarMusica() {
     this.pill = document.getElementById('nav-pill');
     this._fadeAudio = null;
@@ -113,13 +115,27 @@ export class InterfazHero {
     this.audio.volume = 0;
 
     this.pill.addEventListener('click', () => this.alternarCancion());
+
+    /* La canción arranca con el PRIMER click en cualquier parte del sitio:
+       es el gesto real que los navegadores exigen para poder sonar audio, y
+       de paso es el que abre el regalo. Un solo disparo — si ese primer
+       click cae justo en la cápsula, la dejamos: su propio handler de
+       arriba ya la hace sonar por su cuenta (alternarCancion), y este
+       listener sigue armado esperando el próximo click en cualquier otro
+       lado del sitio. */
+    const primerClick = (e) => {
+      if (this.pill.contains(e.target)) return;
+      window.removeEventListener('click', primerClick);
+      this.reproducirCancion(3600);
+    };
+    window.addEventListener('click', primerClick, { passive: true });
   }
 
   /**
    * Arranca la canción con un fundido de entrada.
-   * @param {number} duracionFundido  ms del swell (la obertura pide uno
-   *   largo: la canción tiene que CRECER con la lluvia del corazón, no
-   *   entrar de golpe).
+   * @param {number} duracionFundido  ms del swell (el primer click del
+   *   sitio pide uno largo: la canción tiene que CRECER con la lluvia del
+   *   corazón, no entrar de golpe; la cápsula usa el corto por defecto).
    */
   reproducirCancion(duracionFundido = 1600) {
     return this.audio.play().then(() => {

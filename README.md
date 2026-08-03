@@ -6,20 +6,17 @@ todas ligadas al scroll. La dirección visual es **"viaje hacia el amanecer"**:
 todo el mundo — nebulosa cálida, velos de seda, bokeh — apunta a un
 resplandor dorado al final del corredor, que empalma con la pantalla final crema.
 
-0. **Obertura** — el sitio no empieza al cargar: empieza cuando Maru toca la
-   pantalla. Antes de eso hay oscuridad y un **11:11** suspendido. Ese click
-   abre el regalo — arranca la canción, suelta la lluvia del corazón, y la
-   pantalla inicial **se cae** hacia abajo para dar paso al hero. Todo se
-   mueve en la misma dirección: es una sola toma, no un corte.
-1. **Landing** — un corazón de **point cloud rojo** (miles de partículas
-   llenando un volumen 3D real, que repelen al cursor) flota en una nebulosa
-   bordó. Al scrollear **gira una vuelta completa** mientras el mundo pasa de
-   largo (una frase suspendida en el espacio, velos), **se planta de frente**
-   y ahí **se desarma en brasas**: se vacía de abajo hacia arriba, el
-   contorno ♥ queda dibujado en el aire hasta el final, y las brasas caen y
-   se van hacia el corredor. Eso da paso al timeline — que NO se ve de
-   arranque: cada card despierta recién cuando la cámara se le acerca lo
-   suficiente, primero tenue y borrosa, después nítida.
+1. **Landing** — el sitio abre directo, sin preludio ni pantalla de carga: la
+   lluvia que arma el corazón ya está cayendo desde el primer cuadro. Un
+   corazón de **point cloud rojo** (miles de partículas llenando un volumen
+   3D real, que repelen al cursor) flota en una nebulosa bordó. Al scrollear
+   **gira una vuelta completa** mientras el mundo pasa de largo (una frase
+   suspendida en el espacio, velos), **se planta de frente** y ahí **se
+   desarma en brasas**: se vacía de abajo hacia arriba, el contorno ♥ queda
+   dibujado en el aire hasta el final, y las brasas caen y se van hacia el
+   corredor. Eso da paso al timeline — que NO se ve de arranque: cada card
+   despierta recién cuando la cámara se le acerca lo suficiente, primero
+   tenue y borrosa, después nítida.
 2. **Timeline** — la cámara vuela por las **cards** (una por momento), con
    banking en las curvas, y cada una entra en foco a su turno. Se navega con el
    scroll, con la sidebar, con las flechas o con el buscador.
@@ -44,11 +41,10 @@ ScrollTrigger, Lenis y las fuentes están vendorizados (`js/vendor/`, `assets/fu
 
 | Qué | Dónde |
 |---|---|
-| **La línea de la obertura** ("11:11") y la invitación ("hacé click") | `LINEA` / `INVITACION` en `js/hero/obertura.js` |
-| **El ritmo del arranque** (cuándo aparece la línea, cuánto tarda la caída) | `RITMO` en `js/hero/obertura.js` |
 | **Los momentos** (fecha, título, texto, palabras del buscador, hito destacado) | `js/hero/momentos.js` → array `DATOS` |
 | **Fotos reales** (reemplazar placeholders) | `assets/fotos/Momento-01.jpg` … |
-| **La canción** | `RUTA_CANCION` en `js/hero/ui.js` |
+| **La canción** (archivo) | `RUTA_CANCION` en `js/hero/ui.js` |
+| **Cuándo arranca la canción** (primer click en cualquier parte del sitio) | `_configurarMusica()` en `js/hero/ui.js` |
 | Duración de cada fase del scroll | `FASES` en `js/hero/config.js` |
 | Cuándo se desarma el corazón | `DESARME` en `js/hero/config.js` |
 | Largo total del scroll | `--alto-recorrido` en `css/estilos.css` |
@@ -58,57 +54,28 @@ ScrollTrigger, Lenis y las fuentes están vendorizados (`js/vendor/`, `assets/fu
 | Frases que flotan durante el descenso | `FRASES` en `js/hero/paneles.js` |
 | Texto de la pantalla final | sección `#final` en `index.html` |
 
-## La obertura: el sitio empieza con un gesto
+## Sin preludio: el sitio abre directo
 
-`js/hero/obertura.js` es la primera pantalla: **11:11** suspendido en la
-oscuridad. El mundo 3D ya está vivo detrás —renderizando— pero tapado por una
-capa opaca del mismo color que el velo de carga, así el relevo entre los dos
-no se ve. La línea se revela pieza por pieza, de desenfocada a nítida (el
-mismo gesto que usan las cards al entrar en foco), y recién cuando termina de
-leerse asoma la invitación, que aparece y se va cada 3 segundos.
+No hay pantalla de carga ni gesto que abrir: `main.js` llama
+`corazon.comenzarEntrada()` apenas se crea el corazón, así que la lluvia que
+lo arma ya está cayendo desde el primer cuadro que dibuja el mundo.
 
-El texto sale de `LINEA` e `INVITACION`, arriba del archivo. Una línea de
-hasta `LARGO_BREVE` caracteres se muestra **grande**, como un número que se
-mira; una frase entera conserva su tamaño de lectura. Los dos puntos se parten
-como pieza aparte para que "11:11" se lea como una hora: los pares entran de a
-uno y el separador respira en el medio, como el de un reloj.
+Lo único que sí depende de un gesto es la **canción**, porque eso no lo
+decide el sitio: ningún navegador deja sonar audio sin una interacción real
+del visitante. `js/hero/ui.js` la resuelve con un listener de `click` en
+`window` que se arma en cuanto arranca la página: el primer click en
+cualquier parte del sitio la dispara, con un fundido largo (3600 ms, para que
+crezca junto con lo que sea que esté pasando en pantalla en ese momento, no
+entrar de golpe) — y a partir de ahí se pausa/reanuda con la cápsula
+Santi ♥ Maru (`alternarCancion`), con un fundido corto (1600 ms). El mp3 se
+precarga desde el arranque, así el primer compás nunca llega tarde.
 
-### Todo cae para el mismo lado
-
-Es la regla que hace que las dos pantallas se sientan **una sola toma** y no
-un corte. Desde el click, todo se mueve hacia abajo: el 11:11 se disuelve
-hacia abajo, la pantalla se descuelga hacia abajo, y detrás las partículas ya
-están lloviendo hacia abajo. Tiempos en `RITMO`:
-
-| Cuándo | Qué pasa |
-|---|---|
-| 0 ms | arranca la canción (fundido largo: crece con la lluvia) y el 11:11 empieza a desenfocarse hacia abajo |
-| 90 ms | se suelta la lluvia que arma el corazón — antes de que la pantalla se mueva |
-| 240 ms | **la caída**: la pantalla se descuelga con `power2.in`, acelerando como algo que se suelta |
-| ~1490 ms | la obertura se retira del DOM, vuelve el scroll y entra la interfaz |
-
-El borde de ARRIBA de la pantalla que cae va difuminado (máscara en
-`.obertura.cayendo`): lo que barre el cuadro tiene que ser una línea blanda,
-no el canto de un rectángulo. Ojo con `mask-repeat: no-repeat` — sin eso la
-máscara se repite fuera de la caja y el grano, que sobresale 60px, reaparece
-como una banda dura justo encima del difuminado.
-
-Cuando la pantalla termina de caer, el corazón ya lleva ~1.4 s armándose: se
-llega al hero con la escena en movimiento, nunca a un cuadro quieto.
-
-Tres detalles que importan:
-
-- **La canción tiene que empezar acá.** Ningún navegador deja sonar audio sin
-  un gesto real del visitante — por eso el mp3 se **precarga** desde el
-  arranque (`ui.js`) y el click sólo tiene que apretar play.
-- **Nada arranca solo.** El corazón espera a `comenzarEntrada()` y Lenis
-  arranca parado. Si faltara el markup de la obertura, `main.js` lo detecta
-  (`obertura.activa`) y suelta todo igual: el sitio nunca queda esperando un
-  click que no puede llegar.
-- **La invitación late por CSS, y una animación le gana al estilo en línea.**
-  Por eso al soltarse se congela su opacidad, la clase `.cayendo` apaga la
-  animación y recién ahí GSAP la desvanece. Sin ese orden, el cartelito se
-  va cayendo con la pantalla, todavía titilando.
+Un detalle no obvio: si ese primer click cae justo en la cápsula, el
+listener global lo IGNORA a propósito (`this.pill.contains(e.target)`) y
+sigue armado. La cápsula ya tiene su propio handler de click que hace sonar
+la canción por su cuenta — sin esa guarda, los dos handlers se pisarían: el
+global la pondría a sonar y, en el mismo gesto, el de la cápsula la leería
+como "ya está sonando" y la pausaría de vuelta.
 
 ### La ambientación 3D (capas de profundidad)
 
@@ -161,7 +128,7 @@ la pieza):
 
 ```js
 new Corazon(escena)
-corazon.comenzarEntrada()      // suelta la lluvia (lo llama el click de la obertura)
+corazon.comenzarEntrada()      // suelta la lluvia (la llama main.js apenas arranca)
 corazon.setGiro(radianes)      // giro sobre su eje (lo maneja el scroll del landing)
 corazon.setDesarme(0..1)       // 0 armado → 1 brasas ya apagadas
 corazon.setPosicion(v)         // re-anclaje al punto de mirada (landing)
@@ -234,9 +201,6 @@ Todos respetan `prefers-reduced-motion` (deriva y tilt se apagan) y el táctil
 - El hero se **pausa** al entrar a la pantalla final; el **cursor sigue vivo**
   (se actualiza siempre, aún con el hero pausado).
 - `prefers-reduced-motion`: menos elementos, ondulación mínima, sin parallax
-  ni mecidos. La obertura sigue existiendo (el click hace falta para el
-  audio), pero la línea aparece sin desenfoque, la invitación queda fija en
-  vez de asomar cada 3 s y la caída se reemplaza por un fundido; el desarme
-  pierde las estelas y el remolino.
+  ni mecidos. El desarme del corazón pierde las estelas y el remolino.
 - Mobile: menos elementos, nebulosa con menos octavas de ruido, cámara con FOV
   más amplio, cursor nativo.

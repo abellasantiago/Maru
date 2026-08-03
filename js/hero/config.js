@@ -106,7 +106,8 @@ export const CONFIG = {
 
   /* Entrada del corazón (segundos): las partículas caen desde arriba y
      lo van ARMANDO de abajo hacia arriba, hasta cerrar la silueta ♥.
-     No arranca sola: la suelta el click de la obertura (ver obertura.js). */
+     La dispara comenzarEntrada(), que main.js llama apenas arranca el
+     mundo — no hay preludio que la demore. */
   duracionEntrada: MOVIMIENTO_REDUCIDO ? 1.0 : 3.2,
 
   /* ── Desarme: el río de brasas ──

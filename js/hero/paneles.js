@@ -66,7 +66,7 @@ export class PanelesVidrio {
               <div class="panel-grano"></div>
             </figure>
             <header class="panel-info">
-              <span class="panel-fecha">${momento.fecha}</span>
+              <span class="panel-fecha"><span class="panel-fecha-raya" aria-hidden="true"></span>${momento.fecha}</span>
               <span class="panel-palabra">${momento.titulo}</span>
               ${momento.desc ? `<span class="panel-desc">${momento.desc}</span>` : ''}
             </header>

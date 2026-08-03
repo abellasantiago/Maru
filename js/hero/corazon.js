@@ -6,11 +6,11 @@
    profundidad como un almohadón: de frente es un corazón perfecto,
    girado tiene panza y cuerpo. La nube:
 
-   ▸ ENTRA CAYENDO: cuando el visitante abre la obertura, las
-     partículas llueven desde bien arriba y desembocan en la forma,
-     armándola de abajo hacia arriba (la punta primero, los lóbulos
-     al final). Mientras caen son chispas encendidas; al asentarse se
-     calman. La entrada NO arranca sola: la suelta comenzarEntrada().
+   ▸ ENTRA CAYENDO: apenas arranca el mundo, las partículas llueven
+     desde bien arriba y desembocan en la forma, armándola de abajo
+     hacia arriba (la punta primero, los lóbulos al final). Mientras
+     caen son chispas encendidas; al asentarse se calman. La dispara
+     comenzarEntrada(), que llama main.js en cuanto se crea el corazón.
    ▸ respira y vibra con vida propia (ruido orgánico en GPU)
    ▸ REPELE al cursor: las partículas se apartan en 3D alrededor
      del punto donde el mouse toca el plano del corazón, y vuelven
@@ -107,7 +107,7 @@ export class Corazon {
     this.fuerzaMouse = 0;    // presencia del cursor, suavizada
 
     /* Entrada: 0 = lluvia esperando arriba · 1 = corazón armado. Avanza
-       con el reloj real, pero SÓLO desde que la obertura la suelta. */
+       con el reloj real, pero SÓLO desde que comenzarEntrada() la suelta. */
     this.entrada = 0;
     this.iniciada = false;
 
@@ -551,8 +551,8 @@ export class Corazon {
      mientras el mundo se desplaza detrás (efecto Active Theory). */
   setPosicion(v) { this.grupo.position.copy(v); }
 
-  /** Suelta la lluvia de la entrada. Lo llama la obertura con el click:
-      el corazón empieza a caer exactamente cuando arranca la canción. */
+  /** Suelta la lluvia de la entrada. Lo llama main.js apenas se crea el
+      corazón: no hay preludio ni gesto que la demore. */
   comenzarEntrada() { this.iniciada = true; }
 
   /** 0 = corazón armado · 1 = brasas ya apagadas.
@@ -578,9 +578,9 @@ export class Corazon {
   actualizar(dt, tiempo, mouseNDC, camara, dpr, hayMouse = false) {
     if (!this.grupo.visible) return;   // apagado: nada que animar
 
-    /* Entrada: corre con el reloj real, una sola vez, desde que la
-       obertura la suelta (antes de eso las partículas esperan arriba,
-       invisibles). */
+    /* Entrada: corre con el reloj real, una sola vez, desde que
+       comenzarEntrada() la suelta (antes de eso las partículas esperan
+       arriba, invisibles — pero eso dura un instante: no hay preludio). */
     if (this.iniciada && this.entrada < 1) {
       this.entrada = Math.min(this.entrada + dt / CONFIG.duracionEntrada, 1);
     }

@@ -30,7 +30,6 @@ import { RecorridoCamara } from './camara.js';
 import { PostProceso } from './postproceso.js';
 import { CursorCereza } from './cursor.js';
 import { InterfazHero } from './ui.js';
-import { Obertura } from './obertura.js';
 
 /* gsap, ScrollTrigger y Lenis llegan como globales desde /js/vendor/ */
 gsap.registerPlugin(ScrollTrigger);
@@ -112,22 +111,10 @@ class HeroInmersivo {
     this.ui = new InterfazHero((indice) => this.irAMomento(indice));
     this.ui.iniciar();
 
-    /* ── La obertura ──
-       El sitio no empieza al cargar: empieza cuando Maru toca la pantalla.
-       Ese gesto es lo que arranca la canción (el navegador no deja sonar
-       audio antes de una interacción real), suelta la lluvia del corazón
-       y abre el iris. Hasta entonces el mundo ya está vivo, pero tapado. */
-    this.obertura = new Obertura({
-      alTocar: () => this.ui.reproducirCancion(3600),
-      alSoltarLluvia: () => this.corazon.comenzarEntrada(),
-      alTerminar: () => {
-        this.lenis.start();
-        document.body.classList.remove('obertura-activa');
-      },
-    });
-    /* Sin obertura (por si faltara el markup) el corazón cae solo: el
-       sitio nunca queda esperando un click que no puede llegar. */
-    if (!this.obertura.activa) this.corazon.comenzarEntrada();
+    /* No hay preludio: el corazón se suelta apenas arranca el mundo, y la
+       canción la dispara el primer click en cualquier parte del sitio
+       (ver ui.js) — los navegadores no dejan sonar audio sin ese gesto. */
+    this.corazon.comenzarEntrada();
 
     this._configurarScroll();
     this._configurarEventos();
@@ -141,9 +128,6 @@ class HeroInmersivo {
       smoothWheel: true,
     });
     this.lenis.on('scroll', ScrollTrigger.update);
-    /* Mientras dura la obertura el recorrido está congelado: el viaje no
-       puede arrancar antes de que se abra el regalo. */
-    if (this.obertura.activa) this.lenis.stop();
 
     const recorridoEl = document.getElementById('recorrido');
 
@@ -250,15 +234,12 @@ class HeroInmersivo {
     document.getElementById('capa-css3d').style.visibility = 'visible';
   }
 
-  /* El mundo ya dibujó su primer cuadro: sacamos el velo de carga y recién
-     ahí la obertura empieza a revelar su línea (nunca sobre un cuadro en
-     blanco). El velo y la obertura son del mismo color, así que el relevo
-     entre los dos no se ve. */
+  /* El mundo ya dibujó su primer cuadro: recién ahí sacamos el velo de
+     carga (si lo sacáramos antes, se vería el cuadro en blanco). */
   _retirarVeloCarga() {
     if (this._veloRetirado) return;
     this._veloRetirado = true;
     this.veloCargaEl.classList.add('listo');
-    this.obertura.presentar();
   }
 
   /* ── Bucle único: Lenis + escena, con delta time real ── */

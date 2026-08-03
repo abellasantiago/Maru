@@ -4,10 +4,11 @@
 
 Sitio-regalo de Santi para Maru: un recorrido inmersivo en 3D por los momentos
 de la relación. El scroll no mueve contenido en 2D — mueve una cámara por un
-mundo. Tres actos: una **obertura** (11:11 en la oscuridad, que se cae con el
-primer click), un **landing** con un corazón de partículas que se arma, gira y
+mundo. El sitio abre directo, sin preludio ni pantalla de carga: un
+**landing** con un corazón de partículas que ya está cayendo, se arma, gira y
 se desarma en brasas, un **timeline** de 30 cards de vidrio flotando en un
-corredor, y una **pantalla final** ("Que sea eterno.").
+corredor, y una **pantalla final** ("Que sea eterno."). La canción arranca
+con el primer click en cualquier parte del sitio.
 
 Lo importante del sitio es la experiencia visual: tiene que verse de cine.
 
@@ -39,6 +40,60 @@ Reglas que conviene tener en la cabeza antes de tocar el hero:
   sin tocar el resto.
 
 ## Historial de cambios
+
+### 2026-08-02 (2) — feat: se saca el preludio entero, la canción arranca con el primer click
+
+- Veredicto de Santi sobre el umbral (ver entrada anterior, mismo día):
+  *"no me gustó"*. Decisión: nada de preludio — **el sitio carga directo con
+  la lluvia del corazón ya cayendo**, sin pantalla intermedia de ningún tipo.
+- Se borran `js/hero/umbral.js` y `js/hero/obertura.js` enteros (los dos
+  intentos: el SVG en DOM y el anillo en WebGL). `main.js` llama
+  `corazon.comenzarEntrada()` directo en el constructor — ya no hay
+  `if (!obertura.activa)`, ni Lenis arranca parado, ni hace falta el velo de
+  `#obertura` en el HTML/CSS.
+- **La canción ya no tiene una "apertura" que la dispare**: ahora un listener
+  de `click` en `window` (armado en `ui.js` desde el arranque) la suelta con
+  el primer click en cualquier parte del sitio, con el mismo fundido largo
+  (3600 ms) que antes tenía la obertura.
+- Trampa evitada a propósito: si ese primer click cae en la cápsula
+  Santi ♥ Maru, el listener global lo ignora (`pill.contains(e.target)`) y
+  sigue armado para el próximo click en otro lado. Sin esa guarda, el handler
+  propio de la cápsula (`alternarCancion`) vería `audio.paused === false`
+  —porque `.play()` ya lo puso en `false`— y pausaría la canción en el mismo
+  gesto que la arrancó.
+- Rama: trabajado directo sobre `main`.
+
+### 2026-08-02 (1) — feat: el umbral, un preludio en 3D (reemplaza el 11:11) — DESCARTADO
+
+> Esta entrada documenta un diseño que se hizo y se sacó el mismo día (ver
+> entrada de arriba). Queda como registro de qué se probó y por qué no
+> convenció, no como estado actual del sitio.
+
+- La obertura deja de ser una **capa de DOM puesta adelante** del sitio y
+  pasa a ser un **preludio en WebGL dentro de la misma escena**
+  (`js/hero/umbral.js`, nuevo): miles de partículas se encienden muy lejos,
+  vienen en espiral hacia el lente con estelas y arman un anillo de luz que
+  **se cierra dando la vuelta** — esa es la barra de carga, disfrazada.
+  Cerrado, respira y **estalla hacia la cámara**: nos deja del otro lado con
+  el corazón ya lloviendo. No hay corte, se pasa a través.
+- Primer intento descartado: un corazón SVG trazándose en el DOM. Se veía
+  plano y ajeno al resto del sitio — **si todo el hero es WebGL, el preludio
+  también tiene que serlo**, o se nota que es otra cosa pegada adelante.
+- **Ya no hay click.** El umbral se arma y se abre solo. Como los navegadores
+  no dejan sonar audio sin un gesto real, `ui.js` intenta la canción en la
+  apertura y, si la bloquean, la deja ARMADA: entra sola con el primer
+  movimiento de Maru (que es enseguida, hay que scrollear para ver algo).
+- Reparto: `umbral.js` dibuja, `obertura.js` sólo lleva el reloj (`RITMO`) y
+  avisa por callbacks, y `#obertura` queda como un escudo transparente.
+- Bug encontrado probando en el navegador: el tween de la salida destruye el
+  umbral en su `onComplete`, y el del velo —otro tween— escribía `setVelo`
+  sobre `null` si se resolvían en el mismo tick (pasa con `lagSmoothing(0)`
+  y una pestaña que vuelve de segundo plano). Se rompía el arranque entero.
+  Arreglado con **un solo punto de escritura** (`_aplicar()`) y guarda.
+- Calibrado midiendo píxeles del canvas real, no a ojo: halo y resplandor
+  interior van bajos porque subirlos APLANA la silueta (contraste aro/centro
+  1,38 → 2,55), y cero píxeles quemados a blanco (pico 640/765).
+- Rama: trabajado directo sobre `main`.
 
 ### 2026-08-01 — feat: obertura 11:11, canción con el primer click y desarme en brasas
 
