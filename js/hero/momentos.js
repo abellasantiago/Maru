@@ -49,13 +49,13 @@ const DATOS = [
   { titulo: 'Cumple de Mili Batlle', fecha: '28 de diciembre de 2025', encuadre: '50% 40%', desc: 'Cumple de Mili y previa en Manantiales' },   // 19 → Momento-19.jpg
   { titulo: 'Key Mood, Punta del Este', fecha: '28 de diciembre de 2025', encuadre: '50% 64%', desc: 'Fuimos a Key Mood en Punta mano a mano' },   // 20 → Momento-20.jpg
   { titulo: 'Playa con Tata e Isa Mautone', fecha: '30 de diciembre de 2025', encuadre: '50% 65%', desc: '' },   // 21 → Momento-21.jpg
-  { titulo: 'Collage', fecha: '31 de diciembre de 2026', encuadre: '50% 80%', desc: 'Empezamos el año juntos' },   // 22 → Momento-22.jpg
+  { titulo: 'Collage', fecha: '31 de diciembre de 2025', encuadre: '50% 80%', desc: 'Empezamos el año juntos' },   // 22 → Momento-22.jpg
   { titulo: 'Adriatique', fecha: '4 de enero de 2026', encuadre: '50% 55%', desc: 'Fiesta en el MACA' },   // 23 → Momento-23.jpg
   { titulo: 'Café misterio', fecha: '20 de enero de 2026', encuadre: '50% 20%', desc: '4 meses de novios' },   // 24 → Momento-24.jpg
   { titulo: 'Familia Massei, mi cumple', fecha: '25 de enero de 2026', encuadre: '50% 30%', desc: 'Fuimos a cenar por mi cumple' },   // 25 → Momento-25.jpg
   { titulo: 'Kilombito con los monos', fecha: '30 de enero de 2026', encuadre: '50% 40%', desc: '' },   // 26 → Momento-26.jpg
   { titulo: 'La Pedrera con tu familia', fecha: '13 de febrero de 2026', encuadre: '50% 75%', desc: 'Los padres de Maru alquilaron carnaval en la Pedrera y me invitaron' },   // 27 → Momento-27.jpg
-  { titulo: 'Casamiento de Clari', fecha: '29 de febrero de 2026', encuadre: '50% 45%', desc: '' },   // 28 → Momento-28.jpg  (foto horizontal)
+  { titulo: 'Casamiento de Clari', fecha: '28 de febrero de 2026', encuadre: '50% 45%', desc: '' },   // 28 → Momento-28.jpg  (foto horizontal)
   { titulo: 'Domos en la Sierra de las Ánimas', fecha: '13 de marzo de 2026', encuadre: '50% 62%', desc: 'Alquilamos unos domos para pasar el finde, hicimos trekking y entrañitas con choclo' },   // 29 → Momento-29.jpg
   { titulo: 'Semana Santa en el campo', fecha: '30 de marzo de 2026', encuadre: '50% 45%', desc: 'Tradición de los Symonds pasar Semana Santa en el campo, planazo' },   // 30 → Momento-30.jpg
   { titulo: 'Apto de Viole en Punta', fecha: '15 de mayo de 2026', encuadre: '50% 60%', desc: 'Viole nos prestó su apto en Punta por el finde' },   // 31 → Momento-31.jpg
