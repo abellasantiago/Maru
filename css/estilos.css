@@ -159,11 +159,67 @@ body {
 
 /* ── Monograma ───────────────────────────────────────────────── */
 .monograma {
-  top: 28px;
-  left: 34px;
+  top: 172px;
+  left: 130px;
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+.monograma-coord {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  letter-spacing: 0.13em;
+  color: var(--color-dorado);
+  text-decoration: none;         /* es un <a>: le sacamos el subrayado */
+  cursor: pointer;
+  text-shadow: 0 1px 8px rgba(26, 5, 8, 0.9);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  /* Una sola declaración para las dos transiciones (el fade del scroll y el
+     enfoque del hover), así ninguna le pisa la propiedad a la otra. */
+  transition: opacity 0.6s ease, visibility 0.6s, filter 0.55s ease;
+}
+/* Foco de teclado: el sitio no tiene un estilo propio, y sin esto la
+   coordenada es un link invisible para quien navega con Tab. */
+.monograma-coord:focus-visible {
+  outline: 1px solid var(--color-dorado);
+  outline-offset: 6px;
+  border-radius: 2px;
+}
+/* Es un detalle del arranque, como el contador de tiempo juntos: mismo
+   criterio de scroll lo esfuma (ver setProgreso en ui.js). No es .ui, así
+   que no hereda .ui.oculto — repite el mismo patrón acá. */
+.monograma-coord.oculto {
+  opacity: 0 !important;
+  visibility: hidden;
+  pointer-events: none !important;
+}
+.monograma-raya {
+  flex: 0 0 18px;
+  height: 1px;
+  background: var(--color-dorado);
+  opacity: 0.6;
+}
+/* Reposo apagado + revelado al pasar el cursor.
+   Va en @media y NO en una clase que agregue el JS: si el reposo llegara
+   después del primer cuadro, la coordenada se pintaría nítida y recién ahí
+   arrancaría a apagarse — se veía como un parpadeo al cargar la página.
+   Con puntero grueso no hay hover que la revele, así que esta regla no
+   aplica y la coordenada queda nítida y legible. */
+@media (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .monograma-coord {
+    filter: blur(1.4px);
+    opacity: 0.32;
+  }
+  /* :focus-visible va junto al hover: si no, quien llega con Tab enfoca algo
+     que sigue borroso y apagado. */
+  .monograma-coord:hover,
+  .monograma-coord:focus-visible {
+    filter: blur(0);
+    opacity: 0.75;
+  }
 }
 /* ── Nav superior derecha con latido ─────────────────────────── */
 .nav-pill {
@@ -414,10 +470,15 @@ body {
   letter-spacing: 0.05em;
   text-align: center;
   white-space: nowrap;
-  opacity: 0.8;
+  opacity: 0.6;
+  /* Un pelo de desenfoque para que respire con la nebulosa en vez de quedar
+     estampada encima. La sombra oscura y ceñida (0 2px 12px / 0.5) era la que
+     la incrustaba: al aflojarla y abrir el halo cálido, el texto queda
+     suspendido en el aire y no pegado al vidrio. */
+  filter: blur(0.35px);
   text-shadow:
-    0 0 18px rgba(230, 184, 125, 0.22),
-    0 2px 12px rgba(26, 5, 8, 0.5);
+    0 0 28px rgba(230, 184, 125, 0.26),
+    0 2px 18px rgba(26, 5, 8, 0.34);
 }
 
 /* ═══════════════ PANELES DE VIDRIO (CSS3D) ═══════════════ */

@@ -7,7 +7,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import { MOMENTOS } from './momentos.js';
-import { FASES } from './config.js';
+import { FASES, MOVIMIENTO_REDUCIDO } from './config.js';
 import { ContadorJuntos } from './contador.js';
 
 /* Canción del sitio. Arranca con el PRIMER click en cualquier parte del
@@ -98,6 +98,9 @@ export class InterfazHero {
 
     /* ── Música: la cápsula Santi ♥ Maru es el botón de play/pausa ── */
     this._configurarMusica();
+
+    /* ── Coordenadas del monograma: decodifican al pasar el cursor ── */
+    this._configurarCoordenadas();
   }
 
   /* La canción se PRECARGA desde el arranque para que entre lista apenas
@@ -122,9 +125,16 @@ export class InterfazHero {
        click cae justo en la cápsula, la dejamos: su propio handler de
        arriba ya la hace sonar por su cuenta (alternarCancion), y este
        listener sigue armado esperando el próximo click en cualquier otro
-       lado del sitio. */
+       lado del sitio.
+
+       La coordenada del monograma queda afuera por el mismo motivo: abre el
+       mapa en otra pestaña y se lleva el foco, así que el fundido largo de
+       entrada (3600 ms, pensado para crecer con la lluvia del corazón) se
+       tocaría entero en una pestaña que nadie está mirando. El listener
+       sigue armado para el próximo click acá adentro. */
     const primerClick = (e) => {
       if (this.pill.contains(e.target)) return;
+      if (this.coordEl && this.coordEl.contains(e.target)) return;
       window.removeEventListener('click', primerClick);
       this.reproducirCancion(3600);
     };
@@ -174,6 +184,50 @@ export class InterfazHero {
     this._fadeAudio = requestAnimationFrame(paso);
   }
 
+  /* Coordenadas de un lugar nuestro, en el monograma. El reposo apagado y el
+     enfoque al pasar el cursor son puro CSS (ver el @media del monograma);
+     acá sólo vive lo que el CSS no puede hacer: los dígitos decodifican de
+     izquierda a derecha al entrar el cursor, como si la coordenada se
+     encontrara. En táctil no hay hover, así que no se arma nada. */
+  _configurarCoordenadas() {
+    /* this.coordEl se cachea siempre (setProgreso lo esfuma con el scroll
+       en todos los dispositivos); lo demás es sólo para puntero fino. */
+    const contenedor = this.coordEl = document.getElementById('monograma-coord');
+
+    const soportaHover = !MOVIMIENTO_REDUCIDO && window.matchMedia('(pointer: fine)').matches;
+    if (!soportaHover) return;
+
+    const texto = contenedor.querySelector('.monograma-coord-texto');
+    const original = texto.textContent;
+    const digitos = '0123456789';
+    let cuadro = null;
+
+    const decodificar = () => {
+      if (cuadro) cancelAnimationFrame(cuadro);
+      const inicio = performance.now();
+      const paso = (ahora) => {
+        const transcurrido = ahora - inicio;
+        let listo = true;
+        let salida = '';
+        for (let i = 0; i < original.length; i++) {
+          const c = original[i];
+          if (c < '0' || c > '9') { salida += c; continue; }
+          if (transcurrido >= i * 26 + 200) {
+            salida += c;
+          } else {
+            salida += digitos[(Math.random() * 10) | 0];
+            listo = false;
+          }
+        }
+        texto.textContent = salida;
+        cuadro = listo ? null : requestAnimationFrame(paso);
+      };
+      cuadro = requestAnimationFrame(paso);
+    };
+
+    contenedor.addEventListener('pointerenter', decodificar, { passive: true });
+  }
+
   /** Actualiza sidebar + contador según el momento activo */
   setActivo(indice) {
     if (indice === this.indiceActivo) return;
@@ -187,6 +241,9 @@ export class InterfazHero {
   setProgreso(progreso) {
     /* Contador de tiempo juntos: sólo al comienzo del landing */
     this.contadorEl.classList.toggle('oculto', progreso >= 0.03);
+    /* Coordenadas del monograma: mismo criterio — un detalle del arranque,
+       se esfuma apenas se empieza a scrollear */
+    this.coordEl.classList.toggle('oculto', progreso >= 0.03);
 
     /* La UI de cards (sidebar, buscador, indicador) vive sólo en el timeline:
        oculta durante el landing del corazón y cuando llega la pantalla final. */

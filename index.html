@@ -41,8 +41,22 @@
 
   <!-- ═══════════════ INTERFAZ DEL HERO ═══════════════ -->
 
-  <!-- Monograma (arriba a la izquierda) -->
-  <header class="ui monograma" id="monograma"></header>
+  <!-- Monograma (arriba a la izquierda): coordenadas de un lugar nuestro.
+       Con puntero fino decodifican al pasar el cursor (ver _configurarCoordenadas
+       en js/hero/ui.js); en táctil/reduced-motion quedan fijas, sin JS de más.
+
+       Es un <a> de verdad y no un click en JS: así andan el teclado, el click
+       del medio y "abrir en pestaña nueva" sin escribir una línea. El href
+       lleva la MISMA coordenada en decimal (34°24'58"S = -34.416111;
+       57°50'35"W = -57.843056), que es lo que entiende la URL de Maps. -->
+  <header class="ui monograma" id="monograma">
+    <a class="monograma-coord" id="monograma-coord"
+       href="https://www.google.com/maps/search/?api=1&amp;query=-34.416111%2C-57.843056"
+       target="_blank" rel="noopener noreferrer"
+       aria-label="Ver en el mapa: 34°24'58&quot; sur, 57°50'35&quot; oeste">
+      <span class="monograma-raya" aria-hidden="true"></span><span class="monograma-coord-texto">34°24'58"S · 57°50'35"W</span>
+    </a>
+  </header>
 
   <!-- Nav superior derecha: cápsula con latido de corazón entre los nombres -->
   <nav class="ui nav-pill" id="nav-pill" aria-label="Nosotros">
