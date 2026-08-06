@@ -28,38 +28,38 @@
 /* ── Contenido de cada momento (en orden de recorrido) ──
    Una línea por foto. Completá titulo y fecha; el resto se arma solo. */
 const DATOS = [
-  { titulo: 'Colonia', fecha: '6 de abril 2025', encuadre: '50% 55%' },   // 01 → Momento-01.jpg
-  { titulo: 'Posada del Mar', fecha: '25 de agosto 2025', encuadre: '50% 50%' },   // 02 → Momento-02.jpg
-  { titulo: 'Lo de Tata', fecha: '25 de agosto de 2025', encuadre: '50% 31%' },   // 03 → Momento-03.jpg
-  { titulo: 'Chivipizza', fecha: '5 de setiembre 2025', encuadre: '50% 40%' },   // 04 → Momento-04.jpg
-  { titulo: 'Finde en Punta del Este', fecha: '13 de setiembre de 2025', encuadre: '50% 30%' },   // 05 → Momento-05.jpg
-  { titulo: 'Nos chocaron', fecha: '20 al 21 de setiembre de 2025', encuadre: '50% 55%' },   // 06 → Momento-06.jpg
-  { titulo: 'Mejor día de mi vida', fecha: '29 de agosto de 2025', encuadre: '50% 45%' },   // 07 → Momento-07.jpg
-  { titulo: 'Dilema', fecha: '10 de octubre de 2025', encuadre: '50% 15%' },   // 08 → Momento-08.jpg
-  { titulo: 'Kilombito, Punta del Este', fecha: '25 de octubre de 2025', encuadre: '50% 55%' },   // 09 → Momento-09.jpg
-  { titulo: 'Hockey de las pibas', fecha: '19 de octubre de 2025', encuadre: '50% 50%' },   // 10 → Momento-10.jpg  (foto horizontal)
-  { titulo: 'Bautismo de Apon', fecha: '31 de octubre de 2025', encuadre: '50% 45%' },   // 11 → Momento-11.jpg
-  { titulo: 'Escapada al campo', fecha: '15 de noviembre de 2025', encuadre: '50% 65%' },   // 12 → Momento-12.jpg
-  { titulo: 'Exit', fecha: '20 de Noviembre de 2025', encuadre: '50% 70%' },   // 13 → Momento-13.jpg
-  { titulo: 'Airbnb para el finde y Keymood', fecha: '9 de noviembre de 2025', encuadre: '50% 70%' },   // 14 → Momento-14.jpg
-  { titulo: 'Vela', fecha: '20 de diciembre de 2025', encuadre: '50% 30%' },   // 15 → Momento-15.jpg
-  { titulo: 'Manzanar, 4 meses', fecha: '25 de Diciembre de 2025', encuadre: '50% 35%' },   // 16 → Momento-16.jpg
-  { titulo: 'Interno', fecha: '19 de Dibiembre de 2025', encuadre: '50% 45%' },   // 17 → Momento-17.jpg 
-  { titulo: 'Las Toscas', fecha: '28 de diciembre de 2025', encuadre: '50% 35%' },   // 18 → Momento-18.jpg
-  { titulo: 'Cumple de Mili Batlle', fecha: '28 de diciembre de 2025', encuadre: '50% 40%' },   // 19 → Momento-19.jpg
-  { titulo: 'Key Mood, Punta del Este', fecha: '31 de diciembre de 2025', encuadre: '50% 64%' },   // 20 → Momento-20.jpg
-  { titulo: 'Playa con Tata e Isa Mautone', fecha: '4 de enero de 2026', encuadre: '50% 60%' },   // 21 → Momento-21.jpg
-  { titulo: 'Collage, arrancamos el año juntos', fecha: '20 de enero de 2026', encuadre: '50% 80%' },   // 22 → Momento-22.jpg
-  { titulo: 'Adriatique', fecha: '31 de enero de 2026', encuadre: '50% 55%' },   // 23 → Momento-23.jpg
-  { titulo: 'Café misterio', fecha: '13 de febrero de 2026', encuadre: '50% 20%' },   // 24 → Momento-24.jpg
-  { titulo: 'Familia Massei, mi cumple', fecha: '25 de enero de 2026', encuadre: '50% 30%' },   // 25 → Momento-25.jpg
-  { titulo: 'Kilombito con los monos', fecha: '29 de febrero de 2026', encuadre: '50% 45%' },   // 26 → Momento-26.jpg
-  { titulo: 'La Pedrera con tu familia', fecha: '12 de marzo de 2026', encuadre: '50% 75%' },   // 27 → Momento-27.jpg
-  { titulo: 'Casamiento de Clari', fecha: '30 de 2026', encuadre: '50% 45%' },   // 28 → Momento-28.jpg  (foto horizontal)
-  { titulo: 'Domos en la Sierra de las Ánimas', fecha: '15 de mayo de 2026', encuadre: '50% 55%' },   // 29 → Momento-29.jpg
-  { titulo: 'Semana Santa en el campo', fecha: '29 de mayo de 2026', encuadre: '50% 45%' },   // 30 → Momento-30.jpg
-  { titulo: 'Apto de Viole en Punta', fecha: '29 de mayo de 2026', encuadre: '50% 60%' },   // 31 → Momento-31.jpg
-  { titulo: 'Maru se fue 2 meses de viaje', fecha: '29 de mayo de 2026', encuadre: '50% 55%' },   // 32 → Momento-32.jpg
+  { titulo: 'Colonia', fecha: '6 de abril 2025', encuadre: '50% 60%', desc: 'Primera vez que estuvimos, noche mágica para toda la vida' },   // 01 → Momento-01.jpg
+  { titulo: 'Posada del Mar', fecha: '25 de agosto 2025', encuadre: '50% 50%', desc: 'After de Key Conference' },   // 02 → Momento-02.jpg
+  { titulo: 'Lo de Tata', fecha: '25 de agosto de 2025', encuadre: '50% 31%', desc: 'Fuimos a lo de Tata después del after de Key Conference' },   // 03 → Momento-03.jpg
+  { titulo: 'Chivipizza', fecha: '29 de agosto 2025', encuadre: '50% 40%', desc: 'Nuestra primera salida a cenar' },   // 04 → Momento-04.jpg
+  { titulo: 'Finde en Punta del Este', fecha: '5 de setiembre de 2025', encuadre: '50% 30%', desc: 'Hicimos una escapada de fin de semana a Punta, fue increíble' },   // 05 → Momento-05.jpg
+  { titulo: 'Nos chocaron', fecha: '13 de setiembre de 2025', encuadre: '50% 55%', desc: 'Una moto nos chocó, primer momento tenso juntos' },   // 06 → Momento-06.jpg
+  { titulo: 'Mejor día de mi vida', fecha: '20 de setiembre de 2025', encuadre: '50% 35%', destacado: true, desc: 'Alquilamos un apto por el finde, ese sábado nos pusimos de novios' },   // 07 → Momento-07.jpg
+  { titulo: 'Dilema', fecha: '23 de setiembre de 2025', encuadre: '50% 15%', desc: '' },   // 08 → Momento-08.jpg
+  { titulo: 'Kilombito, Punta del Este', fecha: '10 de octubre de 2025', encuadre: '50% 55%', desc: 'Finde en lo del Boli, ese viernes fuimos a Kilombito con los monos' },   // 09 → Momento-09.jpg
+  { titulo: 'Hockey de las pibas', fecha: '19 de octubre de 2025', encuadre: '50% 50%', desc: 'Fuimos a la semifinal de Old Girls, ahi conocí a algunas monas' },   // 10 → Momento-10.jpg  (foto horizontal)
+  { titulo: 'Bautismo de Apon', fecha: '25 de octubre de 2025', encuadre: '50% 45%', desc: 'Bautismo de Apon, no conocia a casi nadie de la familia y le prendí la vela a Sturla' },   // 11 → Momento-11.jpg
+  { titulo: 'Escapada al campo', fecha: '31 de octubre de 2025', encuadre: '50% 65%', desc: 'Nos fuimos un finde para el campo solos, recorrimos, caminamos, bailamos y cantamos, Maru se mamó y vomitó' },   // 12 → Momento-12.jpg
+  { titulo: 'Exit', fecha: '8 de Noviembre de 2025', encuadre: '50% 70%', desc: 'Fuimos a la Exit con los monos' },   // 13 → Momento-13.jpg
+  { titulo: 'Airbnb para el finde y Keymood', fecha: '14 de noviembre de 2025', encuadre: '50% 70%', desc: 'Alquilamos un apto por el finde, ese sábado fuimos a Key Mood' },   // 14 → Momento-14.jpg
+  { titulo: 'Vela', fecha: '20 de noviembre de 2025', encuadre: '50% 30%', desc: '2 meses de novios' },   // 15 → Momento-15.jpg
+  { titulo: 'Manzanar', fecha: '19 de Diciembre de 2025', encuadre: '50% 35%', desc: '4 meses de novios' },   // 16 → Momento-16.jpg
+  { titulo: 'Interno', fecha: '19 de Diciembre de 2025', encuadre: '50% 45%', desc: 'Noche final del interno del British' },   // 17 → Momento-17.jpg 
+  { titulo: 'Las Toscas', fecha: '25 de diciembre de 2025', encuadre: '50% 30%', desc: 'Pasamos el día con mi familia en Las Toscas' },   // 18 → Momento-18.jpg
+  { titulo: 'Cumple de Mili Batlle', fecha: '28 de diciembre de 2025', encuadre: '50% 40%', desc: 'Cumple de Mili y previa en Manantiales' },   // 19 → Momento-19.jpg
+  { titulo: 'Key Mood, Punta del Este', fecha: '28 de diciembre de 2025', encuadre: '50% 64%', desc: 'Fuimos a Key Mood en Punta mano a mano' },   // 20 → Momento-20.jpg
+  { titulo: 'Playa con Tata e Isa Mautone', fecha: '30 de diciembre de 2025', encuadre: '50% 65%', desc: '' },   // 21 → Momento-21.jpg
+  { titulo: 'Collage', fecha: '31 de diciembre de 2026', encuadre: '50% 80%', desc: 'Empezamos el año juntos' },   // 22 → Momento-22.jpg
+  { titulo: 'Adriatique', fecha: '4 de enero de 2026', encuadre: '50% 55%', desc: 'Fiesta en el MACA' },   // 23 → Momento-23.jpg
+  { titulo: 'Café misterio', fecha: '20 de enero de 2026', encuadre: '50% 20%', desc: '4 meses de novios' },   // 24 → Momento-24.jpg
+  { titulo: 'Familia Massei, mi cumple', fecha: '25 de enero de 2026', encuadre: '50% 30%', desc: 'Fuimos a cenar por mi cumple' },   // 25 → Momento-25.jpg
+  { titulo: 'Kilombito con los monos', fecha: '30 de enero de 2026', encuadre: '50% 40%', desc: '' },   // 26 → Momento-26.jpg
+  { titulo: 'La Pedrera con tu familia', fecha: '13 de febrero de 2026', encuadre: '50% 75%', desc: 'Los padres de Maru alquilaron carnaval en la Pedrera y me invitaron' },   // 27 → Momento-27.jpg
+  { titulo: 'Casamiento de Clari', fecha: '29 de febrero de 2026', encuadre: '50% 45%', desc: '' },   // 28 → Momento-28.jpg  (foto horizontal)
+  { titulo: 'Domos en la Sierra de las Ánimas', fecha: '13 de marzo de 2026', encuadre: '50% 62%', desc: 'Alquilamos unos domos para pasar el finde, hicimos trekking y entrañitas con choclo' },   // 29 → Momento-29.jpg
+  { titulo: 'Semana Santa en el campo', fecha: '30 de marzo de 2026', encuadre: '50% 45%', desc: 'Tradición de los Symonds pasar Semana Santa en el campo, planazo' },   // 30 → Momento-30.jpg
+  { titulo: 'Apto de Viole en Punta', fecha: '15 de mayo de 2026', encuadre: '50% 60%', desc: 'Viole nos prestó su apto en Punta por el finde' },   // 31 → Momento-31.jpg
+  { titulo: 'Maru se fue 2 meses de viaje', fecha: '29 de mayo de 2026', encuadre: '50% 55%', desc: 'Bandoni Chanti' },   // 32 → Momento-32.jpg
 
 ];
 
