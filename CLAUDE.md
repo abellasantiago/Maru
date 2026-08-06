@@ -41,6 +41,41 @@ Reglas que conviene tener en la cabeza antes de tocar el hero:
 
 ## Historial de cambios
 
+### 2026-08-06 — feat: coordenadas de un lugar nuestro en el monograma, contador menos incrustado
+
+- El monograma (arriba a la izquierda, vacío desde siempre) pasa a tener
+  contenido: las coordenadas de un lugar especial de Santi y Maru, en
+  `.monograma-coord` dentro de `#monograma`. Mismo lenguaje que la fecha de
+  las cards (línea dorada + texto tracked) para no inventar un vocabulario
+  visual nuevo — se armaron mockups comparando dónde ponerla, cómo tratarla
+  y qué interacción darle antes de tocar el código real.
+- Con puntero fino nace apagada y con un pelo de blur (`opacity 0.32`,
+  `blur(1.4px)`) y al pasar el cursor se enfoca mientras los dígitos
+  decodifican de izquierda a derecha (los símbolos ° ' " S W no se tocan).
+  Todo el reposo/hover vive en `@media (pointer: fine) and
+  (prefers-reduced-motion: no-preference)` — a propósito NO en una clase
+  que agrega el JS, porque eso llega después del primer cuadro y se veía
+  como un parpadeo al cargar la página. En táctil queda fija y nítida, sin
+  depender de un hover que ahí no existe.
+- Es un detalle del arranque, no un elemento permanente: se esfuma con el
+  scroll al mismo umbral que el contador de tiempo juntos
+  (`progreso >= 0.03`), reusando su mecanismo (`.oculto`, `setProgreso` en
+  `ui.js`).
+- Es un `<a>` real a Maps (coordenada convertida a decimal en el `href`),
+  abre en pestaña nueva. Por eso queda afuera del listener del primer click
+  que dispara la canción — si no, el fundido largo de 3600ms se tocaba
+  entero en una pestaña que nadie está mirando.
+- De paso, el contador de tiempo juntos queda menos "incrustado": opacity
+  0.8→0.6, `blur(0.35px)`, sombra oscura aflojada (12px/0.5 → 18px/0.34) y
+  halo dorado más abierto (18px/0.22 → 28px/0.26) — la sombra ceñida era la
+  que le daba el relieve de grabado contra la nebulosa.
+- Trampa de debugging para la próxima: en el preview de este entorno, una
+  transición CSS activa en un elemento ya renderizado le gana a `!important`
+  (incluso puesto a mano vía `el.style`) y queda trabada por el throttle de
+  la pestaña de fondo — así se explicaban computed styles que no cuadraban.
+  Se confirma probando la regla en un elemento nuevo sin render previo.
+- Rama: trabajado directo sobre `main`.
+
 ### 2026-08-02 (3) — feat: fecha de las cards con línea dorada, título sin itálica
 
 - Santi no estaba conforme con el texto de las cards del timeline. Se
