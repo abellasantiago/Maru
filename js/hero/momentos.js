@@ -29,7 +29,7 @@
    Una línea por foto. Completá titulo y fecha; el resto se arma solo. */
 const DATOS = [
   { titulo: 'Colonia', fecha: '6 de abril 2025', encuadre: '50% 60%', desc: 'Primera vez que estuvimos, noche mágica para toda la vida' },   // 01 → Momento-01.jpg
-  //{ titulo: 'Posada del Mar', fecha: '25 de agosto 2025', encuadre: '50% 50%', desc: 'After de Key Conference' },   // 02 → Momento-02.jpg
+  { titulo: 'Posada del Mar', fecha: '25 de agosto 2025', encuadre: '50% 50%', desc: 'After de Key Conference' },   // 02 → Momento-02.jpg
   { titulo: 'Lo de Tata', fecha: '25 de agosto de 2025', encuadre: '50% 31%', desc: 'Fuimos a lo de Tata después del after de Key Conference' },   // 03 → Momento-03.jpg
   { titulo: 'Chivipizza', fecha: '29 de agosto 2025', encuadre: '50% 40%', desc: 'Nuestra primera salida a cenar' },   // 04 → Momento-04.jpg
   { titulo: 'Finde en Punta del Este', fecha: '5 de setiembre de 2025', encuadre: '50% 30%', desc: 'Hicimos una escapada de fin de semana a Punta, fue increíble' },   // 05 → Momento-05.jpg
@@ -43,7 +43,7 @@ const DATOS = [
   { titulo: 'Exit', fecha: '8 de Noviembre de 2025', encuadre: '50% 70%', desc: 'Fuimos a la Exit con los monos' },   // 13 → Momento-13.jpg
   { titulo: 'Airbnb para el finde y Keymood', fecha: '14 de noviembre de 2025', encuadre: '50% 70%', desc: 'Alquilamos un apto por el finde, ese sábado fuimos a Key Mood' },   // 14 → Momento-14.jpg
   { titulo: 'Vela', fecha: '20 de noviembre de 2025', encuadre: '50% 30%', desc: '2 meses de novios' },   // 15 → Momento-15.jpg
-  { titulo: 'Manzanar', fecha: '19 de Diciembre de 2025', encuadre: '50% 35%', desc: '4 meses de novios' },   // 16 → Momento-16.jpg
+  { titulo: 'Manzanar', fecha: '19 de Diciembre de 2025', encuadre: '50% 35%', desc: '3 meses de novios' },   // 16 → Momento-16.jpg
   { titulo: 'Interno', fecha: '19 de Diciembre de 2025', encuadre: '50% 45%', desc: 'Noche final del interno del British' },   // 17 → Momento-17.jpg 
   { titulo: 'Las Toscas', fecha: '25 de diciembre de 2025', encuadre: '50% 30%', desc: 'Pasamos el día con mi familia en Las Toscas' },   // 18 → Momento-18.jpg
   { titulo: 'Cumple de Mili Batlle', fecha: '28 de diciembre de 2025', encuadre: '50% 40%', desc: 'Cumple de Mili y previa en Manantiales' },   // 19 → Momento-19.jpg
