@@ -121,7 +121,13 @@ Reglas que conviene tener en la cabeza antes de tocar el hero:
   `js/hero/` tienen que ser PARES.
 - Verificado con las 32 cards (entró Posada del Mar): cero píxeles quemados
   en los 10 puntos del recorrido, peor caso 13.3 ms a 1.5× y 10.5 ms a 1.25×.
-- Rama: `claude/macbook-13-optimization-ba32e6`.
+- Queda pendiente de confirmar EN EL NAVEGADOR REAL en qué escalón se planta
+  el gobernador. En el preview de este entorno (Electron, con la pestaña
+  entrando y saliendo de segundo plano) se plantó en 1.25×, pero ese no es un
+  veredicto limpio: cualquier medición ahí arrastra el sobrecosto del propio
+  Electron. Para verlo: `window.hero.gobernador.escala` en la consola después
+  de unos segundos de scrollear.
+- Rama mergeada: `claude/macbook-13-optimization-ba32e6` → `main`.
 
 ### 2026-08-06 — feat: coordenadas de un lugar nuestro en el monograma, contador menos incrustado
 
