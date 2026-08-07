@@ -37,7 +37,7 @@ const DATOS = [
   { titulo: 'Mejor día de mi vida', fecha: '20 de setiembre de 2025', encuadre: '50% 35%', destacado: true, desc: 'Alquilamos un apto por el finde, ese sábado nos pusimos de novios' },   // 07 → Momento-07.jpg
   { titulo: 'Dilema', fecha: '23 de setiembre de 2025', encuadre: '50% 15%', desc: '' },   // 08 → Momento-08.jpg
   { titulo: 'Kilombito, Punta del Este', fecha: '10 de octubre de 2025', encuadre: '50% 55%', desc: 'Finde en lo del Boli, ese viernes fuimos a Kilombito con los monos' },   // 09 → Momento-09.jpg
-  { titulo: 'Hockey de las pibas', fecha: '19 de octubre de 2025', encuadre: '50% 50%', desc: 'Fuimos a la semifinal de Old Girls, ahi conocí a algunas monas' },   // 10 → Momento-10.jpg  (foto horizontal)
+  { titulo: 'Hockey de las pibas', fecha: '19 de octubre de 2025', encuadre: '50% 50%', desc: 'Fuimos a la semifinal de Old Girls, ahi conocí a algunas monas' },   // 10 → Momento-10.jpg
   { titulo: 'Bautismo de Apon', fecha: '25 de octubre de 2025', encuadre: '50% 45%', desc: 'Bautismo de Apon, no conocia a casi nadie de la familia y le prendí la vela a Sturla' },   // 11 → Momento-11.jpg
   { titulo: 'Escapada al campo', fecha: '31 de octubre de 2025', encuadre: '50% 65%', desc: 'Nos fuimos un finde para el campo solos, recorrimos, caminamos, bailamos y cantamos, Maru se mamó y vomitó' },   // 12 → Momento-12.jpg
   { titulo: 'Exit', fecha: '8 de Noviembre de 2025', encuadre: '50% 70%', desc: 'Fuimos a la Exit con los monos' },   // 13 → Momento-13.jpg
