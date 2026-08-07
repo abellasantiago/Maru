@@ -29,7 +29,7 @@
    Una línea por foto. Completá titulo y fecha; el resto se arma solo. */
 const DATOS = [
   { titulo: 'Colonia', fecha: '6 de abril 2025', encuadre: '50% 60%', desc: 'Primera vez que estuvimos, noche mágica para toda la vida' },   // 01 → Momento-01.jpg
-  { titulo: 'Posada del Mar', fecha: '25 de agosto 2025', encuadre: '50% 50%', desc: 'After de Key Conference' },   // 02 → Momento-02.jpg
+  //{ titulo: 'Posada del Mar', fecha: '25 de agosto 2025', encuadre: '50% 50%', desc: 'After de Key Conference' },   // 02 → Momento-02.jpg
   { titulo: 'Lo de Tata', fecha: '25 de agosto de 2025', encuadre: '50% 31%', desc: 'Fuimos a lo de Tata después del after de Key Conference' },   // 03 → Momento-03.jpg
   { titulo: 'Chivipizza', fecha: '29 de agosto 2025', encuadre: '50% 40%', desc: 'Nuestra primera salida a cenar' },   // 04 → Momento-04.jpg
   { titulo: 'Finde en Punta del Este', fecha: '5 de setiembre de 2025', encuadre: '50% 30%', desc: 'Hicimos una escapada de fin de semana a Punta, fue increíble' },   // 05 → Momento-05.jpg
