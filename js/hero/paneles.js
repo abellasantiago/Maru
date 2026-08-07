@@ -112,6 +112,7 @@ export class PanelesVidrio {
         rotBase: new THREE.Euler().fromArray(momento.rotacion),
         fase: indice * 1.73,   // desfase para que no floten sincronizados
         foco: 0,
+        escrito: {},           // último valor de cada variable CSS (ver _escribir)
       });
     });
 
@@ -135,6 +136,20 @@ export class PanelesVidrio {
     });
 
     this._v = new THREE.Vector3(); // temporal reutilizable
+  }
+
+  /* Escribe una variable CSS SÓLO si cambió.
+     No es micro-optimización: `--foco` y `--revelado` alimentan filter,
+     transform, opacity y box-shadow de varios descendientes, así que cada
+     escritura obliga al navegador a recalcular estilos y, en el caso del
+     `filter: blur()` de la foto, a volver a filtrar una imagen de casi un
+     megapíxel. Las cards que están reveladas pero fuera de foco tienen el
+     valor CLAVADO en 0 o en 1, y así no pagan nada por cuadro. */
+  _escribir(item, nombre, valor) {
+    const texto = valor.toFixed(3);
+    if (item.escrito[nombre] === texto) return;
+    item.escrito[nombre] = texto;
+    item.el.style.setProperty(nombre, texto);
   }
 
   actualizar(dt, tiempo, camara) {
@@ -168,7 +183,7 @@ export class PanelesVidrio {
       }
       /* Suavizado temporal para que el revelado respire, sin saltos */
       item.foco += (foco - item.foco) * Math.min(1, dt * 6);
-      item.el.style.setProperty('--foco', item.foco.toFixed(3));
+      this._escribir(item, '--foco', item.foco);
 
       /* ── Revelado por DISTANCIA, individual ──
          El timeline NO se ve de arranque: cada card está totalmente
@@ -178,16 +193,23 @@ export class PanelesVidrio {
          insinuado. Umbrales angostos (11 → 5) para que despierte tarde,
          cerca del momento en que va a quedar en foco. */
       const revelado = 1 - THREE.MathUtils.smoothstep(distCamara, 5, 11);
-      item.el.style.setProperty('--revelado', revelado.toFixed(3));
+      this._escribir(item, '--revelado', revelado);
 
       /* ── Optimización: sólo pintamos lo razonablemente cercano ──
          Los paneles detrás de la cámara, muy profundos o aún no revelados
-         se ocultan; los de media distancia pierden el backdrop-filter (el
-         blur es lo más caro). Usamos objeto.visible: el CSS3DRenderer lo
-         traduce a display y, además, se saltea el cálculo de transform de
-         los ocultos. */
+         se ocultan. Usamos objeto.visible: el CSS3DRenderer lo traduce a
+         display y, además, se saltea el cálculo de transform de los ocultos.
+
+         Y el `backdrop-filter` —lo más caro de toda la capa DOM, porque
+         obliga al compositor a leer y desenfocar lo que hay DETRÁS de la
+         card en cada cuadro— queda sólo para las que están de verdad
+         encima. El umbral estaba en 24 unidades, o sea que no se activaba
+         NUNCA: la card ya desaparece del DOM a las 11. A 9 unidades el
+         revelado va por 0.26 —la card es una silueta apenas insinuada— así
+         que ahí el vidrio esmerilado no se lee, y con las cards cada 7.4
+         unidades esto deja una sola pagando el blur en vez de dos o tres. */
       item.objeto.visible = delante && distCamara < 95 && revelado > 0.004;
-      item.el.classList.toggle('lejos', distCamara > 24);
+      item.el.classList.toggle('lejos', distCamara > 9);
     }
 
     /* ── Frases del descenso: visibles mientras la cámara pasa a su altura ──

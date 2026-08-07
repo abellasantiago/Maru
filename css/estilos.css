@@ -45,7 +45,7 @@
   --fuente-display: 'Cormorant Garamond', Georgia, serif;
   --fuente-ui: 'Montserrat', 'Segoe UI', sans-serif;
 
-  /* Duración del viaje: altura del espaciador de scroll (landing + 31 cards + final).
+  /* Duración del viaje: altura del espaciador de scroll (landing + 32 cards + final).
      3000vh reparte ~390vh para el landing y ~2520vh para el timeline
      (~76vh por card). Va de la mano con FASES en config.js: si cambia la
      cantidad de cards, escalar este valor para mantener el vh por card. */
@@ -326,7 +326,7 @@ body {
 }
 
 /* ── Sidebar de momentos (izquierda, centrada vertical) ──────────
-   Compacta: con 23 cards, los puntos van muy juntos como un riel de progreso. */
+   Compacta: con más de 30 cards, los puntos van muy juntos como un riel de progreso. */
 .sidebar-momentos {
   left: 30px;
   top: 50%;
@@ -533,8 +533,13 @@ body {
     rgba(224, 89, 106, 0.05)
   );
   border: max(1px, calc(1px * var(--ss))) solid var(--color-vidrio-borde);
-  backdrop-filter: blur(calc(12px * var(--ss)));
-  -webkit-backdrop-filter: blur(calc(12px * var(--ss)));
+  /* El esmerilado sólo se ve en el marco de 14px que rodea a la foto (la foto
+     tapa todo el resto de la card), así que el radio exacto casi no se lee —
+     pero el costo sí: el compositor tiene que leer y desenfocar lo que hay
+     detrás, a resolución retina, en cada cuadro. 10px en vez de 12 es
+     indistinguible en un marco de ese ancho y baja el costo un ~20%. */
+  backdrop-filter: blur(calc(10px * var(--ss)));
+  -webkit-backdrop-filter: blur(calc(10px * var(--ss)));
   box-shadow:
     0 0 calc((18px + var(--foco) * 26px) * var(--ss)) rgba(200, 40, 63, calc(0.10 + var(--foco) * 0.16)),
     inset 0 0 calc(22px * var(--ss)) rgba(245, 239, 230, 0.04);
@@ -699,7 +704,9 @@ body {
     0 0 calc((24px + var(--foco) * 34px) * var(--ss)) rgba(230, 184, 125, calc(0.14 + var(--foco) * 0.22)),
     inset 0 0 calc(26px * var(--ss)) rgba(230, 184, 125, 0.06);
 }
-/* Los paneles lejanos sueltan el backdrop-filter (el blur es lo más caro) */
+/* Los paneles todavía lejanos sueltan el backdrop-filter (el blur es lo más
+   caro de toda la capa DOM). El umbral lo pone paneles.js: a esa distancia la
+   card es una silueta apenas insinuada y el vidrio esmerilado no se lee. */
 .panel-vidrio.lejos {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;

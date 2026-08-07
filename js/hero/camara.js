@@ -7,7 +7,7 @@
 
    ▸ LANDING  : la cámara queda casi quieta frente al corazón (que gira
                 y se esfuma). Un leve dolly de acercamiento da anticipación.
-   ▸ TIMELINE : vuelo por las 23 cards siguiendo dos curvas Catmull-Rom
+   ▸ TIMELINE : vuelo por las cards siguiendo dos curvas Catmull-Rom
                 (una para la POSICIÓN, otra para la MIRADA). Cada card, a
                 su turno, queda encuadrada en el centro.
    ▸ FINAL    : la cámara sigue derivando hacia adelante mientras sube el

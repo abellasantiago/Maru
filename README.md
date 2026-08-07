@@ -276,8 +276,24 @@ revelado, en ese orden:
 
 - **Un solo WebGLRenderer** para todo. Los paneles son DOM (CSS3D) pero sólo
   se pintan los cercanos y ya revelados (`objeto.visible = false` mientras
-  --revelado es 0: ni siquiera se agregan al DOM); los del medio sueltan el
-  `backdrop-filter` (el blur es lo más caro).
+  --revelado es 0: ni siquiera se agregan al DOM).
+- **Ojo con la capa DOM: no aparece en ninguna medición de WebGL.** El
+  gobernador de calidad lo dejó a la vista — la escena WebGL entraba cómoda a
+  1.5× y aun así el sitio no sostenía el refresco, porque el compositor tiene
+  su propio trabajo que ningún benchmark de la escena ve. Los dos culpables, y
+  qué se hizo con cada uno:
+  - El `backdrop-filter` de las cards obliga al compositor a leer y desenfocar
+    lo que hay detrás, a resolución retina, cada cuadro. Ahora lo sueltan las
+    que están a más de 9 unidades (`.lejos` en `paneles.js`). El umbral estaba
+    en 24, o sea que **no se activaba nunca**: la card ya desaparece del DOM a
+    las 11. Y el radio bajó de 12 a 10 px — el esmerilado sólo se ve en el
+    marco de 14 px que rodea a la foto, así que ahí no se lee la diferencia.
+  - `--foco` y `--revelado` se escribían en cada cuadro aunque no cambiaran, y
+    alimentan `filter`, `transform`, `opacity` y `box-shadow` de varios
+    descendientes: cada escritura obliga a recalcular estilos y a volver a
+    filtrar una foto de casi un megapíxel. Ahora sólo se escriben si el valor
+    cambió (`_escribir` en `paneles.js`), así las cards con el valor clavado en
+    0 o en 1 no pagan nada.
 - La ambientación es barata a propósito: pocas luces grandes (200 bokeh) en
   vez de miles de puntos, velos como planos desplazados en GPU y un domo que
   sigue a la cámara y se dibuja a un tercio de resolución.

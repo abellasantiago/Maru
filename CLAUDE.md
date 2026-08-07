@@ -6,7 +6,7 @@ Sitio-regalo de Santi para Maru: un recorrido inmersivo en 3D por los momentos
 de la relación. El scroll no mueve contenido en 2D — mueve una cámara por un
 mundo. El sitio abre directo, sin preludio ni pantalla de carga: un
 **landing** con un corazón de partículas que ya está cayendo, se arma, gira y
-se desarma en brasas, un **timeline** de 30 cards de vidrio flotando en un
+se desarma en brasas, un **timeline** de 32 cards de vidrio flotando en un
 corredor, y una **pantalla final** ("Que sea eterno."). La canción arranca
 con el primer click en cualquier parte del sitio.
 
@@ -102,11 +102,25 @@ Reglas que conviene tener en la cabeza antes de tocar el hero:
   después agrandarla dejaba la calidad de teléfono clavada para siempre
   (esas constantes se evalúan una sola vez y con ellas se construyen los
   buffers). Ahora mira la PANTALLA, que no cambia al redimensionar.
+- **La capa DOM no aparece en ninguna medición de WebGL, y pesa.** Lo delató
+  el propio gobernador: la escena entraba cómoda a 1.5× (13 ms medidos) y
+  aun así el sitio no sostenía el refresco, porque el compositor tiene su
+  propio trabajo. Dos arreglos: (1) el `backdrop-filter` de las cards ahora
+  lo sueltan las que están a más de 9 unidades — el umbral estaba en 24, o
+  sea que NO SE ACTIVABA NUNCA, porque la card ya desaparece del DOM a las
+  11 — y el radio bajó de 12 a 10 px (el esmerilado sólo se ve en el marco
+  de 14 px que rodea a la foto); (2) `--foco` y `--revelado` se escribían
+  cada cuadro aunque no cambiaran, y alimentan filter/transform/opacity/
+  box-shadow de varios descendientes: cada escritura recalcula estilos y
+  vuelve a filtrar una foto de casi un megapíxel. Ahora sólo se escriben si
+  el valor cambió (`_escribir` en `paneles.js`).
 - Trampa de la que caí DOS veces en esta sesión: **una comilla invertida
   dentro de un comentario GLSL** corta el template literal y rompe el módulo
   entero, con un error de sintaxis que apunta a una palabra del shader y no
   dice nada útil. Chequeo rápido: las comillas invertidas de cada archivo de
   `js/hero/` tienen que ser PARES.
+- Verificado con las 32 cards (entró Posada del Mar): cero píxeles quemados
+  en los 10 puntos del recorrido, peor caso 13.3 ms a 1.5× y 10.5 ms a 1.25×.
 - Rama: `claude/macbook-13-optimization-ba32e6`.
 
 ### 2026-08-06 — feat: coordenadas de un lugar nuestro en el monograma, contador menos incrustado
