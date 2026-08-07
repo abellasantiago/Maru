@@ -41,6 +41,74 @@ Reglas que conviene tener en la cabeza antes de tocar el hero:
 
 ## Historial de cambios
 
+### 2026-08-07 — perf+feat: que se vea de cine en la laptop de 13"
+
+- Punto de partida MEDIDO en la máquina real de Santi (MacBook Pro 13",
+  Intel Iris Plus 645, 1440×900 @2×): el landing corría a **31 ms por
+  cuadro (~31 fps)** y, encima, **todo el post-proceso se dibujaba a la
+  mitad de la resolución de la pantalla**. El composer se construía con el
+  tamaño en píxeles CSS en vez del tamaño del buffer real, así que en retina
+  el cuadro salía de 1440×900 estirado a 2880×1800 — hasta que alguien
+  redimensionaba la ventana y ahí se ponía nítido de golpe… y perdía la
+  mitad de los cuadros. Hoy: **14 ms a 2160×1350**. Más del doble de píxeles
+  reales y el doble de fluidez.
+- **El MSAA ×4 costaba 17 ms de cuadro y no suavizaba nada.** Era herencia
+  de las viejas enredaderas de tubos; hoy no queda un solo borde de
+  geometría (puntos con caída de alfa, planos con los bordes desvanecidos
+  por shader, cards en DOM). Fuera.
+- **La nebulosa se dibuja a un lienzo propio al 32% y se estira** a pantalla
+  completa (`escenaDomo` + `rtDomo` + telón en `atmosfera.js`). Costaba
+  13 ms —la mitad del cuadro— porque es un FBM de ruido simplex evaluado en
+  cada píxel, y lo que dibuja son nubes suavísimas: a esa resolución no hay
+  diferencia visible. Con el aire que sobró pasó de 3 octavas a 4 con
+  deformación de dominio, que es lo que le da hebras en vez de manchas.
+- **Los velos costaban 4.5 ms por un ruido simplex POR PÍXEL** en el
+  fragment shader; son planos enormes y superpuestos, o sea muchísimo
+  relleno. El ruido se mudó al vertex shader (72 divisiones = 24 vértices
+  por ciclo: indistinguible) y quedaron en 1.1 ms.
+- **La resolución ya no se elige: se mide** (`js/hero/calidad.js`, nuevo).
+  El gobernador busca la escala más alta sostenible entre 1× y 2×. Detalle
+  que hay que tener en la cabeza para tocarlo: con vsync el tiempo entre
+  cuadros está CUANTIZADO (a 60 Hz, 14 ms y 16.6 ms se miden los dos como
+  16.7; 16.8 se mide como 33), así que no se puede deducir cuánto margen
+  sobra — hay que probar a subir y volver si sale mal, anotando el techo
+  para no oscilar. Simulado contra los costos reales medidos: converge en
+  ≤2 cambios en todos los escenarios (Intel → 1.5×, M-series → 2×).
+- Con el presupuesto liberado subió TODO: corazón 6500 → 11 000 partículas,
+  luciérnagas 480 → 760, estrellas 620 → 1100, bokeh 150 → 200, velos
+  10 → 13, ecos de brasas 2 → 3. El alfa del corazón EN REPOSO ahora también
+  se normaliza por cantidad (`uDensidadReposo`, 80% de corrección): sin eso,
+  con blending aditivo el doble de puntos es el doble de luz y el contorno
+  quemaba a blanco — que es exactamente lo que pasaba antes (mirá una
+  captura vieja: la silueta era BLANCA, no roja). Verificado midiendo
+  píxeles en todo el recorrido: cero quemados, pico 750/765.
+- Post-proceso nuevo: radio de lente corregido por aspecto (en 16:10 el
+  desenfoque y la viñeta pegaban igual arriba que en los costados, que están
+  mucho más lejos del eje óptico), bokeh en espiral de ángulo áureo con las
+  luces pesando más que el fondo, halación cálida en los niveles anchos del
+  bloom, curva S de revelado, grano pegado a los medios tonos y tramado de
+  un nivel contra el banding (todo el sitio es un degradé bordó oscurísimo
+  en 8 bits: sin tramar se ven las bandas).
+- **Arrastre de velocidad**: al scrollear rápido el cuadro se estira
+  radialmente hacia afuera, como una toma acelerando por un túnel. Reusa el
+  disco de muestras del bokeh, así que no cuesta un pase aparte.
+- Movilidad y navegación: Lenis de 1.15 a 1.0 (el trackpad de Mac ya trae su
+  propia inercia; encima del suavizado se sentía el volante flojo) y
+  navegación por teclado (← → de momento en momento, Inicio/Fin a las
+  puntas). Las flechas VERTICALES quedan libres a propósito: son la forma de
+  scrollear con el teclado y acá el scroll es el viaje.
+- Bug de detección que valía para cualquier máquina: `ES_MOBILE` miraba
+  `max-width: 760px` de la VENTANA. Abrir el sitio en una ventana angosta y
+  después agrandarla dejaba la calidad de teléfono clavada para siempre
+  (esas constantes se evalúan una sola vez y con ellas se construyen los
+  buffers). Ahora mira la PANTALLA, que no cambia al redimensionar.
+- Trampa de la que caí DOS veces en esta sesión: **una comilla invertida
+  dentro de un comentario GLSL** corta el template literal y rompe el módulo
+  entero, con un error de sintaxis que apunta a una palabra del shader y no
+  dice nada útil. Chequeo rápido: las comillas invertidas de cada archivo de
+  `js/hero/` tienen que ser PARES.
+- Rama: `claude/macbook-13-optimization-ba32e6`.
+
 ### 2026-08-06 — feat: coordenadas de un lugar nuestro en el monograma, contador menos incrustado
 
 - El monograma (arriba a la izquierda, vacío desde siempre) pasa a tener

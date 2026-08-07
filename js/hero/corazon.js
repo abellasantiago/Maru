@@ -85,14 +85,21 @@ function semiEspesor(dBorde) {
    salen, que es lo que hace que el corazón se "llene" y no aparezca. */
 const ESCALONADO_ENTRADA = 0.58;
 
-/* Cantidad de partículas con la que se calibró el brillo de las BRASAS.
-   Importa porque el blending es aditivo: en el desarme, las brasas ya
-   sueltas se superponen con el cuerpo del corazón que todavía no salió, y
-   con casi el doble de puntos (escritorio: 6500) el mismo alfa por
-   partícula suma el doble en pantalla y quema el cuadro a blanco. El
-   corazón EN REPOSO no lleva esta corrección: ese brillo ya estaba
-   afinado y se ve igual de bien con cualquier cantidad. */
+/* Cantidad de partículas con la que se calibró el brillo del corazón.
+   Importa porque el blending es aditivo: el doble de puntos con el mismo
+   alfa es el doble de luz sumada en el mismo lugar, y el cuadro quema a
+   blanco. Con esto, subir `particulasCorazon` DENSIFICA la nube (la silueta
+   se afina, el volumen se llena) sin encenderla de más. */
 const PARTICULAS_CALIBRADAS = 3600;
+
+/* Cuánto se corrige el corazón EN REPOSO, de 0 (nada: más puntos = más luz)
+   a 1 (compensación total: la luz se reparte y el brillo queda clavado).
+   No va en 1 a propósito: una nube más densa TIENE que verse un poco más
+   rica que una rala, si no la diferencia no se nota. 0.8 deja que gane un
+   pelo de cuerpo sin acercarse al blanco. Las BRASAS, en cambio, se
+   corrigen del todo (ver uDensidad en el shader): ahí las que ya salieron
+   se superponen con el cuerpo que todavía no salió y el margen es nulo. */
+const CORRECCION_REPOSO = 0.8;
 
 export class Corazon {
   constructor(escena) {
@@ -322,6 +329,13 @@ export class Corazon {
         uDensidad: {
           value: Math.min(1, PARTICULAS_CALIBRADAS / CONFIG.particulasCorazon),
         },
+        uDensidadReposo: {
+          value: THREE.MathUtils.lerp(
+            1,
+            Math.min(1, PARTICULAS_CALIBRADAS / CONFIG.particulasCorazon),
+            CORRECCION_REPOSO
+          ),
+        },
         uMouseLocal: { value: new THREE.Vector3(99, 99, 99) },  // lejos al arrancar
         uColorRojo: { value: PALETA.rojo },
         uColorVivo: { value: PALETA.rojoVivo },
@@ -465,6 +479,7 @@ export class Corazon {
         uniform float uOpacidad;
         uniform float uAlfaEco;
         uniform float uDensidad;
+        uniform float uDensidadReposo;
         uniform vec3 uColorRojo;
         uniform vec3 uColorVivo;
         uniform vec3 uColorClaro;
@@ -517,10 +532,14 @@ export class Corazon {
              único más brillante que el reposo es el chispazo del instante
              en que se suelta. Sin esta atenuación, miles de puntos
              aditivos viajando juntos queman el cuadro a blanco.
-             uDensidad corrige por la cantidad real de partículas: el
-             desarme se ve igual de encendido en un teléfono que en una
-             pantalla grande (ver PARTICULAS_CALIBRADAS). */
-          float repartida = mix(1.0, 0.22 * uDensidad, smoothstep(0.01, 0.26, vBrasa));
+             Los dos extremos van corregidos por la cantidad real de
+             partículas (ver PARTICULAS_CALIBRADAS), con distinta mano: el
+             corazón armado apenas —una nube más densa puede permitirse ser un
+             poco más rica—, y la brasa suelta del todo, porque ahí no hay
+             margen. Así el corazón se ve igual de encendido con 3600 puntos
+             en un teléfono que con 11000 en una laptop, y lo que cambia es la
+             FINURA de la nube, que es justamente lo que se quiere ganar. */
+          float repartida = mix(uDensidadReposo, 0.22 * uDensidad, smoothstep(0.01, 0.26, vBrasa));
 
           /* Las que pasan al ras del lente se disuelven ANTES de llegar:
              se leen como chispas fuera de foco cruzando el cuadro, nunca

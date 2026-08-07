@@ -18,8 +18,9 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
-import { CONFIG, PALETA, MOVIMIENTO_REDUCIDO, FASES, DESARME, POS_CORAZON } from './config.js';
+import { CONFIG, CALIDAD, PALETA, MOVIMIENTO_REDUCIDO, FASES, DESARME, POS_CORAZON } from './config.js';
 import { MOMENTOS } from './momentos.js';
+import { GobernadorCalidad } from './calidad.js';
 import { Atmosfera } from './atmosfera.js';
 import { VelosSeda } from './velos.js';
 import { AmbienteEnsueno } from './ambiente.js';
@@ -56,7 +57,12 @@ class HeroInmersivo {
       alpha: false,
       powerPreference: 'high-performance',
     });
-    this.dpr = Math.min(window.devicePixelRatio, CONFIG.dprMaximo);
+    /* Escala de render = píxeles reales por píxel CSS. Arranca en el valor
+       prudente de CALIDAD y la mueve el gobernador según lo que la máquina
+       aguante (ver calidad.js). Es la misma cifra que reciben los shaders de
+       partículas como uDPR, así el tamaño en pantalla de cada punto no cambia
+       cuando cambia la resolución. */
+    this.dpr = CALIDAD.escalaInicial;
     this.renderizador.setPixelRatio(this.dpr);
     this.renderizador.setSize(window.innerWidth, window.innerHeight);
     this.renderizador.toneMapping = THREE.ACESFilmicToneMapping;
@@ -75,8 +81,10 @@ class HeroInmersivo {
     /* Arranca a la altura del corazón (landing); el recorrido la baja al timeline */
     this.camara.position.set(0, POS_CORAZON[1], 10);
 
-    /* ── Piezas de la escena (de lo infinito a lo cercano) ── */
-    this.atmosfera = new Atmosfera(this.escena);
+    /* ── Piezas de la escena (de lo infinito a lo cercano) ──
+       La atmósfera necesita el renderizador: dibuja la nebulosa a un lienzo
+       propio más chico antes de cada cuadro (ver atmosfera.js). */
+    this.atmosfera = new Atmosfera(this.escena, this.renderizador);
     this.velos = new VelosSeda(this.escena);
     this.ambiente = new AmbienteEnsueno(this.escena);
     this.rayos = new Rayos(this.escena);
@@ -88,6 +96,19 @@ class HeroInmersivo {
     this.recorrido = new RecorridoCamara(this.camara);
     this.postproceso = new PostProceso(this.renderizador, this.escena, this.camara);
     this.cursor = new CursorCereza();
+
+    /* Todo lo que depende del tamaño se fija de una sola vez, acá y en cada
+       cambio: el composer, el bloom y el lienzo de la nebulosa nunca se
+       configuran solos. (Antes el composer se construía con el tamaño en
+       píxeles CSS y quedaba a media resolución en retina hasta que alguien
+       redimensionara la ventana.) */
+    this._aplicarTamanio();
+
+    /* Gobernador: mide el cuadro y busca la resolución más alta sostenible */
+    this.gobernador = new GobernadorCalidad((escala) => {
+      this.dpr = escala;
+      this._aplicarTamanio();
+    });
 
     /* ── Estado ── */
     this.mouseNDC = new THREE.Vector2(0, 0);
@@ -108,7 +129,10 @@ class HeroInmersivo {
     this._velScroll = 0;             // velocidad suavizada (respiración del FOV)
 
     /* ── UI ── */
-    this.ui = new InterfazHero((indice) => this.irAMomento(indice));
+    this.ui = new InterfazHero(
+      (indice) => this.irAMomento(indice),
+      (destino) => this.irAScroll(destino)
+    );
     this.ui.iniciar();
 
     /* No hay preludio: el corazón se suelta apenas arranca el mundo, y la
@@ -123,9 +147,16 @@ class HeroInmersivo {
 
   /* ── Lenis + ScrollTrigger: el scroll ES la línea de tiempo ── */
   _configurarScroll() {
+    /* El trackpad de una Mac ya trae su propia inercia: encima del suavizado
+       de Lenis, un `duration` largo se siente como manejar con el volante
+       flojo (soltás y la cámara sigue viajando casi un segundo y medio).
+       1.0 conserva el planeo —la cámara nunca da un tirón— pero responde a
+       la mano. `lerp` explícito en null para que mande la duración. */
     this.lenis = new Lenis({
-      duration: 1.15,
+      duration: 1.0,
       smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 1.6,
     });
     this.lenis.on('scroll', ScrollTrigger.update);
 
@@ -181,7 +212,12 @@ class HeroInmersivo {
   irAMomento(indice) {
     const recorridoEl = document.getElementById('recorrido');
     const alcance = recorridoEl.offsetHeight - window.innerHeight;
-    const destino = this.recorrido.anclas[indice] * alcance;
+    this.irAScroll(this.recorrido.anclas[indice] * alcance);
+  }
+
+  /* Vuelo de cámara hasta un punto cualquiera del recorrido (lo usan la
+     sidebar, el buscador, las flechas y el teclado). */
+  irAScroll(destino) {
     this.lenis.scrollTo(destino, {
       duration: MOVIMIENTO_REDUCIDO ? 0.3 : 2.4,
       easing: (t) => 1 - Math.pow(1 - t, 3),   // easeOutCubic: dolly con aterrizaje suave
@@ -206,14 +242,22 @@ class HeroInmersivo {
   }
 
   _redimensionar() {
+    this.camara.aspect = window.innerWidth / Math.max(window.innerHeight, 1);
+    this.camara.updateProjectionMatrix();
+    this._aplicarTamanio();
+  }
+
+  /* ÚNICO lugar donde se decide a qué resolución se dibuja cada cosa. Lo
+     llaman el arranque, el redimensionado de ventana y el gobernador de
+     calidad — con un solo punto de escritura, canvas, composer, bloom y
+     nebulosa no se pueden desincronizar entre sí. */
+  _aplicarTamanio() {
     const ancho = window.innerWidth;
     const alto = window.innerHeight;
-    this.dpr = Math.min(window.devicePixelRatio, CONFIG.dprMaximo);
-    this.camara.aspect = ancho / alto;
-    this.camara.updateProjectionMatrix();
     this.renderizador.setPixelRatio(this.dpr);
     this.renderizador.setSize(ancho, alto);
-    this.postproceso.redimensionar(ancho, alto);
+    this.postproceso.redimensionar(ancho, alto, this.dpr);
+    this.atmosfera.redimensionar(ancho * this.dpr, alto * this.dpr);
     this.paneles.redimensionar(ancho, alto);
   }
 
@@ -259,6 +303,11 @@ class HeroInmersivo {
 
       if (!this.activo) return;
 
+      /* El gobernador mide SÓLO cuando el hero está dibujando de verdad: los
+         cuadros de la pantalla final (con el mundo pausado) son baratísimos y
+         le harían creer que sobra máquina. */
+      this.gobernador.registrar(deltaMs);
+
       this.tiempo += dt;
 
       /* Cámara: progreso del scroll + parallax de mouse + banking */
@@ -275,6 +324,11 @@ class HeroInmersivo {
         this.camara.fov = fovObjetivo;
         this.camara.updateProjectionMatrix();
       }
+      /* La misma velocidad estira el cuadro hacia afuera: el FOV da el
+         "entra más mundo" y el arrastre da el "y pasa rápido". Los dos
+         juntos son lo que hace que volar por el corredor se sienta veloz
+         en vez de sólo verse veloz. */
+      this.postproceso.setArrastre(Math.min(this._velScroll * 26, 1));
 
       /* Durante el landing, el corazón se clava al punto de mirada de la
          cámara: queda fijo en el centro girando mientras el mundo (velos,

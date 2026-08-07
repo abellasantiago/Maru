@@ -101,6 +101,7 @@ export class VelosSeda {
         uniform float uAmplitud;
         varying vec2 vUv;
         varying float vDist;
+        varying float vVaiven;
         void main() {
           vUv = uv;
           /* Ondulación de tela bajo el agua: una onda grande y una fina */
@@ -111,13 +112,22 @@ export class VelosSeda {
           p.z += (onda * 1.7 + rizo * 0.35) * uAmplitud;
           p.x += rizo * 0.4 * uAmplitud;
 
+          /* El vaivén que desordena los pliegues se calcula ACÁ y viaja como
+             varying. Estaba en el fragment, y ahí costaba un ruido simplex por
+             PÍXEL: los velos son planos enormes, translúcidos y superpuestos,
+             o sea muchísimo relleno con muchísima superposición — eran el
+             objeto más caro de toda la escena. Como el ruido va a frecuencia 3
+             y el plano tiene 72 divisiones a lo ancho (24 por ciclo), la
+             interpolación entre vértices es indistinguible de calcularlo por
+             píxel, y sale unas mil veces más barato. */
+          vVaiven = snoise(vec3(uv * 3.0, uTiempo * 0.05 + uSemilla)) * 2.2;
+
           vec4 pv = modelViewMatrix * vec4(p, 1.0);
           vDist = -pv.z;
           gl_Position = projectionMatrix * pv;
         }
       `,
       fragmentShader: /* glsl */ `
-        ${RUIDO_SIMPLEX_GLSL}
         uniform float uTiempo;
         uniform float uSemilla;
         uniform float uIntensidad;
@@ -126,10 +136,11 @@ export class VelosSeda {
         uniform vec3 uColorOro;
         varying vec2 vUv;
         varying float vDist;
+        varying float vVaiven;
         void main() {
-          /* Pliegues de seda: bandas suaves que respiran a lo largo del velo */
-          float vaiven = snoise(vec3(vUv * 3.0, uTiempo * 0.05 + uSemilla)) * 2.2;
-          float pliegues = 0.5 + 0.5 * sin(vUv.x * 12.566 + uSemilla * 3.0 + vaiven);
+          /* Pliegues de seda: bandas suaves que respiran a lo largo del velo.
+             El vaivén que las desordena llega del vertex shader (ver arriba). */
+          float pliegues = 0.5 + 0.5 * sin(vUv.x * 12.566 + uSemilla * 3.0 + vVaiven);
           pliegues = pow(pliegues, 3.2);   // bandas finas: seda, no niebla
 
           /* Bordes desvanecidos: jamás se ve un rectángulo */

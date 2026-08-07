@@ -19,7 +19,10 @@ resplandor dorado al final del corredor, que empalma con la pantalla final crema
    tenue y borrosa, después nítida.
 2. **Timeline** — la cámara vuela por las **cards** (una por momento), con
    banking en las curvas, y cada una entra en foco a su turno. Se navega con el
-   scroll, con la sidebar, con las flechas o con el buscador.
+   scroll, con la sidebar, con las flechas, con el buscador o con el teclado
+   (← → pasan de momento; Inicio y Fin van a las puntas). Las flechas
+   verticales quedan libres a propósito: son la forma de scrollear con el
+   teclado, y acá el scroll ES el viaje.
 3. **Final** — la cámara se acerca al amanecer y un velo crema disuelve hacia
    la pantalla de cierre ("llegar a la luz").
 
@@ -46,6 +49,7 @@ ScrollTrigger, Lenis y las fuentes están vendorizados (`js/vendor/`, `assets/fu
 | **La canción** (archivo) | `RUTA_CANCION` en `js/hero/ui.js` |
 | **Cuándo arranca la canción** (primer click en cualquier parte del sitio) | `_configurarMusica()` en `js/hero/ui.js` |
 | Duración de cada fase del scroll | `FASES` en `js/hero/config.js` |
+| Calidad de imagen / resolución de render | `CALIDAD` en `config.js` + `js/hero/calidad.js` |
 | Cuándo se desarma el corazón | `DESARME` en `js/hero/config.js` |
 | Largo total del scroll | `--alto-recorrido` en `css/estilos.css` |
 | Cuántas vueltas gira el corazón en el landing | `CONFIG.vueltasCorazon` en `config.js` |
@@ -85,7 +89,7 @@ Cada capa es un módulo independiente con el mismo contrato
 
 | Capa (de lo infinito a lo cercano) | Módulo |
 |---|---|
-| Nebulosa envolvente + estrellas + **el amanecer** destino | `js/hero/atmosfera.js` |
+| Nebulosa envolvente (a lienzo propio, ver abajo) + estrellas + **el amanecer** destino | `js/hero/atmosfera.js` |
 | Velos de seda / auroras cálidas (la gran estructura de escala) | `js/hero/velos.js` |
 | Bokeh de ensueño + luciérnagas doradas | `js/hero/ambiente.js` |
 | Corazón point cloud rojo (repele al cursor, se desarma en brasas) | `js/hero/corazon.js` |
@@ -189,15 +193,101 @@ Tres toques que le dan cuerpo al hero, suaves y sin estorbar al centro:
 Todos respetan `prefers-reduced-motion` (deriva y tilt se apagan) y el táctil
 (sin tilt/brillo, que necesitan hover).
 
+## La calidad de imagen se mide, no se elige
+
+En una pantalla retina hay **cuatro veces más píxeles** que en la misma
+pantalla a 1×, y este hero es todo relleno: una nebulosa a pantalla completa,
+miles de puntos aditivos superpuestos y un bloom de radio ancho. Dibujar eso a
+resolución nativa en una laptop cuesta mucho, y no hay constante que sirva —
+la misma pantalla de 13" puede ser una Intel de 2019 o una M4.
+
+Por eso la resolución no está escrita en ningún lado: se **mide en marcha**
+(`js/hero/calidad.js`). El gobernador junta el tiempo de cada cuadro en
+ventanas de un segundo, se queda con la mediana —un tirón suelto no puede
+bajarle la calidad a todo el sitio— y mueve la escala de render entre 1× y 2×
+en escalones de 0.25. Si mantiene el refresco dos ventanas seguidas, PRUEBA
+subir un escalón; si esa prueba sale mal, vuelve y anota ese techo para no
+intentarlo nunca más (un cambio de resolución se ve, y una máquina justo en el
+límite oscilando para siempre es peor que quedarse abajo).
+
+Se prueba en vez de deducir por una razón concreta: con vsync, el tiempo entre
+cuadros está **cuantizado**. A 60 Hz, un cuadro que tarda 14 ms y uno que tarda
+16.6 se miden los dos como 16.7; el que tarda 16.8 pierde el pase y se mide
+como 33. No existe el "17.5", así que no hay forma de leer cuánto margen sobra.
+
+En una máquina holgada el resultado es indistinguible de fijar todo al máximo;
+en una justa, el sitio se ve todo lo nítido que puede sin perder fluidez.
+
+### Dónde se fue el tiempo de cuadro (medido, no estimado)
+
+Todo lo de abajo salió de medir en una MacBook Pro 13" (Intel Iris Plus 645,
+1440×900 @2×), que es el peor caso realista. Vale la pena tenerlo a mano antes
+de agregar cualquier efecto nuevo:
+
+| Qué | Costo | Qué se hizo |
+|---|---|---|
+| MSAA ×4 en el render target | **17 ms** | Se sacó. Era de las viejas enredaderas de tubos; hoy no hay un solo borde de geometría que suavizar (puntos con caída de alfa, planos con bordes desvanecidos, cards en DOM). |
+| Nebulosa (FBM a pantalla completa) | **13 ms** | Se dibuja a un lienzo aparte al 32% y se estira. Son nubes suavísimas: no hay diferencia visible, y con el aire que sobró pasó de 3 octavas a 4 con deformación de dominio. |
+| Velos de seda | **4.5 ms** | El ruido de los pliegues se mudó del fragment al vertex shader. Son planos enormes y superpuestos: era un ruido simplex por píxel. |
+| Bloom a resolución completa | ~4 ms | Va al 45% (`bloomEscala`). Es desenfoque puro. |
+| Disco de bokeh | ~0.11 ms por muestra | 14 muestras en espiral de ángulo áureo, con la espiral girada distinto en cada píxel. |
+
+Resultado en esa máquina: el landing pasó de **31 ms por cuadro dibujando el
+post a media resolución** (1440×900 estirado a 2880×1800) a **14 ms dibujando a
+2160×1350** — más del doble de píxeles reales y el doble de cuadros por segundo.
+
+> Trampa que había: el composer se construía con el tamaño en píxeles CSS en
+> vez del tamaño del buffer real, así que en retina TODO el post-proceso corría
+> a la mitad de resolución… hasta que alguien redimensionaba la ventana, y ahí
+> se ponía nítido de golpe y perdía la mitad de los cuadros. Hoy la resolución
+> se fija siempre explícitamente desde `_aplicarTamanio()` en `main.js`, que es
+> el único lugar que la escribe.
+
+## La lente y el revelado
+
+El pase final (`js/hero/postproceso.js`) es una lente y un laboratorio de
+revelado, en ese orden:
+
+- **Radio de lente corregido por aspecto.** La distancia al centro se mide en
+  la geometría real de la pantalla y se normaliza para que la esquina valga 1
+  en cualquier proporción. Sin eso, en 16:10 el desenfoque y la viñeta pegaban
+  igual de fuerte arriba que en los costados —que están mucho más lejos del eje
+  óptico— y se leía como un degradé puesto encima, no como una lente.
+- **Bokeh en espiral de ángulo áureo**, con las luces pesando más que el fondo:
+  una chispa fuera de foco se abre como un círculo de luz en vez de diluirse.
+- **Arrastre de velocidad**: al scrollear rápido el cuadro se estira
+  radialmente hacia afuera, como una toma acelerando por un túnel. Reusa el
+  mismo disco de muestras, así que no cuesta un pase aparte.
+- **Halación**: los niveles anchos del bloom se tiñen hacia el oro y el rojo de
+  la paleta (el sangrado rojizo de la película alrededor de una luz fuerte).
+  De paso resuelve un problema viejo: el glow blanco sube los tres canales y
+  satura; teñido, el halo se queda dentro de la paleta.
+- **Revelado**: curva S suave (planta los negros, hace rodar las altas luces),
+  sombras que viran al bordó y altas luces entibiadas.
+- **Grano de película** pegado a los medios tonos, como el haluro real: casi
+  nada en el negro (si no, la nebulosa hierve) y casi nada en la luz quemada.
+  Se mide contra los píxeles CSS y no contra los reales, así conserva su tamaño
+  físico aunque cambie la escala de render.
+- **Tramado** de un nivel, lo último antes de escribir el píxel. Todo el sitio
+  es un degradé bordó oscurísimo y la salida es de 8 bits: sin esto se ven las
+  bandas, y en una pantalla buena se ven mucho.
+
 ## Performance y accesibilidad
 
 - **Un solo WebGLRenderer** para todo. Los paneles son DOM (CSS3D) pero sólo
   se pintan los cercanos y ya revelados (`objeto.visible = false` mientras
   --revelado es 0: ni siquiera se agregan al DOM); los del medio sueltan el
   `backdrop-filter` (el blur es lo más caro).
-- La ambientación es barata a propósito: pocas luces grandes (150 bokeh) en
+- La ambientación es barata a propósito: pocas luces grandes (200 bokeh) en
   vez de miles de puntos, velos como planos desplazados en GPU y un domo que
-  sigue a la cámara.
+  sigue a la cámara y se dibuja a un tercio de resolución.
+- Las partículas del corazón sí son muchas (11 000 en escritorio) porque son
+  la imagen del sitio, pero el alfa **se normaliza por la cantidad**
+  (`uDensidad` / `uDensidadReposo` en `corazon.js`): con blending aditivo, el
+  doble de puntos con el mismo alfa es el doble de luz sumada y el cuadro
+  quema a blanco. Con la corrección, subir la cifra densifica la nube —afina
+  la silueta, llena el volumen— sin encenderla de más. Medido en todo el
+  recorrido: **cero píxeles quemados**, pico 750 de 765.
 - El hero se **pausa** al entrar a la pantalla final; el **cursor sigue vivo**
   (se actualiza siempre, aún con el hero pausado).
 - `prefers-reduced-motion`: menos elementos, ondulación mínima, sin parallax

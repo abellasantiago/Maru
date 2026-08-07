@@ -50,13 +50,15 @@ const EJE_Y = new THREE.Vector3(0, 1, 0);
 const EJE_Z = new THREE.Vector3(0, 0, 1);
 
 export class Atmosfera {
-  constructor(escena) {
-    /* El cielo (domo + estrellas) SIGUE a la cámara: se percibe infinito.
+  constructor(escena, renderizador) {
+    this.renderizador = renderizador;
+
+    /* El cielo (estrellas + fugaces) SIGUE a la cámara: se percibe infinito.
        El amanecer, en cambio, es un objeto DEL MUNDO: crece al acercarse. */
     this.cielo = new THREE.Group();
     escena.add(this.cielo);
 
-    this._construirDomo();
+    this._construirDomo(escena);
     this._construirEstrellas();
     this._construirFugaces();
     this._construirAmanecer(escena);
@@ -73,8 +75,18 @@ export class Atmosfera {
     this._base = new THREE.Matrix4();
   }
 
-  /* ── Domo de nebulosa cálida ── */
-  _construirDomo() {
+  /* ── Domo de nebulosa cálida ──
+     No se dibuja directo al cuadro: se dibuja a un lienzo CHICO aparte y
+     después se estira a pantalla completa. El motivo es puro costo: este
+     shader evalúa ruido simplex 3D cuatro veces POR PÍXEL, y como el domo
+     cubre toda la pantalla, en una GPU integrada a resolución retina se
+     llevaba la mitad del tiempo de cuadro él solo (13 de 26 ms medidos).
+     Lo que dibuja, en cambio, son nubes enormes y suavísimas: a un 40% de
+     resolución no hay diferencia visible —el detalle más fino que tiene mide
+     ~80 píxeles— y sale seis veces más barato. Con ese aire de sobra el
+     ruido pasó de tres octavas a cuatro CON DEFORMACIÓN DE DOMINIO, que es
+     lo que separa una nube con hebras de una mancha redonda. */
+  _construirDomo(escena) {
     this.materialDomo = new THREE.ShaderMaterial({
       side: THREE.BackSide,
       depthWrite: false,
@@ -110,6 +122,22 @@ export class Atmosfera {
              El tiempo y el avance de la cámara mueven las nubes DESPACIO. */
           vec3 q = dir * 2.1
                  + vec3(uDesplazamiento * 0.02, uTiempo * 0.008, uTiempo * 0.012);
+
+          /* ── Deformación de dominio ──
+             Antes de mirar el ruido, se DOBLA el espacio donde se lo mira con
+             otro ruido más grande. Es la diferencia entre nubes con hebras y
+             remolinos —humo de verdad— y las manchas redondas del FBM crudo:
+             cuesta una octava más y cambia por completo la materia del cielo.
+             Sólo en escritorio: el domo de mobile ya va corto de aire. */
+          #ifndef MOBILE
+          vec3 alabeo = vec3(
+            snoise(q * 0.9 + 11.3),
+            snoise(q * 0.9 + 27.1),
+            snoise(q * 0.9 + 43.7)
+          );
+          q += alabeo * 0.38;
+          #endif
+
           float n = snoise(q) * 0.55
                   + snoise(q * 2.3 + 7.2) * 0.28;
           #ifndef MOBILE
@@ -138,10 +166,69 @@ export class Atmosfera {
     });
     if (ES_MOBILE) this.materialDomo.defines = { MOBILE: 1 };
 
-    const domo = new THREE.Mesh(new THREE.SphereGeometry(150, 42, 28), this.materialDomo);
-    domo.renderOrder = -10;      // siempre primero: todo lo demás flota encima
-    domo.frustumCulled = false;
-    this.cielo.add(domo);
+    /* La esfera vive en una escena PROPIA: se dibuja aparte, a su lienzo
+       chico, con la misma cámara del mundo (por eso se la centra en ella
+       cada cuadro — es un cielo, no un objeto que se pueda dejar atrás). */
+    this.domo = new THREE.Mesh(new THREE.SphereGeometry(150, 42, 28), this.materialDomo);
+    this.domo.frustumCulled = false;
+    this.escenaDomo = new THREE.Scene();
+    this.escenaDomo.add(this.domo);
+
+    /* El lienzo chico. Sin buffer de profundidad ni mipmaps: es un único
+       objeto opaco que se dibuja una vez y se lee una vez. */
+    this.rtDomo = new THREE.WebGLRenderTarget(2, 2, {
+      type: THREE.HalfFloatType,
+      depthBuffer: false,
+      stencilBuffer: false,
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      generateMipmaps: false,
+    });
+
+    /* Y el telón donde se estira: un cuadrado que cubre el cuadro entero en
+       coordenadas de pantalla, sin pasar por la cámara. Va primero de todo
+       (renderOrder -10) y no toca el buffer de profundidad, exactamente como
+       hacía la esfera cuando se dibujaba acá.
+       `toneMapped: false` es importante: el domo ya recibió el mapeo de tonos
+       al dibujarse en su lienzo; volver a aplicarlo al copiarlo lo aplicaría
+       dos veces y el cielo se lavaría. */
+    this.telon = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 2),
+      new THREE.ShaderMaterial({
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+        uniforms: { uCielo: { value: this.rtDomo.texture } },
+        vertexShader: /* glsl */ `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            /* Ya está en coordenadas de pantalla: nada de matrices */
+            gl_Position = vec4(position.xy, 0.0, 1.0);
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          uniform sampler2D uCielo;
+          varying vec2 vUv;
+          void main() {
+            gl_FragColor = vec4(texture2D(uCielo, vUv).rgb, 1.0);
+          }
+        `,
+      })
+    );
+    this.telon.renderOrder = -10;   // siempre primero: todo lo demás flota encima
+    this.telon.frustumCulled = false;
+    escena.add(this.telon);
+  }
+
+  /** Tamaño del lienzo de la nebulosa, en píxeles REALES del cuadro.
+      Lo llama main.js al redimensionar y cada vez que el gobernador de
+      calidad cambia la escala de render. */
+  redimensionar(anchoPx, altoPx) {
+    this.rtDomo.setSize(
+      Math.max(2, Math.round(anchoPx * CONFIG.escalaNebulosa)),
+      Math.max(2, Math.round(altoPx * CONFIG.escalaNebulosa))
+    );
   }
 
   /* ── Estrellas lejanas (pegadas al domo → sin parallax: infinito) ── */
@@ -454,10 +541,20 @@ export class Atmosfera {
   actualizar(dt, tiempo, camara, dpr, anclaCorazon = null) {
     /* El cielo acompaña a la cámara: envolvente e infinito, sin parallax */
     this.cielo.position.copy(camara.position);
-    this.materialDomo.uniforms.uTiempo.value = tiempo;
-    this.materialDomo.uniforms.uDesplazamiento.value = camara.position.z;
     this.materialEstrellas.uniforms.uTiempo.value = tiempo;
     this.materialEstrellas.uniforms.uDPR.value = dpr;
+
+    /* ── La nebulosa, a su lienzo chico ──
+       La esfera se centra en la cámara (es un cielo: no se lo puede dejar
+       atrás) y se dibuja con esa misma cámara, así el encuadre —incluido el
+       ladeo de las curvas— coincide exactamente con el del mundo. */
+    this.materialDomo.uniforms.uTiempo.value = tiempo;
+    this.materialDomo.uniforms.uDesplazamiento.value = camara.position.z;
+    this.domo.position.copy(camara.position);
+    const objetivoPrevio = this.renderizador.getRenderTarget();
+    this.renderizador.setRenderTarget(this.rtDomo);
+    this.renderizador.render(this.escenaDomo, camara);
+    this.renderizador.setRenderTarget(objetivoPrevio);
 
     this._actualizarFugaces(dt, camara, anclaCorazon);
 
@@ -476,6 +573,10 @@ export class Atmosfera {
 
   destruir() {
     this.cielo.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    this.domo.geometry.dispose();
+    this.telon.geometry.dispose();
+    this.telon.material.dispose();
+    this.rtDomo.dispose();
     this.materialDomo.dispose();
     this.materialEstrellas.dispose();
     this.fugaces.forEach((f) => f.material.dispose());

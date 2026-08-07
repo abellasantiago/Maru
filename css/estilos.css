@@ -67,6 +67,14 @@ body {
   color: var(--color-crema);
   font-family: var(--fuente-ui);
   overflow-x: hidden;
+  /* Suavizado en escala de grises. macOS pinta el texto con subpíxeles y
+     ENGORDA los trazos claros sobre fondo oscuro: la Cormorant fina del
+     contador y las mayúsculas espaciadas de la UI salían con un halo sucio
+     de color en los bordes. Todo este sitio es texto claro sobre bordó
+     casi negro, así que el suavizado en gris es el correcto de punta a
+     punta — y en una pantalla retina se nota la diferencia. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* En desktop con puntero fino ocultamos el cursor nativo (usamos las cerezas) */
@@ -91,13 +99,18 @@ body {
   pointer-events: none;          /* solo los paneles reciben eventos */
 }
 
-/* Grano de película global, muy sutil (unifica canvas + paneles DOM) */
+/* Grano de película global, muy sutil (unifica canvas + paneles DOM).
+   Baja de 0.5 a 0.36 porque ya no es el único grano: el post-proceso del
+   mundo 3D ahora tiene grano de película de verdad —pegado a los medios
+   tonos, como el haluro real— y sumados eran demasiado. Este se queda por
+   lo que el otro no puede tocar: las cards, que son DOM y nunca pasan por
+   WebGL. Sin él, la foto quedaría limpia sobre un mundo con textura. */
 #grano-global {
   position: fixed;
   inset: -60px;
   z-index: 40;
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.36;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 0.95 0 0 0 0 0.9 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E");
   animation: grano-baile 0.6s steps(3) infinite;
 }

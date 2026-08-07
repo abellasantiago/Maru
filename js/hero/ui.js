@@ -28,10 +28,13 @@ function normalizar(texto) {
 export class InterfazHero {
   /**
    * @param {(indice:number)=>void} irAMomento  navega al momento i
+   * @param {(destinoPx:number)=>void} irAScroll  vuela a un punto del recorrido
    */
-  constructor(irAMomento) {
+  constructor(irAMomento, irAScroll) {
     this.irAMomento = irAMomento;
+    this.irAScroll = irAScroll;
     this.indiceActivo = 0;
+    this.progreso = 0;
 
     /* ── Sidebar: un punto por momento ── */
     const sidebar = document.getElementById('sidebar-momentos');
@@ -101,6 +104,50 @@ export class InterfazHero {
 
     /* ── Coordenadas del monograma: decodifican al pasar el cursor ── */
     this._configurarCoordenadas();
+
+    /* ── Teclado: recorrer los momentos sin tocar el mouse ── */
+    this._configurarTeclado();
+  }
+
+  /* Navegación por teclado.
+
+     Sólo se toman las flechas HORIZONTALES (y Inicio/Fin). Las verticales
+     quedan libres a propósito: son la forma en que el navegador scrollea, y
+     el scroll acá ES el viaje — robárselas rompería la única forma de
+     recorrer el sitio con el teclado. Las horizontales, en cambio, no hacen
+     nada en una página de una sola columna, así que son de la casa: pasan de
+     un momento al siguiente, como las flechas del indicador. */
+  _configurarTeclado() {
+    window.addEventListener('keydown', (e) => {
+      /* Escribiendo en el buscador, las flechas son del buscador */
+      const foco = document.activeElement;
+      if (foco && (foco.tagName === 'INPUT' || foco.tagName === 'TEXTAREA')) return;
+      /* Con modificadores son atajos del sistema o del navegador */
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const enLanding = this.progreso < FASES.landingFin * 0.9;
+      const ultimo = MOMENTOS.length - 1;
+
+      switch (e.key) {
+        case 'ArrowRight':
+          /* Desde el landing, la primera flecha entra al timeline */
+          this.irAMomento(enLanding ? 0 : Math.min(ultimo, this.indiceActivo + 1));
+          break;
+        case 'ArrowLeft':
+          if (enLanding) return;
+          this.irAMomento(Math.max(0, this.indiceActivo - 1));
+          break;
+        case 'Home':
+          this.irAScroll(0);
+          break;
+        case 'End':
+          this.irAScroll(document.documentElement.scrollHeight);
+          break;
+        default:
+          return;
+      }
+      e.preventDefault();
+    });
   }
 
   /* La canción se PRECARGA desde el arranque para que entre lista apenas
@@ -239,6 +286,7 @@ export class InterfazHero {
 
   /** Progreso 0..1 del hero: muestra/oculta la UI según la fase del recorrido */
   setProgreso(progreso) {
+    this.progreso = progreso;
     /* Contador de tiempo juntos: sólo al comienzo del landing */
     this.contadorEl.classList.toggle('oculto', progreso >= 0.03);
     /* Coordenadas del monograma: mismo criterio — un detalle del arranque,
