@@ -137,11 +137,27 @@ export const CONFIG = {
      ▸ ecosBrasas: copias de la nube dibujadas un pelín "atrás en el
        tiempo". Son la ESTELA de movimiento de cada brasa — lo que hace
        que se lean como fuego y no como puntos que se trasladan.
+
+       ES LA PERILLA MÁS CARA DEL SITIO, y conviene entender por qué antes
+       de subirla: cada eco vuelve a dibujar la nube ENTERA (11 000 puntos
+       gordos, aditivos y superpuestos), así que con 3 el corazón se dibuja
+       CUATRO VECES en el mismo cuadro. Medido en la laptop de 13": cada
+       eco cuesta ~1.2 ms, y el desarme —que ya es el momento más pesado
+       del recorrido— quedaba en 15.5 ms, a un milímetro de los 16.7 ms
+       que dan los 60 fps. O sea: el efecto más lindo del sitio era también
+       el que trababa la máquina justo cuando había que mirarlo.
+       En 0 el desarme baja a 11.9 ms y el pico desaparece del todo. Las
+       brasas siguen goteando, cayendo y yéndose al corredor; lo que se
+       pierde es el rastro detrás de cada una. Si algún día sobra máquina,
+       1 (13.1 ms) es el punto medio que devuelve la lectura de fuego.
+       (Y sí: mobile se queda con MÁS ecos que escritorio, que parece al
+       revés. No lo es — en el teléfono la nube tiene 3600 puntos y no
+       11 000, así que ahí un eco cuesta un tercio y sí entra en el cuadro.)
      ▸ retrasoEco: separación entre eco y eco, en unidades de desarme.
        Más alto = estelas más largas (y más separadas entre sí).
      ▸ remolinoBrasas: radianes de vórtice que gira el río mientras cae.
      ▸ brasasCerca: fracción de partículas que pasan al ras del lente. */
-  ecosBrasas: MOVIMIENTO_REDUCIDO ? 0 : (ES_MOBILE ? 1 : 3),
+  ecosBrasas: MOVIMIENTO_REDUCIDO ? 0 : (ES_MOBILE ? 1 : 0),
   retrasoEco: 0.011,
   remolinoBrasas: MOVIMIENTO_REDUCIDO ? 0 : 0.62,
   brasasCerca: MOVIMIENTO_REDUCIDO ? 0 : 0.07,
