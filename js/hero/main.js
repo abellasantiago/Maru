@@ -104,10 +104,21 @@ class HeroInmersivo {
        redimensionara la ventana.) */
     this._aplicarTamanio();
 
-    /* Gobernador: mide el cuadro y busca la resolución más alta sostenible */
+    /* Gobernador: mide el cuadro y busca la resolución más alta sostenible.
+       Guarda lo que ELIGE en `_escalaBase`, no en `this.dpr` directo: si en
+       ese momento está activo el recorte de emergencia del desarme (ver
+       _iniciarBucle), la escala nueva se aplica recién al salir de la
+       ventana — si no, un cambio del gobernador a mitad del desarme podría
+       pisar el recorte y devolver la resolución completa antes de tiempo. */
+    this._escalaBase = this.dpr;
+    this._enRecorteDesarme = false;
+    this._cooldownRecorte = 0;
     this.gobernador = new GobernadorCalidad((escala) => {
-      this.dpr = escala;
-      this._aplicarTamanio();
+      this._escalaBase = escala;
+      if (!this._enRecorteDesarme) {
+        this.dpr = escala;
+        this._aplicarTamanio();
+      }
     });
 
     /* ── Estado ── */
@@ -303,10 +314,44 @@ class HeroInmersivo {
 
       if (!this.activo) return;
 
-      /* El gobernador mide SÓLO cuando el hero está dibujando de verdad: los
-         cuadros de la pantalla final (con el mundo pausado) son baratísimos y
-         le harían creer que sobra máquina. */
-      this.gobernador.registrar(deltaMs);
+      /* El gobernador mide SÓLO cuando el hero está dibujando de verdad (los
+         cuadros de la pantalla final, con el mundo pausado, son baratísimos y
+         le harían creer que sobra máquina) Y SÓLO fuera del recorte de
+         emergencia del desarme (ver más abajo): esos cuadros ya corren más
+         livianos a propósito, y si el gobernador los viera pensaría que hay
+         margen de sobra en TODO el sitio y probaría subir la escala general
+         justo con el dato menos representativo de todos. */
+      if (!this._enRecorteDesarme) this.gobernador.registrar(deltaMs);
+
+      /* ── Recorte de emergencia del desarme ──
+         `corazon.desarme` es la bandera perfecta para esto: vale 0 mientras
+         el corazón está armado, sube 0→1 SÓLO durante la ventana en que se
+         suelta, y queda en 1 el resto del sitio — así que "entre 0 y 1" es
+         exactamente "estoy cruzando la transición", sea bajando hacia el
+         timeline o volviendo hacia el corazón (ScrollTrigger la actualiza
+         igual en los dos sentidos, ver _actualizarCorazon). Por qué hace
+         falta esto y no alcanza con el gobernador: el gobernador mide la
+         MEDIANA de casi 1 segundo de cuadros a propósito, para que un tirón
+         suelto no le baje la calidad a todo el sitio — pero eso lo deja
+         ciego ante un pico CORTO Y REPETIDO como este, que dura menos que
+         esa ventana y queda metido entre tramos livianos (armado antes,
+         timeline después): la mediana nunca lo lee como "caro" y el
+         gobernador nunca aprende a bajar ahí, sin importar cuántas veces se
+         cruce la zona. Acá no se mide nada: se corta apenas se entra.
+         `_cooldownRecorte` es para no reaccionar en cada cuadro si alguien
+         se queda scrolleando justo en el borde de la ventana (eso sí
+         thrashearía: cada cambio reasigna los render targets). */
+      if (this._cooldownRecorte > 0) {
+        this._cooldownRecorte--;
+      } else {
+        const enDesarme = this.corazon.desarme > 0.02 && this.corazon.desarme < 0.98;
+        if (enDesarme !== this._enRecorteDesarme) {
+          this._enRecorteDesarme = enDesarme;
+          this.dpr = enDesarme ? Math.min(this._escalaBase, CALIDAD.escalaDesarme) : this._escalaBase;
+          this._aplicarTamanio();
+          this._cooldownRecorte = 20;
+        }
+      }
 
       this.tiempo += dt;
 

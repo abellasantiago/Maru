@@ -284,4 +284,22 @@ export const CALIDAD = {
      ▸ techoMs: se están perdiendo cuadros de verdad. */
   holgadoMs: 17.6,
   techoMs: 19.5,
+
+  /* ── Recorte de emergencia del desarme ──
+     El gobernador mide la MEDIANA de ~1 segundo de cuadros a propósito (un
+     tirón suelto no debe bajarle la calidad a todo el sitio). Pero eso lo
+     deja CIEGO ante un pico corto y repetido como el desarme del corazón:
+     dura menos que la ventana de medición y queda metido entre tramos
+     livianos (el landing armado antes, el timeline después), así que la
+     mediana nunca lo ve como "demasiado caro" — nunca aprende a bajar ahí,
+     por más veces que se pase por esa zona en cualquier sentido.
+     Frente a un pico puntual, la respuesta no es un gobernador global más
+     nervioso (eso haría titilar la calidad en cualquier tirón suelto en
+     cualquier parte): es una excepción LOCAL, atada a `corazon.desarme`
+     (0 fuera de la ventana, 0..1 durante, ver main.js), que no espera
+     ninguna medición — corta la resolución en el instante en que se entra
+     a la ventana, sin importar si se llega scrolleando hacia abajo o de
+     vuelta hacia arriba. 1.0 (el piso de toda la escala) le sobra de
+     margen al desarme incluso con el corazón entero en pantalla. */
+  escalaDesarme: 1,
 };
