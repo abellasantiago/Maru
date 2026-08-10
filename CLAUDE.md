@@ -41,7 +41,53 @@ Reglas que conviene tener en la cabeza antes de tocar el hero:
 
 ## Historial de cambios
 
-### 2026-08-10 — perf: sacar los ecos de brasas, se comían el margen del desarme
+### 2026-08-10 (2) — perf: recorte de emergencia de resolución durante el desarme
+
+- El arreglo anterior de hoy (sacar los ecos de brasas) no alcanzó: Santi
+  reportó que se sigue trabando SIEMPRE que pasa por el desarme del
+  corazón, tanto bajando hacia el timeline como volviendo hacia arriba.
+  Ese "siempre, en los dos sentidos" es la pista clave — descarta que sea
+  sólo "el gobernador de calidad no tuvo tiempo de reaccionar la primera
+  vez" (esa teoría sólo explicaría la primera pasada).
+- La causa real: el gobernador (`calidad.js`) mide la MEDIANA de casi 1
+  segundo de cuadros a propósito, para que un tirón suelto no le baje la
+  calidad a todo el sitio. Pero eso lo deja CIEGO ante un pico corto y
+  repetido como el desarme: dura menos que esa ventana de medición y
+  queda metido entre tramos livianos (el corazón armado antes, el
+  timeline después) — la mediana nunca lo lee como "caro", así que el
+  gobernador nunca aprende a bajar ahí, sin importar cuántas veces se
+  cruce la zona. Es un punto ciego estructural del instrumento (mediana
+  de ~1s), no un problema de que tarde en reaccionar.
+- La solución no es un gobernador global más nervioso (eso haría titilar
+  la calidad en cualquier tirón suelto en cualquier parte del sitio):
+  es una excepción LOCAL. `corazon.desarme` ya es la bandera perfecta —
+  vale 0 mientras está armado, sube 0→1 SÓLO durante la ventana en que
+  se suelta, y queda en 1 el resto del sitio (timeline incluido), en
+  cualquier sentido de scroll. Ahora, apenas ese valor entra en (0,1),
+  main.js corta la escala de render al piso (1.0) EN EL INSTANTE, sin
+  esperar ninguna medición, y la devuelve a lo que el gobernador tenía
+  elegido al salir. Mientras dura el recorte, se deja de alimentar al
+  gobernador (esos cuadros corren distinto a propósito y lo confundirían
+  — vería margen de sobra y probaría subir la escala general con el dato
+  menos representativo de todos).
+- `_cooldownRecorte` (20 cuadros) evita que alguien scrolleando justo en
+  el borde de la ventana dispare un cambio de resolución por cuadro —
+  cada cambio reasigna los render targets del composer/bloom/nebulosa,
+  así que thrashear ahí sería peor que el problema original.
+- Verificado con un barrido sintético de 800 pasos (400 bajando + 400
+  subiendo) usando el mecanismo real del bucle: ahorro de 12.5ms a
+  5.8ms en el desarme (10.9ms de margen bajo el límite de 60fps), sólo
+  5 cambios de escala en total —sin thrashing—, cero errores de JS/GL,
+  sin artefactos visuales a la escala reducida.
+- Trampa del preview en esta sesión: `document.hidden` quedó pegado en
+  `true` de forma persistente, lo que en algún punto pausó el
+  COMPOSITOR de pantalla (no sólo rAF) — un screenshot mostraba negro
+  puro mientras `gl.readPixels` directo del framebuffer confirmaba
+  contenido normal. Un `resize_window` lo despertó. Lección: cuando el
+  screenshot no cuadra con lo que dicen las mediciones de GPU, confiar
+  en el framebuffer, no en la captura.
+
+### 2026-08-10 (1) — perf: sacar los ecos de brasas, se comían el margen del desarme
 
 - Reportado por Santi: el sitio se trababa "en algunas partes", en concreto
   al desarmarse el corazón. Antes de tocar nada se midió cuadro a cuadro
