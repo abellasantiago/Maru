@@ -41,7 +41,7 @@ try {
 const kb = (n) => Math.round(n / 1024);
 
 const archivos = (await readdir(CARPETA))
-  .filter((f) => extname(f).toLowerCase() === '.jpg')
+  .filter((f) => ['.jpg', '.jpeg'].includes(extname(f).toLowerCase()))
   .sort();
 
 if (archivos.length === 0) {
