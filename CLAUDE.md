@@ -6,7 +6,7 @@ Sitio-regalo de Santi para Maru: un recorrido inmersivo en 3D por los momentos
 de la relación. El scroll no mueve contenido en 2D — mueve una cámara por un
 mundo. El sitio abre directo, sin preludio ni pantalla de carga: un
 **landing** con un corazón de partículas que ya está cayendo, se arma, gira y
-se desarma en brasas, un **timeline** de 32 cards de vidrio flotando en un
+se desarma en brasas, un **timeline** de 35 cards de vidrio flotando en un
 corredor, y una **pantalla final** ("Que sea eterno."). La canción arranca
 con el primer click en cualquier parte del sitio.
 
@@ -40,6 +40,42 @@ Reglas que conviene tener en la cabeza antes de tocar el hero:
   sin tocar el resto.
 
 ## Historial de cambios
+
+### 2026-08-10 — perf: sacar los ecos de brasas, se comían el margen del desarme
+
+- Reportado por Santi: el sitio se trababa "en algunas partes", en concreto
+  al desarmarse el corazón. Antes de tocar nada se midió cuadro a cuadro
+  (apagando/prendiendo cada eco) para no adivinar: **no había ningún tirón
+  puntual** ni compilación tardía de shaders (18 programas todo el tiempo,
+  constante) — era costo SOSTENIDO, y el sospechoso ya estaba anotado como
+  "la perilla más cara" desde la sesión del 08-07.
+- `ecosBrasas: 3` significa que el corazón (11 000 puntos) se dibuja
+  **cuatro veces por cuadro** durante el desarme (la nube real + 3 estelas,
+  cada una el mismo costo que la nube entera). Medido con el viewport en
+  su tamaño real —la primera pasada dio números absurdos porque el pane
+  del preview se había achicado a 0×0 sin que el JS se enterara—: cada eco
+  cuesta ~1.2 ms, y el desarme (ya el momento más pesado del recorrido)
+  corría a **15.5 ms**, a un milímetro de los 16.7 ms que dan los 60 fps.
+  El efecto más elaborado del sitio era también el que trababa la máquina
+  justo cuando había que mirarlo.
+- `ecosBrasas: 0` en escritorio (config.js): el desarme baja a **9.1 ms**
+  y el pico desaparece del recorrido entero — el momento más caro pasa a
+  ser el landing normal (10.3 ms), con margen de sobra en todos lados. El
+  ahorro real (6.4 ms) fue MAYOR que lo que predecía sólo apagar los
+  meshes (3.5 ms): con un solo material en vez de cuatro se ahorran
+  también las escrituras de uniforms y el bind/validación de los otros
+  tres programas — costo de CPU que no se ve apagando objetos sueltos.
+- Mobile se queda con `ecosBrasas: 1` — ahí la nube tiene 3600 puntos, no
+  11 000, así que un eco cuesta un tercio y todavía entra en el cuadro.
+  Documentado en el comentario del config para que no se lea como
+  inconsistencia la próxima vez que alguien lo mire.
+- Se pierde el rastro de movimiento detrás de cada brasa (se leen más
+  como puntos que se trasladan que como fuego cayendo); la silueta, el
+  goteo y el vaciado de abajo hacia arriba quedan intactos. Verificado
+  visualmente y midiendo píxeles: 738/765 de pico, cero quemados.
+- De paso: pull con 3 cards nuevas (33, 34, 35) que Santi había agregado
+  directo en `main` mientras tanto — sin conflicto, el trabajo de
+  performance no tocaba `momentos.js` ni las fotos.
 
 ### 2026-08-07 — perf+feat: que se vea de cine en la laptop de 13"
 
