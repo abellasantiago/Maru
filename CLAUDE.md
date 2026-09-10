@@ -6,7 +6,7 @@ Sitio-regalo de Santi para Maru: un recorrido inmersivo en 3D por los momentos
 de la relación. El scroll no mueve contenido en 2D — mueve una cámara por un
 mundo. El sitio abre directo, sin preludio ni pantalla de carga: un
 **landing** con un corazón de partículas que ya está cayendo, se arma, gira y
-se desarma en brasas, un **timeline** de 35 cards de vidrio flotando en un
+se desarma en brasas, un **timeline** de 39 cards de vidrio flotando en un
 corredor, y una **pantalla final** ("Que sea eterno."). La canción arranca
 con el primer click en cualquier parte del sitio.
 
@@ -40,6 +40,55 @@ Reglas que conviene tener en la cabeza antes de tocar el hero:
   sin tocar el resto.
 
 ## Historial de cambios
+
+### 2026-09-09 — feat: 4 cards nuevas (36–39) sin que se mueva el ritmo del scroll
+
+- Cards nuevas al final del timeline, pedidas por Santi: **Key
+  Conference** (24 ago 2026), **Escapada al campo** (27 al 30 ago),
+  **Cuidamos a Alaska** (31 ago al 7 set) y **Asadito con Manu y Juanpe**
+  (6 set). Van con `desc: ''` —no con el texto genérico— y
+  `encuadre: '50% 50%'` hasta que estén las fotos (`Momento-36.jpg` …
+  `Momento-39.jpg` en `assets/fotos/` + `node
+  herramientas/optimizar-fotos.mjs`). Mientras falten, la card se ve como
+  un panel de vidrio vacío y la consola tira esos cuatro 404: es lo
+  esperado, no hay nada roto.
+- El punto real de la sesión fue lo otro: **agregar cards estaba
+  acelerando el recorrido entero**. Todas las fases (`FASES` en
+  `config.js`) son fracciones del ESPACIADOR entero, y el timeline
+  reparte su largo entre (cantidad de cards + 2) segmentos de curva — así
+  que cada card nueva le roba scroll a todas las demás sin que nadie
+  toque una sola constante. Con 32 cards eran los 74vh por card
+  calibrados; venía bajando sin que se notara (35 cards → 68.1vh) y con
+  39 caía a 61.5vh: las cards pasarían 10% más rápido de lo que Santi
+  venía viendo. Veredicto de Santi: *"que el ritmo del scroll quede como
+  antes"* — o sea, clavado en los 68.1vh de las 35 cards.
+- No alcanzaba con estirar `--alto-recorrido`: eso estira TODO
+  proporcionalmente, incluido el landing (que se habría vuelto 9% más
+  lento) y el velo del final. La receta correcta —anotada ahora en el
+  comentario de `FASES`— es fijar en vh lo que no se mueve y despejar las
+  fracciones: `landingFin = 390 / alto` y `timelineFin = (alto − 90) /
+  alto`. Con alto = 3272vh (3000 + 4×68, exactamente las cards nuevas y
+  nada más) queda `landingFin: 0.1192` y `timelineFin: 0.9725`.
+- Trampa que había que cazar aparte: hay cuatro umbrales que son
+  fracciones ABSOLUTAS del espaciador y por lo tanto NO se reescalan
+  solos — el velo crema (`+0.015` y `0.995` en `main.js`), el fade del
+  contador/coordenadas (`0.03` en `ui.js`) y el corte de la UI de cards
+  (`+0.005`). Sin tocarlos, el dissolve final habría durado 24.5vh en vez
+  de 30 (18% más rápido) y el contador se habría ido 8vh más tarde.
+  Reescalados por 3000/3272 → `+0.01375`, `0.99542`, `0.0275` y
+  `+0.00458`.
+- Verificado midiendo, no a ojo: tabla de landmarks en vh antes (35
+  cards) vs ahora (39) — landing 390 = 390, vh por card 68.11 = 68.10,
+  contador se esfuma a los 90 = 90 (89 medido en vivo), velo empieza 45
+  después y dura 30 en los dos casos, UI de cards se va a los 15, cola
+  final 90 = 90. Lo único que crece es el timeline: 2520 → 2792vh. En el
+  navegador: `FASES` cargado con los valores nuevos, 39 anclas separadas
+  68.1vh, el velo pasa de 0 en todo el corredor a 0.362 en 0.99 y 1 al
+  final, y los únicos errores de consola son los cuatro 404 de las fotos.
+- Quedan dos cards llamadas **"Escapada al campo"** (la 12, de octubre
+  2025, y la 37): Santi dijo que por ahora no pasa nada. La sidebar y el
+  buscador muestran las dos entradas.
+- Rama: trabajado directo sobre `main`.
 
 ### 2026-08-10 (2) — perf: recorte de emergencia de resolución durante el desarme
 
