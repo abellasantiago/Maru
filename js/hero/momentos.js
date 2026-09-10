@@ -23,6 +23,23 @@
      derecha). Por defecto '50% 50%' (centrado). Para subir el encuadre
      (mostrar más de la parte de ARRIBA de la foto) bajá el segundo
      número, ej. '50% 20%'; para bajarlo, subilo, ej. '50% 80%'.
+
+   ▸ ANCHA: para fotos muy panorámicas donde el recorte 5:4 deja afuera
+     algo importante de los costados, agregá  ancha: true  a esa línea —
+     la card pasa de 5:4 a ~8:5 (mismo alto, más ancho), así entra más de
+     los costados sin agrandar la card en el mundo 3D más de lo necesario.
+     Si lo importante está pegado a UN lado (ej. una cara en el borde
+     izquierdo), combinala con `encuadre: '0% 50%'` (o '100% 50%' si es
+     el borde derecho) en vez de dejarlo en 50% — centrado, el ancho
+     extra se reparte mitad y mitad y puede no alcanzar para el otro lado;
+     pegado al borde, todo el ancho extra se usa para ese único lado.
+
+   ▸ ZOOM: para fotos donde el sujeto queda chico dentro del recorte (ej.
+     gente lejos con medio cuadro de cielo/piso de sobra), agregá
+     `zoom: 1.15` a esa línea — acerca la foto DENTRO de la card sin
+     cambiar el tamaño de la card ni su recorte 5:4. 1 = sin zoom; valores
+     típicos van de 1.1 a 1.3. Combina bien con `encuadre` si además el
+     sujeto está descentrado.
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Contenido de cada momento (en orden de recorrido) ──
@@ -64,8 +81,8 @@ const DATOS = [
   { titulo: 'Internaron a Rox', fecha: '7 de agosto de 2026', encuadre: '50% 50%', desc: 'Un coágulo en la cabeza, 3 días en el hospital y una operación incluída. Todo salió bien' },   // 34 → Momento-34.jpg
   { titulo: 'Parrillada "La Otra"', fecha: '9 de agosto de 2026', encuadre: '50% 32%', desc: 'Domingo de sol y fuimos a almorzar a una parrillada' },   // 35 → Momento-35.jpg
   { titulo: 'Key Conference', fecha: '24 de agosto de 2026', encuadre: '50% 50%', desc: '' },   // 36 → Momento-36.jpg
-  { titulo: 'Escapada al campo', fecha: '27 al 30 de agosto de 2026', encuadre: '50% 50%', desc: '' },   // 37 → Momento-37.jpg
-  { titulo: 'Cuidamos a Alaska', fecha: '31 de agosto al 7 de setiembre de 2026', encuadre: '50% 50%', desc: '' },   // 38 → Momento-38.jpg
+  { titulo: 'Escapada al campo', fecha: '27 al 30 de agosto de 2026', encuadre: '50% 50%', zoom: 1.15, desc: '' },   // 37 → Momento-37.jpg
+  { titulo: 'Cuidamos a Alaska', fecha: '31 de agosto al 7 de setiembre de 2026', encuadre: '0% 50%', ancha: true, desc: '' },   // 38 → Momento-38.jpg  (foto horizontal: encuadre pegado a la izquierda, desde mi cara hasta donde termina el gato)
   { titulo: 'Asadito con Manu y Juanpe', fecha: '6 de setiembre de 2026', encuadre: '50% 50%', desc: '' },   // 39 → Momento-39.jpg
 
 ];
@@ -104,6 +121,8 @@ export const MOMENTOS = DATOS.map((d, i) => ({
   id: `m${String(i + 1).padStart(2, '0')}`,
   claves: d.claves || [],
   destacado: d.destacado || false,
+  ancha: d.ancha || false,
+  zoom: d.zoom || 1,
   titulo: (d.titulo && d.titulo.trim()) ? d.titulo : GENERICO.titulo,
   fecha: (d.fecha && d.fecha.trim()) ? d.fecha : GENERICO.fecha,
   desc: (d.desc !== undefined) ? d.desc : GENERICO.desc,

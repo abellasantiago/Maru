@@ -51,7 +51,9 @@ export class PanelesVidrio {
 
     MOMENTOS.forEach((momento, indice) => {
       const el = document.createElement('div');
-      el.className = 'panel-vidrio' + (momento.destacado ? ' destacado' : '');
+      el.className = 'panel-vidrio' +
+        (momento.destacado ? ' destacado' : '') +
+        (momento.ancha ? ' ancha' : '');
       el.dataset.momento = momento.id;
       el.style.setProperty('--ss', SS);
       /* .panel-interior es un div propio para la animación de entrada
@@ -62,7 +64,7 @@ export class PanelesVidrio {
         <div class="panel-interior">
           <div class="panel-tilt">
             <figure class="panel-foto">
-              <img src="${momento.foto}" alt="${momento.titulo}" draggable="false" style="object-position: ${momento.encuadre}">
+              <img src="${momento.foto}" alt="${momento.titulo}" draggable="false" style="object-position: ${momento.encuadre}; --zoom: ${momento.zoom}">
               <div class="panel-grano"></div>
             </figure>
             <header class="panel-info">
