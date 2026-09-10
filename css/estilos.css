@@ -45,11 +45,13 @@
   --fuente-display: 'Cormorant Garamond', Georgia, serif;
   --fuente-ui: 'Montserrat', 'Segoe UI', sans-serif;
 
-  /* Duración del viaje: altura del espaciador de scroll (landing + 32 cards + final).
-     3000vh reparte ~390vh para el landing y ~2520vh para el timeline
-     (~76vh por card). Va de la mano con FASES en config.js: si cambia la
-     cantidad de cards, escalar este valor para mantener el vh por card. */
-  --alto-recorrido: 3000vh;
+  /* Duración del viaje: altura del espaciador de scroll (landing + 39 cards + final).
+     3272vh reparte ~390vh para el landing, ~2792vh para el timeline
+     (~68vh por card) y ~90vh para el final. Va de la mano con FASES en
+     config.js: al cambiar la cantidad de cards se escala ESTE valor y se
+     recalculan landingFin/timelineFin allá, de modo que el landing y el
+     final duren los MISMOS vh de siempre y sólo se estire el corredor. */
+  --alto-recorrido: 3272vh;
 }
 
 /* ── Base ────────────────────────────────────────────────────── */

@@ -213,9 +213,12 @@ class HeroInmersivo {
     );
   }
 
-  /* Velo crema del final: dissolve de la última card hacia la pantalla de cierre */
+  /* Velo crema del final: dissolve de la última card hacia la pantalla de cierre.
+     Los dos números son fracciones del espaciador ENTERO (no del final), así que
+     se reescalan con --alto-recorrido: son 45vh después de la última card y 15vh
+     antes del fondo del recorrido — 30vh de dissolve, como fue siempre. */
   _actualizarVelo(progreso) {
-    const opacidad = THREE.MathUtils.smoothstep(progreso, FASES.timelineFin + 0.015, 0.995);
+    const opacidad = THREE.MathUtils.smoothstep(progreso, FASES.timelineFin + 0.01375, 0.99542);
     this.veloEl.style.opacity = opacidad.toFixed(3);
   }
 

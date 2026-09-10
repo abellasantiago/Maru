@@ -287,16 +287,18 @@ export class InterfazHero {
   /** Progreso 0..1 del hero: muestra/oculta la UI según la fase del recorrido */
   setProgreso(progreso) {
     this.progreso = progreso;
-    /* Contador de tiempo juntos: sólo al comienzo del landing */
-    this.contadorEl.classList.toggle('oculto', progreso >= 0.03);
+    /* Contador de tiempo juntos: sólo al comienzo del landing. El umbral es
+       fracción del espaciador entero (≈90vh de scroll): se reescala si cambia
+       --alto-recorrido, para que se esfume después del mismo recorrido real. */
+    this.contadorEl.classList.toggle('oculto', progreso >= 0.0275);
     /* Coordenadas del monograma: mismo criterio — un detalle del arranque,
        se esfuma apenas se empieza a scrollear */
-    this.coordEl.classList.toggle('oculto', progreso >= 0.03);
+    this.coordEl.classList.toggle('oculto', progreso >= 0.0275);
 
     /* La UI de cards (sidebar, buscador, indicador) vive sólo en el timeline:
        oculta durante el landing del corazón y cuando llega la pantalla final. */
     const enLanding = progreso < FASES.landingFin * 0.9;
-    const enFinal = progreso > FASES.timelineFin + 0.005;
+    const enFinal = progreso > FASES.timelineFin + 0.00458;   // 15vh después de la última card
     const uiCards = !enLanding && !enFinal;
     for (const id of ['sidebar-momentos', 'buscador', 'indicador']) {
       document.getElementById(id).classList.toggle('oculto', !uiCards);

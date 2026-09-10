@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
    Momentos del timeline — ÚNICA fuente de datos de las cards.
 
-   Hay una entrada por foto (Momento-01.jpg … Momento-31.jpg). La
+   Hay una entrada por foto (Momento-01.jpg … Momento-39.jpg). La
    POSICIÓN 3D de cada card se calcula sola en `disponer()` a partir
    del índice, así agregar/quitar/reordenar es trivial: se edita solo
    el array DATOS.
@@ -63,6 +63,10 @@ const DATOS = [
   { titulo: 'Volvió Maru después de 2 meses :)', fecha: '6 de agosto de 2026', encuadre: '50% 55%', desc: 'Recorrió 7 paises y por fin volvió :)' },   // 33 → Momento-33.jpg
   { titulo: 'Internaron a Rox', fecha: '7 de agosto de 2026', encuadre: '50% 50%', desc: 'Un coágulo en la cabeza, 3 días en el hospital y una operación incluída. Todo salió bien' },   // 34 → Momento-34.jpg
   { titulo: 'Parrillada "La Otra"', fecha: '9 de agosto de 2026', encuadre: '50% 32%', desc: 'Domingo de sol y fuimos a almorzar a una parrillada' },   // 35 → Momento-35.jpg
+  { titulo: 'Key Conference', fecha: '24 de agosto de 2026', encuadre: '50% 50%', desc: '' },   // 36 → Momento-36.jpg
+  { titulo: 'Escapada al campo', fecha: '27 al 30 de agosto de 2026', encuadre: '50% 50%', desc: '' },   // 37 → Momento-37.jpg
+  { titulo: 'Cuidamos a Alaska', fecha: '31 de agosto al 7 de setiembre de 2026', encuadre: '50% 50%', desc: '' },   // 38 → Momento-38.jpg
+  { titulo: 'Asadito con Manu y Juanpe', fecha: '6 de setiembre de 2026', encuadre: '50% 50%', desc: '' },   // 39 → Momento-39.jpg
 
 ];
 

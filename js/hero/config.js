@@ -68,15 +68,18 @@ export const PALETA = {
   ▸ landingGiro..1: acelera con empalme suave hacia la velocidad del timeline,
     y el corazón se esfuma para dar paso a las cards.
 */
-/* Con --alto-recorrido: 3000vh y 32 cards, estos valores dejan el landing en
-   ~390vh y el timeline en ~2520vh → ~74vh de scroll por card. Si cambia la
-   CANTIDAD de cards, reajustar --alto-recorrido para mantener el vh por card
-   (agregar o sacar una sola no mueve la aguja: el reparto es por segmento de
-   curva, y una card más entre 30 y pico cambia el ritmo en ~3%). */
+/* Estas fracciones son del ESPACIADOR entero (--alto-recorrido en estilos.css),
+   así que se recalculan cada vez que cambia su altura. La receta, para que el
+   ritmo no se mueva al agregar cards: el landing dura ~390vh y el final ~90vh
+   SIEMPRE; lo único que se estira es el timeline, que reparte su largo entre
+   (cantidadDeCards + 2) segmentos de curva → ~68vh de scroll por card.
+     landingFin  = 390 / alto        timelineFin = (alto − 90) / alto
+   Hoy: alto 3272vh, 39 cards → landing 390vh, timeline 2792vh (41 segmentos,
+   68.1vh cada uno), final 90vh — el mismo ritmo que con 35 cards y 3000vh. */
 export const FASES = {
-  landingGiro: 0.73,   // fracción del landing de descenso lineal (los "3-4 scrolls")
-  landingFin: 0.13,    // duración total del landing: más scroll = más lento
-  timelineFin: 0.97,   // fin del vuelo por las cards (después: velo + cierre)
+  landingGiro: 0.73,     // fracción del landing de descenso lineal (los "3-4 scrolls")
+  landingFin: 0.1192,    // duración total del landing: más scroll = más lento
+  timelineFin: 0.9725,   // fin del vuelo por las cards (después: velo + cierre)
 };
 
 /* Cuándo se desarma el corazón, en fracción DEL LANDING. Es el reloj del
