@@ -41,6 +41,60 @@ Reglas que conviene tener en la cabeza antes de tocar el hero:
 
 ## Historial de cambios
 
+### 2026-09-10 — feat: fotos de las cards 36–39, y dos mecanismos nuevos de encuadre (ancha + zoom)
+
+- Llegaron las fotos reales de las 4 cards agregadas ayer:
+  `Momento-36.webp` … `Momento-39.webp` (Key Conference, Escapada al
+  campo, Cuidamos a Alaska, Asadito con Manu y Juanpe). Ya no quedan
+  cards vacías ni 404 en consola.
+- **Cuidamos a Alaska** era horizontal (1600×900) con Santi y Maru
+  pegados al borde izquierdo y la gata pegada al derecho — el recorte
+  5:4 de siempre se comía buena parte de los dos costados. Pedido de
+  Santi en dos vueltas: primero "agrandá para los costados", después
+  "un poco menos, que entre desde mi cara hasta donde termina el gato",
+  y por último "achicala un toque más desde la derecha, pegado a la
+  cara/hocico de Alaska". Se armó `ancha: true` (nuevo flag en
+  `momentos.js`/`paneles.js`/`estilos.css`): la card pasa de 5:4 a ~8:5
+  sin cambiar de alto —no toca el ritmo vertical del corredor—, y para
+  que el ancho extra no se reparta mitad y mitad (que era el problema:
+  centrado, cortaba un poco de cara Y dejaba sillón de sobra después
+  del gato) el `encuadre` de esa card pasa a `'0% 50%'` (pegado al
+  borde izquierdo), así todo el ancho extra se usa para el lado
+  derecho. El ancho final (594px, contra los 470px de siempre) NO salió
+  a ojo: se recortó la foto real con los mismos parámetros que usa la
+  card (mismo alto, mismo object-fit:cover, mismo alineado a la
+  izquierda) probando varios anchos hasta encontrar el punto exacto
+  donde el borde derecho queda pegado al hocico sin cortarle la nariz.
+- **Escapada al campo (la 37, no la 12 vieja)**: acá el problema no era
+  de costados sino de escala — dos jinetes a caballo quedan chicos con
+  medio cuadro de cielo de sobra arriba. Pedido: "dale un poquito de
+  zoom". Como `encuadre` sólo mueve la posición del recorte (no
+  escala), se armó un mecanismo nuevo: `zoom: N` en `momentos.js`, que
+  `paneles.js` escribe como variable CSS `--zoom` en el propio `<img>`
+  y que se MULTIPLICA (no pisa) con el `scale()` que ya existía para el
+  revelado por foco — las dos animaciones conviven sin pelearse.
+  Calibrado en 1.15 recortando la foto real en varios valores (1.10 a
+  1.28) hasta encontrar el que se sentía "un poquito" sin perder el
+  árbol ni los caballos completos.
+- Los dos mecanismos quedan documentados en el bloque de instrucciones
+  de arriba de `momentos.js` (mismo lugar que `destacado`), disponibles
+  para cualquier otra foto que los necesite más adelante.
+- Trampa del preview en esta sesión: el `--alto-recorrido` está en vh,
+  así que `recorrido.offsetHeight` cambia con la altura de la VENTANA
+  del navegador. Navegar con `scrollTo(fraccion * alcance)` justo
+  después de un `resize_window` daba resultados erráticos (progreso
+  equivocado, a veces clavado en 1) si el layout no había terminado de
+  reflow-ear — hubo que reintentar el scroll 2-3 veces con esperas
+  cortas entre medio antes de leer `recorrido.progreso`. Aparte, con el
+  pane del preview en background el bucle de `gsap.ticker` se pausa de
+  verdad (framebuffer negro incluso leyendo píxeles directo con
+  `gl.readPixels`, no sólo el screenshot) — a diferencia de la trampa
+  del 08-10 (ahí `document.hidden` quedaba pegado en `true` de forma
+  espuria), acá `document.hidden` reflejaba la realidad: el pane estaba
+  oculto. La captura que ya se había tomado ANTES de que se ocultara
+  sirvió como prueba visual igual.
+- Rama: trabajado directo sobre `main`.
+
 ### 2026-09-09 — feat: 4 cards nuevas (36–39) sin que se mueva el ritmo del scroll
 
 - Cards nuevas al final del timeline, pedidas por Santi: **Key
