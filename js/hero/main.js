@@ -25,6 +25,7 @@ import { Atmosfera } from './atmosfera.js';
 import { VelosSeda } from './velos.js';
 import { AmbienteEnsueno } from './ambiente.js';
 import { Corazon } from './corazon.js';
+import { HiloLuz } from './hilo-luz.js';
 import { Rayos } from './rayos.js';
 import { PanelesVidrio } from './paneles.js';
 import { RecorridoCamara } from './camara.js';
@@ -90,6 +91,7 @@ class HeroInmersivo {
     this.ambiente = new AmbienteEnsueno(this.escena);
     this.rayos = new Rayos(this.escena);
     this.corazon = new Corazon(this.escena);
+    this.hiloLuz = new HiloLuz(this.escena, MOMENTOS[0].posicion);
     this.paneles = new PanelesVidrio(
       document.getElementById('capa-css3d'),
       (indice) => this.irAMomento(indice)
@@ -400,6 +402,30 @@ class HeroInmersivo {
         this.corazon.setPosicion(this.recorrido.corazonAncla);
       }
 
+      /* El desarme no termina en el vacío: una veta de brasas recorre el
+         espacio hasta la primera foto. La card recibe ese brillo antes de
+         revelarse por distancia y lo suelta al quedar en foco. Todo se
+         deriva del scroll, así funciona también al volver hacia arriba. */
+      const primerAncla = this.recorrido.anclas[0];
+      const inicioHilo = FASES.landingFin * DESARME.desde;
+      const tramoCard = this.recorrido.anclas[1] - primerAncla;
+      const avanceHilo = THREE.MathUtils.smoothstep(
+        this.recorrido.progreso, inicioHilo, primerAncla
+      );
+      const presenciaHilo = THREE.MathUtils.smoothstep(
+        this.recorrido.progreso, inicioHilo, inicioHilo + FASES.landingFin * 0.07
+      ) * (1 - THREE.MathUtils.smoothstep(
+        this.recorrido.progreso, primerAncla, primerAncla + tramoCard * 0.55
+      ));
+      const luzPrimera = THREE.MathUtils.smoothstep(avanceHilo, 0.29, 0.78)
+        * (1 - THREE.MathUtils.smoothstep(
+          this.recorrido.progreso, primerAncla - tramoCard * 0.24,
+          primerAncla + tramoCard * 0.22
+        ));
+      this.hiloLuz.actualizar(
+        this.tiempo, this.recorrido.corazonAncla, avanceHilo, presenciaHilo, this.dpr, this.camara
+      );
+
       /* Rayos de luz: viven exactamente lo que dura el corazón. Nacen
          cuando la lluvia de la entrada termina de armarlo y se apagan
          mientras se desarma — nunca asoman en el timeline. Y justo cuando
@@ -439,7 +465,7 @@ class HeroInmersivo {
       this.velos.actualizar(dt, this.tiempo, intensidadFondo);
       this.ambiente.actualizar(dt, this.tiempo, this.dpr, intensidadFondo, this.recorrido.parallax);
       this.corazon.actualizar(dt, this.tiempo, this.mouseNDC, this.camara, this.dpr, this.hayMouse);
-      this.paneles.actualizar(dt, this.tiempo, this.camara);
+      this.paneles.actualizar(dt, this.tiempo, this.camara, luzPrimera);
       this.postproceso.actualizar(this.tiempo);
 
       /* Render: WebGL con post-proceso + capa CSS3D con la misma cámara */

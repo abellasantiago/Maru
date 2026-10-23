@@ -5,11 +5,11 @@
    Según la fracción de scroll (0..1) la cámara vive una de tres fases
    (ver FASES en config.js):
 
-   ▸ LANDING  : la cámara queda casi quieta frente al corazón (que gira
-                y se esfuma). Un leve dolly de acercamiento da anticipación.
+   ▸ LANDING  : la cámara desciende frente al corazón (que sigue centrado,
+                gira y luego se desarma).
    ▸ TIMELINE : vuelo por las cards siguiendo dos curvas Catmull-Rom
-                (una para la POSICIÓN, otra para la MIRADA). Cada card, a
-                su turno, queda encuadrada en el centro.
+                (POSICIÓN y MIRADA). Algunos pasajes tienen un punto de
+                coreografía propio; cada foto conserva su ancla de lectura.
    ▸ FINAL    : la cámara sigue derivando hacia adelante mientras sube el
                 velo crema hacia la pantalla de cierre.
 
@@ -31,6 +31,19 @@ function perfilDeCamara(i, momento) {
   if (i < 31) return { lateral: 0.34, altura: 0.22, distancia: 5.9 }; // tramo sereno
   return { lateral: 0.62, altura: 0.48, distancia: 5.5 };
 }
+
+/* Sólo algunas uniones tienen una nota de cámara propia. Los puntos donde
+   se leen las fotos no se mueven: cada gesto ocurre ENTRE dos anclas. */
+const GESTOS = new Map([
+  [3,  { tipo: 'arco', lado: 'salida' }],
+  [6,  { tipo: 'frontal' }],           // llegada al noviazgo
+  [12, { tipo: 'elevacion' }],
+  [18, { tipo: 'arco', lado: 'llegada' }],
+  [24, { tipo: 'frontal' }],           // un respiro a mitad de historia
+  [28, { tipo: 'descenso' }],
+  [33, { tipo: 'elevacion' }],        // vuelve a abrirse tras el viaje
+  [37, { tipo: 'arco', lado: 'llegada' }],
+]);
 
 export class RecorridoCamara {
   constructor(camara) {
@@ -96,7 +109,39 @@ export class RecorridoCamara {
       const x = momento.tratamiento === 'noviazgo'
         ? p.x + Math.sin(momento.rotacion[1]) * distancia
         : p.x * perfil.lateral;
-      posKeys.push(new THREE.Vector3(x, p.y * perfil.altura, p.z + distancia));
+      const ancla = new THREE.Vector3(x, p.y * perfil.altura, p.z + distancia);
+
+      if (i === 0) {
+        /* La primera aproximación dobla lentamente hacia la foto: el río de
+           brasas se ve atravesando el mismo espacio que recorre la cámara. */
+        posKeys.push(new THREE.Vector3(p.x * 0.26, 0.42, p.z + 9.4));
+        lookKeys.push(new THREE.Vector3(p.x * 0.45, p.y * 0.55, p.z + 2.5));
+        tipos.push('puente');
+      } else if (GESTOS.has(i)) {
+        const gesto = GESTOS.get(i);
+        const anterior = posKeys[indicesCard[i - 1]];
+        const fotoAnterior = new THREE.Vector3().fromArray(MOMENTOS[i - 1].posicion);
+        const intermedio = new THREE.Vector3().lerpVectors(anterior, ancla, 0.5);
+        if (gesto.tipo === 'arco') {
+          const lado = gesto.lado === 'salida' ? Math.sign(anterior.x) : Math.sign(ancla.x);
+          intermedio.x += lado * 0.95;
+          intermedio.y += 0.22;
+        } else if (gesto.tipo === 'frontal') {
+          intermedio.x *= 0.26;
+          intermedio.y += 0.12;
+        } else if (gesto.tipo === 'elevacion') {
+          intermedio.y += 0.85;
+          intermedio.x += Math.sign(ancla.x) * 0.3;
+        } else {
+          intermedio.y -= 0.58;
+          intermedio.x += Math.sign(anterior.x) * 0.28;
+        }
+        posKeys.push(intermedio);
+        lookKeys.push(fotoAnterior.lerp(p, gesto.tipo === 'frontal' ? 0.56 : 0.48));
+        tipos.push('puente');
+      }
+
+      posKeys.push(ancla);
       lookKeys.push(p);
       indicesCard.push(posKeys.length - 1);
       tipos.push(momento.tratamiento ? 'hito' : 'card');
@@ -117,7 +162,9 @@ export class RecorridoCamara {
     this.acumulado = [0];
     for (let i = 0; i < this.segmentos; i++) {
       const adyacente = [tipos[i], tipos[i + 1]];
-      const peso = adyacente.includes('hito') ? 1.6 : adyacente.includes('pausa') ? 1.3 : 1;
+      const peso = adyacente.includes('hito') ? 1.6
+        : adyacente.includes('pausa') ? 1.3
+          : adyacente.includes('puente') ? 0.64 : 1;
       this.pesos.push(peso);
       this.acumulado.push(this.acumulado[i] + peso);
     }

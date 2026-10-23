@@ -14,11 +14,13 @@ resplandor dorado al final del corredor, que empalma con la pantalla final crema
    suspendida en el espacio, velos), **se planta de frente** y ahí **se
    desarma en brasas**: se vacía de abajo hacia arriba, el contorno ♥ queda
    dibujado en el aire hasta el final, y las brasas caen y se van hacia el
-   corredor. Eso da paso al timeline — que NO se ve de arranque: cada card
-   despierta recién cuando la cámara se le acerca lo suficiente, primero
-   tenue y borrosa, después nítida.
+   corredor. Un hilo de chispas sigue esa corriente hasta la primera foto:
+   ella recibe el resplandor antes de revelarse. El resto del timeline
+   despierta por distancia y foco, de tenue y borroso a nítido.
 2. **Timeline** — la cámara vuela por las **cards** (una por momento), con
-   banking en las curvas, y cada una entra en foco a su turno. Se navega con el
+   banking en las curvas y gestos medidos entre algunas fotos: arcos,
+   acercamientos frontales, elevaciones y tramos serenos. Las anclas de
+   lectura mantienen cada imagen encuadrada. Se navega con el
    scroll, con el índice por año y mes, con las flechas, con el buscador o con el teclado
    (← → pasan de momento; Inicio y Fin van a las puntas). Las flechas
    verticales quedan libres a propósito: son la forma de scrollear con el
@@ -53,7 +55,9 @@ ScrollTrigger, Lenis y las fuentes están vendorizados (`js/vendor/`, `assets/fu
 | Cuándo se desarma el corazón | `DESARME` en `js/hero/config.js` |
 | Largo total del scroll | `ALTO_RECORRIDO_VH` en `js/hero/config.js` (sincroniza `--alto-recorrido`) |
 | Cuántas vueltas gira el corazón en el landing | `CONFIG.vueltasCorazon` en `config.js` |
+| Tamaño de las figuras y de sus puntos | `CONFIG.escalaFigura` / `escalaParticulas` en `config.js` |
 | Ruta de la cámara (curvas, encuadres y banking) | `js/hero/camara.js` |
+| Luz que enlaza el corazón con la primera foto | `js/hero/hilo-luz.js` + `paneles.js` |
 | Paleta de colores (única fuente de verdad) | variables CSS en `css/estilos.css` |
 | Frases que flotan durante el descenso | `FRASES` en `js/hero/paneles.js` |
 | Texto de la pantalla final | sección `#final` en `index.html` |
@@ -123,12 +127,13 @@ cámara y tiempo de lectura; no suma un número al contador de fotos.
 
 ### El timeline despierta, no aparece
 
-Cada card tiene su propio `--revelado` (0..1) según la distancia a la cámara
-(`js/hero/paneles.js`): a lo lejos es **0 puro** (invisible, ni insinuada) y
-sólo empieza a asomar — oscura y velada — cuando la cámara está a menos de
-~11 unidades; a menos de ~5 queda del todo nítida y luminosa. Los umbrales
-son esos dos números en `paneles.js` (`smoothstep(distCamara, 5, 11)`): subir
-el primero retrasa aún más el despertar, bajar el segundo lo hace más brusco.
+Cada card tiene su propio `--revelado` (0..1) según la distancia y el foco de
+cámara (`js/hero/paneles.js`): de lejos es invisible; al acercarse asoma
+velada y, cuando ocupa su ancla de lectura, se aclara del todo. El foco
+también garantiza que las fotos panorámicas se lean en pantalla angosta,
+donde la cámara necesita alejarse para encuadrarlas. La primera card recibe
+además `--luz-travesia` del hilo de brasas: anticipa su marco y su foto sólo
+cuando entran en cuadro, y apaga esa luz al completar el revelado.
 
 ## El corazón es modular
 
@@ -321,11 +326,12 @@ revelado, en ese orden:
   (`uDensidad` / `uDensidadReposo` en `corazon.js`): con blending aditivo, el
   doble de puntos con el mismo alfa es el doble de luz sumada y el cuadro
   quema a blanco. Con la corrección, subir la cifra densifica la nube —afina
-  la silueta, llena el volumen— sin encenderla de más. Medido en todo el
-  recorrido: **cero píxeles quemados**, pico 750 de 765.
+  la silueta, llena el volumen— sin encenderla de más. Al aumentar apenas el
+  diámetro de cada punto se compensa su superficie aditiva en el shader.
 - El hero se **pausa** al entrar a la pantalla final; el **cursor sigue vivo**
   (se actualiza siempre, aún con el hero pausado).
 - `prefers-reduced-motion`: menos elementos, ondulación mínima, sin parallax
-  ni mecidos. El desarme del corazón pierde las estelas y el remolino.
+  ni mecidos. El desarme del corazón pierde las estelas y el remolino; el
+  hilo de luz conserva unas pocas chispas, sin gasa animada.
 - Mobile: menos elementos, nebulosa con menos octavas de ruido, cámara con FOV
   más amplio, cursor nativo.

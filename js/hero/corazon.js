@@ -624,6 +624,7 @@ export class Corazon {
           /* Las que pasan al ras del lente pueden crecer mucho más: son
              chispas fuera de foco, y para eso necesitan tamaño real. */
           gl_PointSize = min(gl_PointSize, mix(11.0, 34.0, aCerca) * uDPR);
+          gl_PointSize *= ${CONFIG.escalaParticulas.toFixed(2)};
           gl_Position = projectionMatrix * pv;
         }
       `,
@@ -713,6 +714,9 @@ export class Corazon {
                      * uOpacidad * aparecer * cayendo * uAlfaEco
                      * repartida * (1.0 + vChispazo * 0.55) * (1.0 - apagon) * alRas;
           alfa *= 1.0 + vLuzCursor * 0.65 + vLuzRastro * 0.25;
+          /* El punto ocupa algo más de pantalla, pero no quema la nube:
+             compensamos su superficie aditiva con el mismo factor. */
+          alfa *= ${(1 / (CONFIG.escalaParticulas ** 2)).toFixed(3)};
           if (!(alfa > 0.004)) discard;      // negado: así también cae el NaN
           /* Cayendo tira apenas al claro: gota de luz antes que brasa */
           color = mix(color, uColorClaro, (cayendo - 1.0) * 0.30);
@@ -811,7 +815,7 @@ export class Corazon {
 
     /* Respiración: escala oscilante muy leve, loop infinito (~4 s) */
     const pulso = 1 + Math.sin(tiempo * 1.55) * CONFIG.amplitudRespiracion;
-    this.grupo.scale.setScalar(pulso);
+    this.grupo.scale.setScalar(CONFIG.escalaFigura * pulso);
 
     /* Las letras muestran un poco más de perfil para que se lea su espesor.
        El giro del scroll conserva su recorrido completo. */

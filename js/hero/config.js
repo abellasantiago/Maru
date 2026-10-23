@@ -120,6 +120,8 @@ export const CONFIG = {
      subir esto DENSIFICA la nube sin encenderla de más — con blending aditivo,
      el doble de puntos con el mismo alfa es el doble de luz sumada. */
   particulasCorazon: ES_MOBILE ? 3600 : 11000,
+  escalaFigura: ES_MOBILE ? 1.09 : 1.13,
+  escalaParticulas: 1.08,
   amplitudRespiracion: MOVIMIENTO_REDUCIDO ? 0.008 : 0.022,
   /* Vueltas que da el corazón sobre su eje durante el landing. Tiene que
      ser un ENTERO: el giro se completa justo antes de que empiece el
