@@ -799,7 +799,7 @@ body {
   filter:
     blur(calc((1 - var(--foco)) * 7px * var(--ss)))
     saturate(calc(0.65 + var(--foco) * 0.45))
-    brightness(calc((0.82 + var(--foco) * 0.22 + var(--luz-travesia, 0) * 0.16) * (0.45 + var(--revelado) * 0.55)));
+    brightness(calc((0.82 + var(--foco) * 0.22) * (0.45 + var(--revelado) * 0.55)));
   /* --zoom (1 por defecto): acerca la foto DENTRO del recorte de la card,
      para fotos donde el sujeto queda chico (ej. gente a caballo con medio
      cuadro de cielo). Se multiplica con el scale del revelado en vez de
@@ -824,42 +824,6 @@ body {
   background: linear-gradient(180deg, rgba(92, 21, 38, 0.15), rgba(26, 5, 8, 0.5));
   opacity: calc(1 - var(--foco));
   pointer-events: none;
-}
-
-/* La primera foto recoge el resplandor del hilo de brasas antes de que
-   la cámara llegue a su distancia normal de revelado. La luz se retira
-   cuando el foco ya está en la imagen. */
-.panel-vidrio.primera-card .panel-foto::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  opacity: var(--luz-travesia, 0);
-  background: linear-gradient(130deg,
-    rgba(255, 218, 174, 0.48) 0%,
-    rgba(229, 118, 94, 0.22) 29%,
-    transparent 62%);
-  mix-blend-mode: screen;
-}
-.panel-vidrio.primera-card {
-  box-shadow:
-    0 0 calc((18px + var(--foco) * 26px) * var(--ss)) rgba(200, 40, 63, calc(0.10 + var(--foco) * 0.16)),
-    0 0 calc(75px * var(--ss)) rgba(230, 184, 125, calc(var(--luz-travesia, 0) * 0.26)),
-    inset 0 0 calc(22px * var(--ss)) rgba(245, 239, 230, 0.04);
-}
-.primera-escena {
-  --ss: 2;
-  --luz: 0;
-  width: calc(720px * var(--ss));
-  height: calc(590px * var(--ss));
-  pointer-events: none;
-  opacity: calc(var(--luz) * 0.8);
-  background: radial-gradient(ellipse at 49% 48%,
-    rgba(247, 182, 131, 0.35) 0%,
-    rgba(231, 126, 101, 0.2) 28%,
-    rgba(212, 71, 84, 0.055) 51%,
-    transparent 73%);
 }
 
 .panel-info {

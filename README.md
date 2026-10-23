@@ -14,9 +14,8 @@ resplandor dorado al final del corredor, que empalma con la pantalla final crema
    suspendida en el espacio, velos), **se planta de frente** y ahí **se
    desarma en brasas**: se vacía de abajo hacia arriba, el contorno ♥ queda
    dibujado en el aire hasta el final, y las brasas caen y se van hacia el
-   corredor. Un hilo de chispas sigue esa corriente hasta la primera foto:
-   ella recibe el resplandor antes de revelarse. El resto del timeline
-   despierta por distancia y foco, de tenue y borroso a nítido.
+   corredor. El timeline despierta por distancia y foco, de tenue y borroso
+   a nítido.
 2. **Timeline** — la cámara vuela por las **cards** (una por momento), con
    banking en las curvas y gestos medidos entre algunas fotos: arcos,
    acercamientos frontales, elevaciones y tramos serenos. Las anclas de
@@ -57,7 +56,6 @@ ScrollTrigger, Lenis y las fuentes están vendorizados (`js/vendor/`, `assets/fu
 | Cuántas vueltas gira el corazón en el landing | `CONFIG.vueltasCorazon` en `config.js` |
 | Tamaño de las figuras y de sus puntos | `CONFIG.escalaFigura` / `escalaParticulas` en `config.js` |
 | Ruta de la cámara (curvas, encuadres y banking) | `js/hero/camara.js` |
-| Luz que enlaza el corazón con la primera foto | `js/hero/hilo-luz.js` + `paneles.js` |
 | Paleta de colores (única fuente de verdad) | variables CSS en `css/estilos.css` |
 | Frases que flotan durante el descenso | `FRASES` en `js/hero/paneles.js` |
 | Texto de la pantalla final | sección `#final` en `index.html` |
@@ -131,9 +129,7 @@ Cada card tiene su propio `--revelado` (0..1) según la distancia y el foco de
 cámara (`js/hero/paneles.js`): de lejos es invisible; al acercarse asoma
 velada y, cuando ocupa su ancla de lectura, se aclara del todo. El foco
 también garantiza que las fotos panorámicas se lean en pantalla angosta,
-donde la cámara necesita alejarse para encuadrarlas. La primera card recibe
-además `--luz-travesia` del hilo de brasas: anticipa su marco y su foto sólo
-cuando entran en cuadro, y apaga esa luz al completar el revelado.
+donde la cámara necesita alejarse para encuadrarlas.
 
 ## El corazón es modular
 

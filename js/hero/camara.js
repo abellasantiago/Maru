@@ -111,13 +111,7 @@ export class RecorridoCamara {
         : p.x * perfil.lateral;
       const ancla = new THREE.Vector3(x, p.y * perfil.altura, p.z + distancia);
 
-      if (i === 0) {
-        /* La primera aproximación dobla lentamente hacia la foto: el río de
-           brasas se ve atravesando el mismo espacio que recorre la cámara. */
-        posKeys.push(new THREE.Vector3(p.x * 0.26, 0.42, p.z + 9.4));
-        lookKeys.push(new THREE.Vector3(p.x * 0.45, p.y * 0.55, p.z + 2.5));
-        tipos.push('puente');
-      } else if (GESTOS.has(i)) {
+      if (GESTOS.has(i)) {
         const gesto = GESTOS.get(i);
         const anterior = posKeys[indicesCard[i - 1]];
         const fotoAnterior = new THREE.Vector3().fromArray(MOMENTOS[i - 1].posicion);

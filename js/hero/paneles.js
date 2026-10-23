@@ -53,7 +53,6 @@ export class PanelesVidrio {
     MOMENTOS.forEach((momento, indice) => {
       const el = document.createElement('div');
       el.className = 'panel-vidrio' +
-        (indice === 0 ? ' primera-card' : '') +
         (momento.destacado ? ' destacado' : '') +
         (momento.ancha ? ' ancha' : '') +
         (momento.tratamiento ? ` hito-${momento.tratamiento}` : '');
@@ -143,22 +142,6 @@ export class PanelesVidrio {
       });
     });
 
-    /* El destino del hilo de brasas tiene luz propia incluso un instante
-       antes de que la foto pueda verse. Va detrás del primer panel y se
-       sincroniza con su deriva, sin tapar el contenido. */
-    const primerPanel = this.items[0];
-    const haloEl = document.createElement('div');
-    haloEl.className = 'primera-escena';
-    haloEl.style.setProperty('--ss', SS);
-    const haloObjeto = new CSS3DObject(haloEl);
-    haloObjeto.scale.setScalar(CONFIG.escalaCSS3D / SS);
-    haloObjeto.position.copy(primerPanel.objeto.position);
-    haloObjeto.position.z -= 0.42;
-    haloObjeto.rotation.copy(primerPanel.objeto.rotation);
-    haloObjeto.visible = false;
-    this.escenaCSS.add(haloObjeto);
-    this.primeraEscena = { el: haloEl, objeto: haloObjeto, brillo: '' };
-
     /* ── Frases del descenso (mismo espacio 3D que los paneles) ── */
     this.frases = FRASES.map((frase, i) => {
       const el = document.createElement('div');
@@ -214,12 +197,10 @@ export class PanelesVidrio {
     item.el.style.setProperty(nombre, texto);
   }
 
-  actualizar(dt, tiempo, camara, luzPrimera = 0) {
+  actualizar(dt, tiempo, camara) {
     const deriva = MOVIMIENTO_REDUCIDO ? 0 : 1;
-    let luzEnCuadro = 0;
 
-    for (let indice = 0; indice < this.items.length; indice++) {
-      const item = this.items[indice];
+    for (const item of this.items) {
       /* ── Deriva de ingravidez: flotación lenta en posición y giro ── */
       const f = item.fase;
       item.objeto.position.set(
@@ -242,13 +223,6 @@ export class PanelesVidrio {
       this._v.copy(item.objeto.position).project(camara);
       const delante = this._v.z < 1;
       const distCamara = item.objeto.position.distanceTo(camara.position);
-      if (indice === 0 && delante) {
-        /* En pantallas angostas la primera card entra desde un costado:
-           no adelantamos su revelado mientras esté recortada por el borde. */
-        const encuadre = (1 - THREE.MathUtils.smoothstep(Math.abs(this._v.x), 0.5, 0.9))
-          * (1 - THREE.MathUtils.smoothstep(Math.abs(this._v.y), 0.55, 0.98));
-        luzEnCuadro = luzPrimera * encuadre;
-      }
       let foco = 0;
       if (delante) {
         /* Cerca del centro en pantalla y a distancia de lectura → foco 1 */
@@ -274,11 +248,8 @@ export class PanelesVidrio {
          quedar más lejos para encuadrarla en una pantalla angosta. */
       const reveladoDistancia = 1 - THREE.MathUtils.smoothstep(distCamara, 5, 11);
       const reveladoEnFoco = THREE.MathUtils.smoothstep(item.foco, 0.34, 0.82);
-      const revelado = indice === 0
-        ? Math.max(reveladoDistancia, reveladoEnFoco, luzEnCuadro * 0.38)
-        : Math.max(reveladoDistancia, reveladoEnFoco);
+      const revelado = Math.max(reveladoDistancia, reveladoEnFoco);
       this._escribir(item, '--revelado', revelado);
-      if (indice === 0) this._escribir(item, '--luz-travesia', luzEnCuadro);
 
       /* ── Optimización: sólo pintamos lo razonablemente cercano ──
          Los paneles detrás de la cámara, muy profundos o aún no revelados
@@ -305,19 +276,6 @@ export class PanelesVidrio {
             escena.el.style.setProperty('--presencia', presencia);
           }
         }
-      }
-    }
-
-    const halo = this.primeraEscena;
-    halo.objeto.visible = luzEnCuadro > 0.008;
-    if (halo.objeto.visible) {
-      halo.objeto.position.copy(this.items[0].objeto.position);
-      halo.objeto.position.z -= 0.42;
-      halo.objeto.rotation.copy(this.items[0].objeto.rotation);
-      const brillo = luzEnCuadro.toFixed(3);
-      if (halo.brillo !== brillo) {
-        halo.brillo = brillo;
-        halo.el.style.setProperty('--luz', brillo);
       }
     }
 
