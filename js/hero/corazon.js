@@ -32,6 +32,7 @@
 
 import * as THREE from 'three';
 import { CONFIG, PALETA, POS_CORAZON } from './config.js';
+import { GLIFOS, TAMANIO_GLIFO, LADO_GLIFO } from './glifos.js';
 import { RUIDO_SIMPLEX_GLSL } from './ruido.js';
 
 /* ── La forma: curva paramétrica CLÁSICA del corazón (surco profundo,
@@ -79,6 +80,79 @@ function semiEspesor(dBorde) {
   return PROFUNDIDAD_MAX * Math.sqrt(Math.min(dBorde / 0.48, 1));
 }
 
+/* Fredoka aporta las siluetas exactas de las dos letras. Las máscaras se
+   convierten una sola vez en puntos interiores, perímetro y distancia al
+   borde; cada partícula recibe así un destino dentro de un volumen real. */
+const PROFUNDIDAD_LETRA = 0.78;
+
+function prepararGlifo(datos) {
+  const bytes = Uint8Array.from(atob(datos.bits), c => c.charCodeAt(0));
+  const total = TAMANIO_GLIFO * TAMANIO_GLIFO;
+  const dentro = new Uint8Array(total);
+  const distancia = new Float32Array(total);
+  const diagonal = Math.SQRT2;
+
+  for (let i = 0; i < total; i++) {
+    dentro[i] = (bytes[i >> 3] >> (7 - (i & 7))) & 1;
+    distancia[i] = dentro[i] ? 1000 : 0;
+  }
+  /* Transformada de distancia con vecindad de ocho: aproxima cuánto puede
+     inflarse el frente de cada letra antes de llegar a su silueta. */
+  for (let y = 0; y < TAMANIO_GLIFO; y++) {
+    for (let x = 0; x < TAMANIO_GLIFO; x++) {
+      const i = y * TAMANIO_GLIFO + x;
+      if (!dentro[i]) continue;
+      if (x > 0) distancia[i] = Math.min(distancia[i], distancia[i - 1] + 1);
+      if (y > 0) distancia[i] = Math.min(distancia[i], distancia[i - TAMANIO_GLIFO] + 1);
+      if (x > 0 && y > 0) distancia[i] = Math.min(distancia[i], distancia[i - TAMANIO_GLIFO - 1] + diagonal);
+      if (x + 1 < TAMANIO_GLIFO && y > 0) distancia[i] = Math.min(distancia[i], distancia[i - TAMANIO_GLIFO + 1] + diagonal);
+    }
+  }
+  for (let y = TAMANIO_GLIFO - 1; y >= 0; y--) {
+    for (let x = TAMANIO_GLIFO - 1; x >= 0; x--) {
+      const i = y * TAMANIO_GLIFO + x;
+      if (!dentro[i]) continue;
+      if (x + 1 < TAMANIO_GLIFO) distancia[i] = Math.min(distancia[i], distancia[i + 1] + 1);
+      if (y + 1 < TAMANIO_GLIFO) distancia[i] = Math.min(distancia[i], distancia[i + TAMANIO_GLIFO] + 1);
+      if (x + 1 < TAMANIO_GLIFO && y + 1 < TAMANIO_GLIFO) distancia[i] = Math.min(distancia[i], distancia[i + TAMANIO_GLIFO + 1] + diagonal);
+      if (x > 0 && y + 1 < TAMANIO_GLIFO) distancia[i] = Math.min(distancia[i], distancia[i + TAMANIO_GLIFO - 1] + diagonal);
+    }
+  }
+
+  const interior = [], borde = [];
+  for (let i = 0; i < total; i++) {
+    if (!dentro[i]) continue;
+    interior.push(i);
+    if (distancia[i] < 3.5) borde.push(i);
+  }
+  return { dentro, distancia, interior, borde };
+}
+
+function puntoEnGlifo(glifo, enBorde) {
+  const celdas = enBorde ? glifo.borde : glifo.interior;
+  const i = celdas[Math.floor(Math.random() * celdas.length)];
+  const x = ((i % TAMANIO_GLIFO + Math.random()) / TAMANIO_GLIFO - 0.5) * LADO_GLIFO;
+  const y = (0.5 - (Math.floor(i / TAMANIO_GLIFO) + Math.random()) / TAMANIO_GLIFO) * LADO_GLIFO;
+  const semiProfundidad = PROFUNDIDAD_LETRA * Math.sqrt(Math.min(glifo.distancia[i] / 23, 1));
+  return { x, y, z: THREE.MathUtils.randFloatSpread(2 * semiProfundidad) };
+}
+
+function aciertaGlifo(glifo, x, y) {
+  const px = Math.floor((x / LADO_GLIFO + 0.5) * TAMANIO_GLIFO);
+  const py = Math.floor((0.5 - y / LADO_GLIFO) * TAMANIO_GLIFO);
+  if (px < 0 || py < 0 || px >= TAMANIO_GLIFO || py >= TAMANIO_GLIFO) return false;
+  if (glifo.dentro[py * TAMANIO_GLIFO + px]) return true;
+  /* Un margen pequeño hace cómodos los clics cerca de las curvas. */
+  for (let dy = -6; dy <= 6; dy++) {
+    for (let dx = -6; dx <= 6; dx++) {
+      const xx = px + dx, yy = py + dy;
+      if (xx >= 0 && yy >= 0 && xx < TAMANIO_GLIFO && yy < TAMANIO_GLIFO &&
+          glifo.dentro[yy * TAMANIO_GLIFO + xx]) return true;
+    }
+  }
+  return false;
+}
+
 /* Fracción de la entrada que se va en ESCALONAR la lluvia. El resto
    (1 − esto) es lo que tarda cada partícula en su propia caída: con
    0.58 las primeras ya están asentadas mientras las últimas recién
@@ -117,6 +191,12 @@ export class Corazon {
        con el reloj real, pero SÓLO desde que comenzarEntrada() la suelta. */
     this.entrada = 0;
     this.iniciada = false;
+    this.forma = 0;          // 0 corazón · 1 M · 2 S
+    this.formaDesde = 0;
+    this.formaHacia = 0;
+    this.progresoForma = 1;
+    this._glifoM = prepararGlifo(GLIFOS.M);
+    this._glifoS = prepararGlifo(GLIFOS.S);
 
     this._construirNube();
 
@@ -126,6 +206,12 @@ export class Corazon {
     this._normal = new THREE.Vector3();
     this._v = new THREE.Vector3();
     this._punto = new THREE.Vector3();
+    this._mouseSuavizado = new THREE.Vector3(99, 99, 99);
+    this._mouseRastro = new THREE.Vector3(99, 99, 99);
+    this._mouseAnterior = new THREE.Vector3();
+    this._direccionMouse = new THREE.Vector2();
+    this._punteroVigente = false;
+    this.velocidadMouse = 0;
   }
 
   _construirNube() {
@@ -133,6 +219,8 @@ export class Corazon {
     const posiciones = new Float32Array(cantidad * 3);
     const dispersas = new Float32Array(cantidad * 3);
     const caidas = new Float32Array(cantidad * 3);
+    const formaM = new Float32Array(cantidad * 3);
+    const formaS = new Float32Array(cantidad * 3);
     const retardos = new Float32Array(cantidad);
     const semillas = new Float32Array(cantidad);
     const tamanios = new Float32Array(cantidad);
@@ -151,6 +239,7 @@ export class Corazon {
     for (let i = 0; i < 140; i++) {
       contorno.push(puntoCorazon2D((i / 140) * Math.PI * 2));
     }
+    this._contorno = contorno;
     /* Rango vertical real de la curva (para el gradiente de luz) */
     const yMin = -14.25 * ESCALA, yMax = 14.25 * ESCALA;
 
@@ -188,6 +277,17 @@ export class Corazon {
       posiciones[i * 3 + 0] = x;
       posiciones[i * 3 + 1] = y;
       posiciones[i * 3 + 2] = z;
+
+      /* Cada partícula ya conoce sus coordenadas en las dos letras. Así el
+         clic transforma la nube existente: no crea texto ni cambia de objeto. */
+      const pM = puntoEnGlifo(this._glifoM, enContorno);
+      const pS = puntoEnGlifo(this._glifoS, enContorno);
+      formaM[i * 3 + 0] = pM.x;
+      formaM[i * 3 + 1] = pM.y;
+      formaM[i * 3 + 2] = pM.z;
+      formaS[i * 3 + 0] = pS.x;
+      formaS[i * 3 + 1] = pS.y;
+      formaS[i * 3 + 2] = pS.z;
 
       /* ── Desarme: a dónde se la lleva la corriente ──
          El destino se escribe en ejes DEL MUNDO (el shader lo contra-rota
@@ -273,6 +373,8 @@ export class Corazon {
     geometria.setAttribute('position', new THREE.BufferAttribute(posiciones, 3));
     geometria.setAttribute('aDispersa', new THREE.BufferAttribute(dispersas, 3));
     geometria.setAttribute('aCaida', new THREE.BufferAttribute(caidas, 3));
+    geometria.setAttribute('aFormaM', new THREE.BufferAttribute(formaM, 3));
+    geometria.setAttribute('aFormaS', new THREE.BufferAttribute(formaS, 3));
     geometria.setAttribute('aRetardo', new THREE.BufferAttribute(retardos, 1));
     geometria.setAttribute('semilla', new THREE.BufferAttribute(semillas, 1));
     geometria.setAttribute('tamanio', new THREE.BufferAttribute(tamanios, 1));
@@ -321,8 +423,13 @@ export class Corazon {
         uDPR: { value: 1 },
         uDesarme: { value: 0 },
         uEntrada: { value: 0 },
+        uFormaDesde: { value: 0 },
+        uFormaHacia: { value: 0 },
+        uProgresoForma: { value: 1 },
         uOpacidad: { value: 1 },
         uFuerza: { value: 0 },
+        uVelocidadMouse: { value: 0 },
+        uDireccionMouse: { value: new THREE.Vector2() },
         uGiro: { value: 0 },
         uRetrasoEco: { value: retrasoEco },
         uAlfaEco: { value: 1 },
@@ -337,6 +444,7 @@ export class Corazon {
           ),
         },
         uMouseLocal: { value: new THREE.Vector3(99, 99, 99) },  // lejos al arrancar
+        uMouseRastro: { value: new THREE.Vector3(99, 99, 99) },
         uColorRojo: { value: PALETA.rojo },
         uColorVivo: { value: PALETA.rojoVivo },
         uColorClaro: { value: PALETA.rojoClaro },
@@ -346,6 +454,8 @@ export class Corazon {
         ${RUIDO_SIMPLEX_GLSL}
         attribute vec3 aDispersa;
         attribute vec3 aCaida;
+        attribute vec3 aFormaM;
+        attribute vec3 aFormaS;
         attribute float aRetardo;
         attribute float semilla;
         attribute float tamanio;
@@ -359,10 +469,16 @@ export class Corazon {
         uniform float uDPR;
         uniform float uDesarme;
         uniform float uEntrada;
+        uniform float uFormaDesde;
+        uniform float uFormaHacia;
+        uniform float uProgresoForma;
         uniform float uFuerza;
+        uniform float uVelocidadMouse;
+        uniform vec2 uDireccionMouse;
         uniform float uGiro;
         uniform float uRetrasoEco;
         uniform vec3 uMouseLocal;
+        uniform vec3 uMouseRastro;
         varying float vSemilla;
         varying float vBrillo;
         varying float vSuperficie;
@@ -372,6 +488,11 @@ export class Corazon {
         varying float vChispazo;
         varying float vCerca;
         varying float vDist;
+        varying float vFiguraM;
+        varying float vFiguraS;
+        varying float vCambio;
+        varying float vLuzCursor;
+        varying float vLuzRastro;
         void main() {
           vSemilla = semilla;
           vBrillo = aBrillo;
@@ -398,8 +519,30 @@ export class Corazon {
           /* Va perdiendo altura y, de paso, se mece: la lluvia se curva
              hacia la forma en vez de caer en líneas rectas. */
           p += aCaida * enElAire;
-          p.x += sin(uTiempo * 1.6 + semilla * 5.7) * 0.22 * enElAire;
-          p.z += cos(uTiempo * 1.3 + semilla * 4.1) * 0.16 * enElAire;
+          float remolinoEntrada = uTiempo * 1.15 + semilla * 4.1;
+          p.x += sin(remolinoEntrada) * 0.30 * enElAire;
+          p.z += cos(remolinoEntrada * 0.83) * 0.22 * enElAire;
+          p.y += sin(caida * 3.14159265) * 0.08 * enElAire;
+
+          /* Corazón ↔ M ↔ S. El golpe de aire en el centro de la transición
+             hace que las partículas viajen entre siluetas antes de asentarse. */
+          float desdeM = step(0.5, uFormaDesde);
+          float desdeS = step(1.5, uFormaDesde);
+          float haciaM = step(0.5, uFormaHacia);
+          float haciaS = step(1.5, uFormaHacia);
+          vec3 formaDesde = mix(mix(position, aFormaM, desdeM), aFormaS, desdeS);
+          vec3 formaHacia = mix(mix(position, aFormaM, haciaM), aFormaS, haciaS);
+          float progresoMorfosis = smoothstep(0.0, 1.0, uProgresoForma);
+          float fuerzaMorfosis = sin(progresoMorfosis * 3.14159265)
+                               * smoothstep(0.45, 0.82, uEntrada);
+          vec3 forma = mix(formaDesde, formaHacia, progresoMorfosis);
+          forma.xy += vec2(-forma.y, forma.x) * fuerzaMorfosis * 0.075;
+          forma += normalize(forma + vec3(0.0, 0.0, 0.001)) * fuerzaMorfosis * 0.10;
+          float yaEntro = smoothstep(0.72, 1.0, uEntrada);
+          p = mix(p, forma, yaEntro);
+          vFiguraM = haciaM * (1.0 - haciaS);
+          vFiguraS = haciaS;
+          vCambio = max(fuerzaMorfosis, 0.0);
 
           /* ── Desarme: la partícula se suelta y se vuelve BRASA ──
              uRetrasoEco atrasa el reloj de esta capa: los ecos muestran
@@ -426,13 +569,20 @@ export class Corazon {
           p.y += snoise(vec3(position.zx * 1.8, uTiempo * 0.28 + semilla)) * amp;
           p.z += snoise(vec3(position.xy * 1.8, uTiempo * 0.30 + semilla)) * amp;
 
-          /* Repulsión del cursor en 3D (sólo con el corazón ya armado):
-             las partículas se apartan del punto tocado y vuelven solas.
-             Radio acorde al corazón grande (~2.7 de alto). */
+          /* Repulsión suave con inercia: el cursor despeja la nube y,
+             cuando se mueve, arrastra apenas los puntos próximos. El
+             rastro de luz usa la misma nube, sin otro sistema de partículas. */
           vec3 delta = p - uMouseLocal;
           float dm = length(delta);
-          float rep = uFuerza * 0.55 * exp(-dm * dm * 1.6) * (1.0 - des) * llegada;
+          float activoMouse = uFuerza * (1.0 - des) * llegada;
+          float campo = exp(-dm * dm * 1.45);
+          float rep = activoMouse * campo * (0.48 + 0.20 * uVelocidadMouse);
           p += (delta / max(dm, 0.05)) * rep;
+          p.xy += uDireccionMouse * activoMouse * campo * uVelocidadMouse * 0.12;
+          float dRastro = length(forma - uMouseRastro);
+          vLuzCursor = activoMouse * exp(-dm * dm * 1.75);
+          vLuzRastro = activoMouse * uVelocidadMouse
+                      * exp(-dRastro * dRastro * 1.8);
 
           /* Se abre: un empujón mínimo hacia afuera desde el cuerpo del
              corazón, para que la forma SE SUELTE antes de que la corriente
@@ -468,6 +618,9 @@ export class Corazon {
           /* Cayendo es una gota de luz un poco más gorda que en reposo, y
              al soltarse como brasa vuelve a crecer con el chispazo */
           gl_PointSize *= 1.0 + 0.45 * enElAire + 0.6 * chispazo;
+          gl_PointSize *= 1.0 + 0.14 * enElAire + 0.18 * vCambio;
+          gl_PointSize *= 1.0 + 0.11 * max(vFiguraM, vFiguraS);
+          gl_PointSize *= 1.0 + 0.22 * vLuzCursor + 0.11 * vLuzRastro;
           /* Las que pasan al ras del lente pueden crecer mucho más: son
              chispas fuera de foco, y para eso necesitan tamaño real. */
           gl_PointSize = min(gl_PointSize, mix(11.0, 34.0, aCerca) * uDPR);
@@ -493,15 +646,23 @@ export class Corazon {
         varying float vChispazo;
         varying float vCerca;
         varying float vDist;
+        varying float vFiguraM;
+        varying float vFiguraS;
+        varying float vCambio;
+        varying float vLuzCursor;
+        varying float vLuzRastro;
         void main() {
           float d = length(gl_PointCoord - 0.5);
-          float disco = smoothstep(0.5, 0.08, d);
+          float disco = exp(-d * d * 34.0) * 0.68
+                      + exp(-d * d * 142.0) * 0.32;
 
           /* Rojo profundo → rojo vivo según la luz (arriba más vivo);
              la cáscara, apenas más clara: la silueta ♥ se lee nítida
              mientras gira. Las chispas tiran a rosa claro. */
           vec3 color = mix(uColorRojo, uColorVivo, vBrillo);
           color = mix(color, uColorClaro, vSuperficie * 0.4 + vChispa * 0.55);
+          /* Una sola paleta para corazón, M y S. El cursor ilumina al
+             aumentar la intensidad de las mismas partículas rojas. */
 
           /* Titileo suave; las chispas laten mucho más hondo */
           float onda = sin(uTiempo * (1.3 + vChispa * 1.2) + vSemilla * 3.0);
@@ -512,7 +673,7 @@ export class Corazon {
              esperan turno no se ven flotando arriba), y mientras cae es
              una chispa encendida que se apaga al asentarse. */
           float aparecer = smoothstep(0.0, 0.10, vEntrada);
-          float cayendo = 1.0 + 1.25 * (1.0 - smoothstep(0.30, 1.0, vEntrada));
+          float cayendo = 1.0 + 1.42 * (1.0 - smoothstep(0.30, 1.0, vEntrada));
 
           /* ── Brasa ──
              Al soltarse se ENCIENDE (oro), viajando se enfría de vuelta
@@ -551,6 +712,7 @@ export class Corazon {
           float alfa = disco * titileo * (0.20 + vSuperficie * 0.15 + vChispa * 0.25)
                      * uOpacidad * aparecer * cayendo * uAlfaEco
                      * repartida * (1.0 + vChispazo * 0.55) * (1.0 - apagon) * alRas;
+          alfa *= 1.0 + vLuzCursor * 0.65 + vLuzRastro * 0.25;
           if (!(alfa > 0.004)) discard;      // negado: así también cae el NaN
           /* Cayendo tira apenas al claro: gota de luz antes que brasa */
           color = mix(color, uColorClaro, (cayendo - 1.0) * 0.30);
@@ -564,6 +726,40 @@ export class Corazon {
 
   /* ── Control desde el scroll (main.js) ── */
   setGiro(radianes) { this.rotacionScroll = radianes; }
+
+  /** Avanza en el ciclo corazón → M → S → corazón si el clic cae sobre
+      el trazo visible. */
+  alternarForma(mouseNDC, camara) {
+    if (!this.grupo.visible || this.entrada < 0.995 || this.desarme > 0.01) return false;
+    if (!this._proyectarPuntero(mouseNDC, camara)) return false;
+    const x = this._punto.x, y = this._punto.y;
+    const aciertaCorazon = dentroDelCorazon(x, y, this._contorno)
+      || distanciaAlContorno(x, y, this._contorno) < 0.22;
+    const aciertaM = aciertaGlifo(this._glifoM, x, y);
+    const aciertaS = aciertaGlifo(this._glifoS, x, y);
+    const coincide = this.formaHacia === 0 ? aciertaCorazon
+      : this.formaHacia === 1 ? aciertaM : aciertaS;
+    if (!coincide) return false;
+
+    const siguiente = (this.formaHacia + 1) % 3;
+    this.formaDesde = this.formaHacia;
+    this.formaHacia = siguiente;
+    this.forma = siguiente;
+    this.progresoForma = 0;
+    return true;
+  }
+
+  _proyectarPuntero(mouseNDC, camara) {
+    this.grupo.updateMatrixWorld();
+    camara.getWorldDirection(this._normal);
+    this._plano.setFromNormalAndCoplanarPoint(this._normal, this.grupo.position);
+    this._v.set(mouseNDC.x, mouseNDC.y, 0.5).unproject(camara);
+    this._rayo.origin.copy(camara.position);
+    this._rayo.direction.copy(this._v.sub(camara.position)).normalize();
+    if (!this._rayo.intersectPlane(this._plano, this._punto)) return false;
+    this.grupo.worldToLocal(this._punto);
+    return true;
+  }
 
   /* Re-anclaje por frame: durante el landing el corazón se posiciona en el
      punto de mirada de la cámara → queda clavado al centro de la pantalla
@@ -580,6 +776,12 @@ export class Corazon {
      del desarme no quede nada encendido. */
   setDesarme(v) {
     this.desarme = THREE.MathUtils.clamp(v, 0, 1);
+    if (this.desarme > 0.01 && this.formaHacia !== 0) {
+      this.formaDesde = this.formaHacia;
+      this.formaHacia = 0;
+      this.forma = 0;
+      this.progresoForma = 0;
+    }
     this.opacidad = 1 - THREE.MathUtils.smoothstep(this.desarme, 0.90, 1.0);
     /* Todo apagado: fuera del render (ahorra GPU) */
     this.grupo.visible = this.opacidad > 0.004;
@@ -603,34 +805,54 @@ export class Corazon {
     if (this.iniciada && this.entrada < 1) {
       this.entrada = Math.min(this.entrada + dt / CONFIG.duracionEntrada, 1);
     }
+    if (this.progresoForma < 1) {
+      this.progresoForma = Math.min(1, this.progresoForma + dt / CONFIG.duracionCambioFigura);
+    }
 
     /* Respiración: escala oscilante muy leve, loop infinito (~4 s) */
     const pulso = 1 + Math.sin(tiempo * 1.55) * CONFIG.amplitudRespiracion;
     this.grupo.scale.setScalar(pulso);
 
-    /* Giro: leve vaivén de flotación + giro sobre su eje ligado al scroll */
-    this.grupo.rotation.y = Math.sin(tiempo * 0.18) * 0.09 + this.rotacionScroll;
+    /* Las letras muestran un poco más de perfil para que se lea su espesor.
+       El giro del scroll conserva su recorrido completo. */
+    const presenciaLetra = THREE.MathUtils.lerp(
+      this.formaDesde === 0 ? 0 : 1,
+      this.formaHacia === 0 ? 0 : 1,
+      THREE.MathUtils.smoothstep(this.progresoForma, 0, 1)
+    );
+    this.grupo.rotation.y = this.rotacionScroll
+      + Math.sin(tiempo * 0.18) * (0.09 + 0.10 * presenciaLetra)
+      + Math.sin(tiempo * 0.31 + 0.4) * 0.05 * presenciaLetra;
 
-    /* ── Cursor → espacio local del corazón ──
-       Intersecamos el rayo del mouse con el plano que pasa por el corazón
-       mirando a cámara, y lo llevamos a coordenadas locales (así el punto
-       repelido acompaña también el GIRO del corazón). */
+    /* ── Cursor → espacio local de la figura ──
+       El punto inmediato mueve la repulsión; uno más lento deja un reflejo
+       fugaz detrás. La velocidad modula el empuje, sin afectar al reposo. */
     let objetivo = 0;
-    if (CONFIG.parallaxMouse > 0 && hayMouse) {
-      this.grupo.updateMatrixWorld();
-      camara.getWorldDirection(this._normal);
-      this._plano.setFromNormalAndCoplanarPoint(this._normal, this.grupo.position);
-      this._v.set(mouseNDC.x, mouseNDC.y, 0.5).unproject(camara);
-      this._rayo.origin.copy(camara.position);
-      this._rayo.direction.copy(this._v.sub(camara.position)).normalize();
-      if (this._rayo.intersectPlane(this._plano, this._punto)) {
-        this.grupo.worldToLocal(this._punto);
-        this.material.uniforms.uMouseLocal.value.lerp(this._punto, Math.min(1, dt * 10));
-        /* La fuerza sube cuando el cursor está sobre el corazón (grande: ~3) */
-        objetivo = 1 - THREE.MathUtils.smoothstep(this._punto.length(), 1.8, 3.2);
+    let velocidadObjetivo = 0;
+    if (CONFIG.parallaxMouse > 0 && hayMouse && this._proyectarPuntero(mouseNDC, camara)) {
+      if (!this._punteroVigente) {
+        this._mouseSuavizado.copy(this._punto);
+        this._mouseRastro.copy(this._punto);
+        this._mouseAnterior.copy(this._punto);
+        this._punteroVigente = true;
+      } else {
+        this._v.subVectors(this._punto, this._mouseAnterior);
+        const distancia = Math.hypot(this._v.x, this._v.y);
+        if (distancia > 0.001) {
+          this._direccionMouse.set(this._v.x / distancia, this._v.y / distancia);
+          velocidadObjetivo = Math.min(1, distancia / Math.max(dt, 0.016) / 5.5);
+        }
       }
+      this._mouseAnterior.copy(this._punto);
+      this._mouseSuavizado.lerp(this._punto, Math.min(1, dt * 18));
+      this._mouseRastro.lerp(this._mouseSuavizado, Math.min(1, dt * 5));
+      objetivo = 1 - THREE.MathUtils.smoothstep(this._punto.length(), 1.8, 3.2);
+    } else {
+      this._punteroVigente = false;
     }
     this.fuerzaMouse += (objetivo - this.fuerzaMouse) * Math.min(1, dt * 5);
+    this.velocidadMouse += (velocidadObjetivo - this.velocidadMouse)
+      * Math.min(1, dt * (velocidadObjetivo > this.velocidadMouse ? 15 : 7));
 
     /* Las estelas arrancan apagadas y se encienden con el desarme, si no
        se verían como una nube doble sobre el corazón quieto. */
@@ -642,13 +864,19 @@ export class Corazon {
       u.uDPR.value = dpr;
       u.uDesarme.value = this.desarme;
       u.uEntrada.value = this.entrada;
+      u.uFormaDesde.value = this.formaDesde;
+      u.uFormaHacia.value = this.formaHacia;
+      u.uProgresoForma.value = this.progresoForma;
       u.uOpacidad.value = this.opacidad;
       u.uFuerza.value = this.fuerzaMouse;
+      u.uVelocidadMouse.value = this.velocidadMouse;
+      u.uDireccionMouse.value.copy(this._direccionMouse);
+      u.uMouseLocal.value.copy(this._mouseSuavizado);
+      u.uMouseRastro.value.copy(this._mouseRastro);
       u.uGiro.value = this.grupo.rotation.y;
       /* Cada eco es más tenue que el anterior: la estela se apaga hacia
          atrás, como el rastro de una brasa de verdad. */
       u.uAlfaEco.value = capa === 0 ? 1 : Math.pow(0.46, capa) * fuerzaEstela;
-      if (capa > 0) u.uMouseLocal.value.copy(this.material.uniforms.uMouseLocal.value);
     });
   }
 

@@ -45,13 +45,8 @@
   --fuente-display: 'Cormorant Garamond', Georgia, serif;
   --fuente-ui: 'Montserrat', 'Segoe UI', sans-serif;
 
-  /* Duración del viaje: altura del espaciador de scroll (landing + 39 cards + final).
-     3272vh reparte ~390vh para el landing, ~2792vh para el timeline
-     (~68vh por card) y ~90vh para el final. Va de la mano con FASES en
-     config.js: al cambiar la cantidad de cards se escala ESTE valor y se
-     recalculan landingFin/timelineFin allá, de modo que el landing y el
-     final duren los MISMOS vh de siempre y sólo se estire el corredor. */
-  --alto-recorrido: 3272vh;
+  /* Fallback; main.js lo sincroniza con fotos, pausas e hitos desde config.js. */
+  --alto-recorrido: 3404vh;
 }
 
 /* ── Base ────────────────────────────────────────────────────── */
@@ -327,26 +322,79 @@ body {
   100% { transform: scale(1.14);  opacity: 0;   }
 }
 
-/* ── Sidebar de momentos (izquierda, centrada vertical) ──────────
-   Compacta: con más de 30 cards, los puntos van muy juntos como un riel de progreso. */
+/* ── Índice de recuerdos: año → mes → hito ──────────────────────
+   Conserva el riel de puntos, pero sólo despliega el tramo elegido. */
 .sidebar-momentos {
-  left: 30px;
-  top: 50%;
+  left: 28px;
+  top: 46%;
   transform: translateY(-50%);
+  width: min(235px, 27vw);
+  max-height: 62vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(230, 184, 125, 0.34) transparent;
+  padding: 10px 10px 10px 0;
+  pointer-events: none;
+}
+.sidebar-momentos > * { pointer-events: auto; }
+.sidebar-anio, .sidebar-mes { position: relative; }
+.sidebar-control {
   display: flex;
-  flex-direction: column;
-  gap: 0;
-  max-height: 84vh;
+  align-items: center;
+  gap: 11px;
+  min-height: 30px;
+  padding: 5px 4px;
+  list-style: none;
+  color: var(--color-crema);
+  cursor: pointer;
+  text-shadow: 0 1px 8px rgba(26, 5, 8, 0.9);
+}
+.sidebar-control::-webkit-details-marker { display: none; }
+.sidebar-control .sidebar-etiqueta { opacity: 0.72; }
+.sidebar-anio-control .sidebar-etiqueta { font-size: 11px; letter-spacing: 0.31em; }
+.sidebar-mes-control .sidebar-etiqueta { font-size: 10px; }
+.sidebar-control:hover .sidebar-etiqueta,
+.sidebar-control:focus-visible .sidebar-etiqueta,
+.sidebar-anio[open] > .sidebar-control .sidebar-etiqueta,
+.sidebar-mes[open] > .sidebar-control .sidebar-etiqueta { opacity: 1; }
+.sidebar-chevron {
+  margin-left: auto;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--color-dorado);
+  opacity: 0.48;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.sidebar-anio[open] > .sidebar-control .sidebar-chevron,
+.sidebar-mes[open] > .sidebar-control .sidebar-chevron {
+  transform: rotate(90deg);
+  opacity: 0.9;
+}
+.sidebar-lista-meses {
+  margin: 4px 0 9px 8px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(245, 239, 230, 0.15);
+}
+.sidebar-lista-momentos {
+  margin: 2px 0 7px 8px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(230, 184, 125, 0.17);
 }
 .sidebar-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  width: 100%;
+  min-height: 26px;
+  text-align: left;
   background: none;
   border: none;
-  padding: 3px 4px;
+  padding: 5px 3px;
   color: var(--color-crema);
   font-family: var(--fuente-ui);
+  text-shadow: 0 1px 8px rgba(26, 5, 8, 0.95);
 }
 .sidebar-punto {
   width: 6px;
@@ -357,38 +405,70 @@ body {
   transition: background 0.4s, box-shadow 0.4s, transform 0.4s, border-color 0.4s;
   flex-shrink: 0;
 }
+.sidebar-anio-control .sidebar-punto { width: 8px; height: 8px; }
+.sidebar-mes-control .sidebar-punto { width: 5px; height: 5px; }
 .sidebar-etiqueta {
-  font-size: 9px;
-  letter-spacing: 0.26em;
+  font-size: 10px;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
-  opacity: 0;
-  transform: translateX(-6px);
-  transition: opacity 0.35s, transform 0.35s;
-  white-space: nowrap;
+  opacity: 0.68;
+  transition: opacity 0.35s;
+  line-height: 1.4;
 }
-.sidebar-item:hover .sidebar-etiqueta { opacity: 0.75; transform: translateX(0); }
+.sidebar-item:hover .sidebar-etiqueta,
+.sidebar-item:focus-visible .sidebar-etiqueta { opacity: 1; }
+.sidebar-anio.activo > .sidebar-control .sidebar-punto,
+.sidebar-mes.activo > .sidebar-control .sidebar-punto {
+  background: var(--color-rojo-claro);
+  border-color: var(--color-rojo-claro);
+  box-shadow: 0 0 10px var(--color-rojo-vivo);
+}
+.sidebar-anio[open] > .sidebar-control .sidebar-punto,
+.sidebar-mes[open] > .sidebar-control .sidebar-punto {
+  border-color: var(--color-dorado);
+  box-shadow: 0 0 8px rgba(230, 184, 125, 0.45);
+}
 .sidebar-item.activo .sidebar-punto {
   background: var(--color-rojo-claro);
   border-color: var(--color-rojo-claro);
   box-shadow: 0 0 12px var(--color-rojo-vivo);
   transform: scale(1.35);
 }
-.sidebar-item.activo .sidebar-etiqueta { opacity: 1; transform: translateX(0); }
-/* Línea fina que une los puntos */
+.sidebar-item.activo .sidebar-etiqueta { opacity: 1; }
+.sidebar-control:focus-visible,
+.sidebar-item:focus-visible {
+  outline: 1px solid rgba(230, 184, 125, 0.8);
+  outline-offset: 2px;
+  border-radius: 5px;
+}
+/* Línea fina que une los años sin tocar la navegación desplegada. */
 .sidebar-momentos::before {
   content: '';
   position: absolute;
-  left: 7px;
-  top: 14px;
-  bottom: 14px;
+  left: 8px;
+  top: 16px;
+  bottom: 16px;
   width: 1px;
   background: linear-gradient(to bottom, transparent, rgba(245, 239, 230, 0.18), transparent);
+  pointer-events: none;
+}
+@media (max-width: 1020px) {
+  .sidebar-momentos.expandido {
+    padding-left: 8px;
+    border: 1px solid rgba(230, 184, 125, 0.20);
+    border-radius: 14px;
+    background: linear-gradient(115deg, rgba(26, 5, 8, 0.92), rgba(35, 9, 16, 0.78));
+    backdrop-filter: blur(18px) saturate(1.15);
+    -webkit-backdrop-filter: blur(18px) saturate(1.15);
+    box-shadow: 0 18px 42px rgba(8, 1, 3, 0.38);
+  }
 }
 
 /* ── Buscador (inferior izquierda) ───────────────────────────── */
 .buscador {
   left: 34px;
   bottom: 30px;
+  z-index: 52;
   gap: 10px;
   padding: 12px 20px;
   width: min(340px, calc(100vw - 68px));
@@ -418,6 +498,80 @@ body {
 #buscador-input::placeholder {
   color: rgba(245, 239, 230, 0.4);
   font-style: italic;
+}
+#buscador-input::-webkit-search-cancel-button { filter: grayscale(1) brightness(2); }
+.buscador-resultados {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 10px);
+  max-height: min(330px, 43vh);
+  padding: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgba(230, 184, 125, 0.27);
+  border-radius: 17px;
+  background: rgba(31, 8, 13, 0.88);
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  box-shadow: 0 18px 48px rgba(8, 1, 3, 0.48), 0 0 28px rgba(200, 40, 63, 0.12);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(230, 184, 125, 0.35) transparent;
+}
+.buscador-resultados[hidden] { display: none; }
+.buscador-ayuda,
+.buscador-vacio {
+  padding: 8px 12px;
+  font-size: 9px;
+  line-height: 1.5;
+  letter-spacing: 0.1em;
+  color: var(--color-beige);
+  opacity: 0.7;
+}
+.buscador-ayuda { text-transform: uppercase; letter-spacing: 0.18em; }
+.buscador-resultado {
+  display: grid;
+  grid-template-columns: 27px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  row-gap: 3px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-crema);
+  text-align: left;
+  font-family: var(--fuente-ui);
+  transition: background 0.2s, border-color 0.2s;
+}
+.buscador-resultado:hover,
+.buscador-resultado:focus-visible,
+.buscador-resultado.seleccionado {
+  background: rgba(230, 184, 125, 0.10);
+  border-color: rgba(230, 184, 125, 0.23);
+  outline: none;
+}
+.buscador-resultado-numero {
+  grid-row: 1 / 3;
+  align-self: center;
+  color: var(--color-dorado);
+  opacity: 0.67;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+.buscador-resultado-titulo {
+  font-family: var(--fuente-display);
+  font-size: 19px;
+  line-height: 1.05;
+}
+.buscador-resultado-fecha {
+  grid-column: 2;
+  font-size: 9px;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--color-beige);
+  opacity: 0.72;
 }
 /* Sacudida sutil cuando no se encuentra el momento buscado */
 .buscador.sin-resultado { animation: buscador-no 0.45s ease; }
@@ -449,12 +603,14 @@ body {
   opacity: 1;
   text-shadow: 0 0 10px var(--color-rojo-claro);
 }
+.indicador-flecha:disabled { opacity: 0.2; }
 .indicador-centro {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
   min-width: 104px;
+  max-width: 230px;
 }
 .indicador-contador {
   font-size: 10px;
@@ -468,6 +624,20 @@ body {
   letter-spacing: 0.06em;
   color: var(--color-beige);
   opacity: 0.9;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.indicador-fecha {
+  max-width: 100%;
+  font-size: 9px;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
+  color: var(--color-beige);
+  opacity: 0.62;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -704,12 +874,114 @@ body {
   text-shadow: 0 1px calc(10px * var(--ss)) rgba(26, 5, 8, 0.95);
 }
 
-/* Hito destacado (nos pusimos de novios): marco y glow dorados */
+/* Hito destacado: la luz llega a la foto, sin aro ni marco exterior. */
 .panel-vidrio.destacado {
-  border-color: rgba(230, 184, 125, 0.4);
+  border-color: rgba(250, 213, 164, 0.48);
   box-shadow:
-    0 0 calc((24px + var(--foco) * 34px) * var(--ss)) rgba(230, 184, 125, calc(0.14 + var(--foco) * 0.22)),
-    inset 0 0 calc(26px * var(--ss)) rgba(230, 184, 125, 0.06);
+    0 0 calc((25px + var(--foco) * 42px) * var(--ss)) rgba(230, 184, 125, calc(0.10 + var(--foco) * 0.18)),
+    0 calc(18px * var(--ss)) calc(65px * var(--ss)) rgba(10, 1, 3, 0.42),
+    inset 0 0 calc(22px * var(--ss)) rgba(245, 239, 230, 0.06);
+}
+/* El foco de escena conserva la foto y el encuadre del timeline. Dos líneas
+   finas sobre el vidrio guían la mirada; la luz grande vive detrás de la card. */
+.panel-vidrio.hito-noviazgo .panel-tilt::after {
+  content: '';
+  position: absolute;
+  inset: calc(5px * var(--ss));
+  border: max(1px, calc(1px * var(--ss))) solid rgba(255, 224, 181, 0.52);
+  border-radius: calc(14px * var(--ss));
+  box-shadow: inset 0 0 calc(18px * var(--ss)) rgba(230, 184, 125, 0.14),
+              0 0 calc(13px * var(--ss)) rgba(230, 184, 125, 0.16);
+  pointer-events: none;
+}
+.panel-vidrio.hito-noviazgo .panel-palabra {
+  font-size: calc(37px * var(--ss));
+  text-shadow: 0 1px calc(16px * var(--ss)) rgba(26, 5, 8, 0.92),
+               0 0 calc(24px * var(--ss)) rgba(230, 184, 125, 0.25);
+}
+.hito-escena {
+  --presencia: 0;
+  width: calc(750px * var(--ss));
+  height: calc(590px * var(--ss));
+  opacity: var(--presencia);
+  pointer-events: none;
+  user-select: none;
+  overflow: visible;
+}
+.hito-escena-haz,
+.hito-escena-rayo,
+.hito-escena-piso {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+.hito-escena-haz {
+  left: 24%;
+  top: -17%;
+  width: 52%;
+  height: 126%;
+  transform: rotate(11deg);
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 205, 149, 0.07) 21%,
+    rgba(255, 222, 174, 0.28) 50%,
+    rgba(255, 186, 122, 0.06) 79%,
+    transparent);
+  filter: blur(calc(22px * var(--ss)));
+  animation: hitoHazRespira 7s ease-in-out infinite;
+}
+.hito-escena-rayo {
+  left: 49.5%;
+  top: -9%;
+  width: 1%;
+  height: 96%;
+  transform: rotate(11deg);
+  background: linear-gradient(180deg, transparent, rgba(255, 222, 174, 0.26), transparent);
+  filter: blur(calc(6px * var(--ss)));
+}
+.hito-escena-piso {
+  left: 14%;
+  bottom: 0;
+  width: 72%;
+  height: 15%;
+  border-radius: 50%;
+  background: rgba(240, 146, 80, 0.25);
+  filter: blur(calc(30px * var(--ss)));
+}
+.hito-escena-leyenda,
+.hito-escena-epilogo {
+  position: absolute;
+  color: var(--color-crema);
+  text-shadow: 0 0 calc(22px * var(--ss)) rgba(230, 184, 125, 0.45),
+               0 2px calc(10px * var(--ss)) rgba(10, 1, 3, 0.9);
+}
+.hito-escena-leyenda {
+  top: 6%;
+  left: 0;
+  right: 0;
+  font-family: var(--fuente-ui);
+  font-size: calc(10px * var(--ss));
+  letter-spacing: 0.34em;
+  text-align: center;
+}
+.hito-escena-epilogo {
+  bottom: 5%;
+  left: 6%;
+  font-family: var(--fuente-display);
+  font-size: calc(23px * var(--ss));
+  font-style: italic;
+  line-height: 1.1;
+}
+.hito-escena-epilogo::before {
+  content: '';
+  display: block;
+  width: calc(30px * var(--ss));
+  height: max(1px, calc(1px * var(--ss)));
+  margin-bottom: calc(9px * var(--ss));
+  background: var(--color-dorado);
+}
+@keyframes hitoHazRespira {
+  50% { opacity: 0.65; transform: rotate(11deg) scaleX(1.09); }
 }
 /* Los paneles todavía lejanos sueltan el backdrop-filter (el blur es lo más
    caro de toda la capa DOM). El umbral lo pone paneles.js: a esa distancia la
@@ -784,6 +1056,42 @@ body {
     0 0 calc(14px + 22px * var(--foco)) rgba(230, 184, 125, 0.45),
     0 0 calc(46px + 40px * var(--foco)) rgba(217, 143, 156, 0.24),
     0 0 90px rgba(200, 40, 63, 0.16);
+}
+
+/* Pausa narrativa dentro del corredor 3D: un silencio entre las fotos. */
+.pausa-narrativa {
+  --presencia: 0;
+  width: 680px;
+  text-align: center;
+  opacity: var(--presencia);
+  pointer-events: none;
+  user-select: none;
+}
+.pausa-narrativa-linea {
+  display: block;
+  width: 84px;
+  height: 1px;
+  margin: 0 auto 27px;
+  background: linear-gradient(90deg, transparent, var(--color-dorado), transparent);
+  box-shadow: 0 0 20px rgba(230, 184, 125, 0.7);
+  transform: scaleX(calc(0.3 + var(--presencia) * 0.7));
+}
+.pausa-narrativa-texto {
+  font-family: var(--fuente-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 64px;
+  line-height: 1.04;
+  letter-spacing: 0.005em;
+  color: var(--color-crema);
+  text-shadow: 0 0 32px rgba(230, 184, 125, 0.36),
+               0 0 76px rgba(217, 143, 156, 0.23);
+  transform: translateY(calc((1 - var(--presencia)) * 25px))
+             scale(calc(0.94 + var(--presencia) * 0.06));
+  filter: blur(calc((1 - var(--presencia)) * 6px));
+}
+@media (prefers-reduced-motion: reduce) {
+  .hito-escena-haz { animation: none; }
 }
 
 /* ═══════════════ CURSOR CEREZAS ═══════════════ */
@@ -901,11 +1209,18 @@ body {
   .monograma { top: 20px; left: 20px; }
   .nav-pill { top: 20px; right: 20px; padding: 9px 16px; gap: 10px; }
   .nav-latido { width: 42px; }
-  .sidebar-momentos { left: 14px; }
-  .sidebar-etiqueta { display: none; }
+  .sidebar-momentos {
+    left: 10px;
+    top: 44%;
+    width: min(218px, 58vw);
+    max-height: 54vh;
+  }
+  .sidebar-anio-control .sidebar-etiqueta { font-size: 10px; }
+  .sidebar-mes-control .sidebar-etiqueta { font-size: 10px; }
+  .sidebar-item .sidebar-etiqueta { font-size: 10px; letter-spacing: 0.04em; }
   .buscador {
     left: 16px;
-    bottom: 84px;
+    bottom: 100px;
     width: calc(100vw - 32px);
     padding: 11px 16px;
   }
@@ -927,8 +1242,17 @@ body {
     height: calc(256px * var(--ss));
     padding: calc(11px * var(--ss));
   }
+  .panel-vidrio.ancha { width: calc(390px * var(--ss)); }
   .panel-palabra { font-size: calc(22px * var(--ss)); }
   .panel-info { left: calc(24px * var(--ss)); bottom: calc(20px * var(--ss)); }
+  .panel-vidrio.hito-noviazgo .panel-palabra { font-size: calc(27px * var(--ss)); }
+  .hito-escena { width: calc(370px * var(--ss)); height: calc(340px * var(--ss)); }
+  .hito-escena-leyenda { top: 2%; font-size: calc(8px * var(--ss)); letter-spacing: 0.2em; }
+  .hito-escena-epilogo { left: 5%; bottom: 2%; font-size: calc(15px * var(--ss)); }
+  .hito-escena-epilogo::before { margin-bottom: calc(5px * var(--ss)); }
+  .pausa-narrativa { width: 340px; }
+  .pausa-narrativa-texto { font-size: 36px; }
+  .pausa-narrativa-linea { margin-bottom: 18px; }
   /* La frase vive en el MUNDO 3D: su tamaño en pantalla depende de cuánto
      mundo entra en cuadro, y en vertical entra mucho menos que en 16:9. */
   .frase-viaje { width: 340px; font-size: 27px; }

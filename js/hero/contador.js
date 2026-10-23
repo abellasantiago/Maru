@@ -2,8 +2,8 @@
    Contador de tiempo juntos — en vivo, bajo el corazón del landing.
 
    Una sola línea poética en serif itálica que cuenta cuánto llevamos
-   de novios desde el 20/09/2025 a las 16:00, descompuesto en meses
-   CALENDARIO reales (no bloques de 30 días) + días, horas, minutos y
+   de novios desde el 20/09/2025 a las 16:00, descompuesto en años y
+   meses CALENDARIO reales (no bloques de 30 días) + días, horas, minutos y
    segundos restantes. Se actualiza cada segundo.
    ═══════════════════════════════════════════════════════════════ */
 
@@ -14,12 +14,12 @@ const MS_DIA = 86400000;
 const MS_HORA = 3600000;
 const MS_MIN = 60000;
 
-/* "1 mes" / "2 meses", "1 día" / "2 días", … */
+/* "1 año" / "2 años", "1 mes" / "2 meses", … */
 function plural(n, singular, plurales) {
   return `${n} ${n === 1 ? singular : plurales}`;
 }
 
-/* Descompone ahora−INICIO en meses calendario + resto exacto */
+/* Descompone ahora−INICIO en años, meses calendario y resto exacto */
 function descomponer(ahora) {
   /* Cantidad de meses calendario completos transcurridos: avanzamos el
      aniversario mensual y retrocedemos uno si nos pasamos de "ahora". */
@@ -42,7 +42,8 @@ function descomponer(ahora) {
   const minutos = Math.floor(resto / MS_MIN);
   const segundos = Math.floor((resto - minutos * MS_MIN) / 1000);
 
-  return { meses, dias, horas, minutos, segundos };
+  const anios = Math.floor(meses / 12);
+  return { anios, meses: meses % 12, dias, horas, minutos, segundos };
 }
 
 export class ContadorJuntos {
@@ -59,6 +60,7 @@ export class ContadorJuntos {
   _tick() {
     const t = descomponer(new Date());
     const texto = [
+      plural(t.anios, 'año', 'años'),
       plural(t.meses, 'mes', 'meses'),
       plural(t.dias, 'día', 'días'),
       plural(t.horas, 'hora', 'horas'),

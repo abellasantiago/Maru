@@ -17,7 +17,7 @@
 import * as THREE from 'three';
 import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 import { CONFIG, MOVIMIENTO_REDUCIDO } from './config.js';
-import { MOMENTOS } from './momentos.js';
+import { MOMENTOS, PAUSAS_NARRATIVAS } from './momentos.js';
 
 /* Frase que flota EN EL ESPACIO durante el descenso del landing: la cámara
    la pasa de largo (parallax real, no overlay). Vive a mitad del descenso
@@ -53,7 +53,8 @@ export class PanelesVidrio {
       const el = document.createElement('div');
       el.className = 'panel-vidrio' +
         (momento.destacado ? ' destacado' : '') +
-        (momento.ancha ? ' ancha' : '');
+        (momento.ancha ? ' ancha' : '') +
+        (momento.tratamiento ? ` hito-${momento.tratamiento}` : '');
       el.dataset.momento = momento.id;
       el.style.setProperty('--ss', SS);
       /* .panel-interior es un div propio para la animación de entrada
@@ -64,7 +65,7 @@ export class PanelesVidrio {
         <div class="panel-interior">
           <div class="panel-tilt">
             <figure class="panel-foto">
-              <img src="${momento.foto}" alt="${momento.titulo}" draggable="false" style="object-position: ${momento.encuadre}; --zoom: ${momento.zoom}">
+              <img src="${momento.foto}" alt="${momento.titulo}" draggable="false" decoding="async" fetchpriority="${indice < 3 ? 'auto' : 'low'}" style="object-position: ${momento.encuadre}; --zoom: ${momento.zoom}">
               <div class="panel-grano"></div>
             </figure>
             <header class="panel-info">
@@ -107,6 +108,27 @@ export class PanelesVidrio {
       objeto.rotation.fromArray(momento.rotacion);
       this.escenaCSS.add(objeto);
 
+      let escenaHito = null;
+      if (momento.tratamiento === 'noviazgo') {
+        const escenaEl = document.createElement('div');
+        escenaEl.className = 'hito-escena';
+        escenaEl.style.setProperty('--ss', SS);
+        escenaEl.innerHTML = `
+          <span class="hito-escena-haz" aria-hidden="true"></span>
+          <span class="hito-escena-rayo" aria-hidden="true"></span>
+          <span class="hito-escena-piso" aria-hidden="true"></span>
+          <span class="hito-escena-leyenda">EL DÍA QUE NOS ELEGIMOS</span>
+          <span class="hito-escena-epilogo">Una pausa. Toda la luz sobre nosotros.</span>
+        `;
+        const escenaObjeto = new CSS3DObject(escenaEl);
+        escenaObjeto.scale.setScalar(CONFIG.escalaCSS3D / SS);
+        escenaObjeto.position.fromArray(momento.posicion);
+        escenaObjeto.position.z -= 0.35;
+        escenaObjeto.rotation.fromArray(momento.rotacion);
+        this.escenaCSS.add(escenaObjeto);
+        escenaHito = { el: escenaEl, objeto: escenaObjeto, presencia: '' };
+      }
+
       this.items.push({
         el,
         objeto,
@@ -114,6 +136,7 @@ export class PanelesVidrio {
         rotBase: new THREE.Euler().fromArray(momento.rotacion),
         fase: indice * 1.73,   // desfase para que no floten sincronizados
         foco: 0,
+        escenaHito,
         escrito: {},           // último valor de cada variable CSS (ver _escribir)
       });
     });
@@ -135,6 +158,25 @@ export class PanelesVidrio {
       objeto.rotation.y = frase.rotY;
       this.escenaCSS.add(objeto);
       return { el, objeto, baseX: frase.pos[0], fase: i * 2.4, foco: 0 };
+    });
+
+    /* Una pausa vive entre dos fotos, con su propia profundidad y ancla de
+       cámara. No es una card ni entra en la sidebar. */
+    this.pausas = PAUSAS_NARRATIVAS.map((pausa) => {
+      const el = document.createElement('div');
+      el.className = 'pausa-narrativa';
+      const linea = document.createElement('span');
+      linea.className = 'pausa-narrativa-linea';
+      linea.setAttribute('aria-hidden', 'true');
+      const texto = document.createElement('p');
+      texto.className = 'pausa-narrativa-texto';
+      texto.textContent = pausa.texto;
+      el.append(linea, texto);
+      const objeto = new CSS3DObject(el);
+      objeto.scale.setScalar(CONFIG.escalaCSS3D);
+      objeto.position.fromArray(pausa.posicion);
+      this.escenaCSS.add(objeto);
+      return { el, objeto, foco: 0 };
     });
 
     this._v = new THREE.Vector3(); // temporal reutilizable
@@ -170,6 +212,11 @@ export class PanelesVidrio {
         item.rotBase.y + Math.sin(tiempo * 0.17 + f * 1.4) * 0.016 * deriva,
         item.rotBase.z + Math.sin(tiempo * 0.26 + f * 0.5) * 0.008 * deriva
       );
+      if (item.escenaHito) {
+        item.escenaHito.objeto.position.copy(item.objeto.position);
+        item.escenaHito.objeto.position.z -= 0.35;
+        item.escenaHito.objeto.rotation.copy(item.objeto.rotation);
+      }
 
       /* ── Foco: cuánto "llegó" el panel al centro de la pantalla ── */
       this._v.copy(item.objeto.position).project(camara);
@@ -212,6 +259,35 @@ export class PanelesVidrio {
          unidades esto deja una sola pagando el blur en vez de dos o tres. */
       item.objeto.visible = delante && distCamara < 95 && revelado > 0.004;
       item.el.classList.toggle('lejos', distCamara > 9);
+      if (item.escenaHito) {
+        const escena = item.escenaHito;
+        escena.objeto.visible = item.objeto.visible;
+        if (escena.objeto.visible) {
+          const presencia = (item.foco * item.foco * revelado).toFixed(3);
+          if (escena.presencia !== presencia) {
+            escena.presencia = presencia;
+            escena.el.style.setProperty('--presencia', presencia);
+          }
+        }
+      }
+    }
+
+    for (const pausa of this.pausas) {
+      this._v.copy(pausa.objeto.position).project(camara);
+      const delante = this._v.z > -1 && this._v.z < 1;
+      const centro = Math.hypot(this._v.x, this._v.y);
+      const distancia = pausa.objeto.position.distanceTo(camara.position);
+      const porDistancia = 1 - THREE.MathUtils.smoothstep(distancia, 7.1, 14.4);
+      /* Al atravesar el plano 3D, la tipografía crecería hasta llenar la
+         pantalla. Se apaga antes de ese primer plano y deja entrar la foto. */
+      const porCercania = THREE.MathUtils.smoothstep(distancia, 5.8, 7.0);
+      const porEncuadre = 1 - THREE.MathUtils.smoothstep(centro, 0.35, 1.15);
+      const objetivo = delante ? porDistancia * porCercania * porEncuadre : 0;
+      pausa.foco += (objetivo - pausa.foco) * Math.min(1, dt * (objetivo < pausa.foco ? 9 : 4.5));
+      pausa.objeto.visible = pausa.foco > 0.006;
+      if (pausa.objeto.visible) {
+        pausa.el.style.setProperty('--presencia', pausa.foco.toFixed(3));
+      }
     }
 
     /* ── Frases del descenso: visibles mientras la cámara pasa a su altura ──

@@ -7,9 +7,9 @@ todo el mundo — nebulosa cálida, velos de seda, bokeh — apunta a un
 resplandor dorado al final del corredor, que empalma con la pantalla final crema.
 
 1. **Landing** — el sitio abre directo, sin preludio ni pantalla de carga: la
-   lluvia que arma el corazón ya está cayendo desde el primer cuadro. Un
-   corazón de **point cloud rojo** (miles de partículas llenando un volumen
-   3D real, que repelen al cursor) flota en una nebulosa bordó. Al scrollear
+   lluvia cinematográfica que arma el corazón ya está cayendo desde el primer
+   cuadro. Un corazón de **point cloud rojo** (miles de partículas llenando un
+   volumen 3D real, que repelen al cursor) flota en una nebulosa bordó. Al scrollear
    **gira una vuelta completa** mientras el mundo pasa de largo (una frase
    suspendida en el espacio, velos), **se planta de frente** y ahí **se
    desarma en brasas**: se vacía de abajo hacia arriba, el contorno ♥ queda
@@ -19,7 +19,7 @@ resplandor dorado al final del corredor, que empalma con la pantalla final crema
    tenue y borrosa, después nítida.
 2. **Timeline** — la cámara vuela por las **cards** (una por momento), con
    banking en las curvas, y cada una entra en foco a su turno. Se navega con el
-   scroll, con la sidebar, con las flechas, con el buscador o con el teclado
+   scroll, con el índice por año y mes, con las flechas, con el buscador o con el teclado
    (← → pasan de momento; Inicio y Fin van a las puntas). Las flechas
    verticales quedan libres a propósito: son la forma de scrollear con el
    teclado, y acá el scroll ES el viaje.
@@ -45,13 +45,13 @@ ScrollTrigger, Lenis y las fuentes están vendorizados (`js/vendor/`, `assets/fu
 | Qué | Dónde |
 |---|---|
 | **Los momentos** (fecha, título, texto, palabras del buscador, hito destacado) | `js/hero/momentos.js` → array `DATOS` |
-| **Fotos reales** (reemplazar placeholders) | `assets/fotos/Momento-01.jpg` … |
+| **Fotos reales** | `assets/fotos/Momento-01.webp` … |
 | **La canción** (archivo) | `RUTA_CANCION` en `js/hero/ui.js` |
 | **Cuándo arranca la canción** (primer click en cualquier parte del sitio) | `_configurarMusica()` en `js/hero/ui.js` |
 | Duración de cada fase del scroll | `FASES` en `js/hero/config.js` |
 | Calidad de imagen / resolución de render | `CALIDAD` en `config.js` + `js/hero/calidad.js` |
 | Cuándo se desarma el corazón | `DESARME` en `js/hero/config.js` |
-| Largo total del scroll | `--alto-recorrido` en `css/estilos.css` |
+| Largo total del scroll | `ALTO_RECORRIDO_VH` en `js/hero/config.js` (sincroniza `--alto-recorrido`) |
 | Cuántas vueltas gira el corazón en el landing | `CONFIG.vueltasCorazon` en `config.js` |
 | Ruta de la cámara (curvas, encuadres y banking) | `js/hero/camara.js` |
 | Paleta de colores (única fuente de verdad) | variables CSS en `css/estilos.css` |
@@ -104,10 +104,22 @@ ni a las cards.
 Se edita **solo** el array `DATOS` en `momentos.js`. La posición 3D de cada card,
 las anclas de cámara, la sidebar, el indicador (`NN / total`) y el buscador se
 recalculan solos a partir de ese array. Las fotos se buscan por índice
-(`momento-01.jpg`, `momento-02.jpg`, …), así que conviene mantener ese nombrado.
+(`Momento-01.webp`, `Momento-02.webp`, …), así que conviene mantener ese nombrado.
+El índice toma el año y el mes iniciales de cada `fecha`; los recuerdos que
+abarcan dos meses se agrupan en el primero. La búsqueda muestra todas las
+coincidencias con su fecha, para distinguir títulos repetidos, y permite
+elegirlas con las flechas del teclado y Enter.
 
-Para marcar un hito especial (como "nos pusimos de novios") se le pone
-`destacado: true` y la card toma un marco/glow dorado.
+Para marcar un hito especial se le pone `tratamiento: 'noviazgo'` al momento:
+la cámara lo recibe más frontalmente y con más tiempo, mientras la card gana
+un foco de luz cálida detrás, una leyenda superior y una frase breve debajo.
+`destacado: true` conserva el marco fino dorado. El haz se dibuja sólo cuando
+la foto está cerca y en foco; con movimiento reducido queda quieto.
+
+Las pausas narrativas se agregan en `PAUSAS`, también en `momentos.js`. Cada
+entrada indica `antesDe` (índice, desde cero, de la foto siguiente), `texto`
+y `espacio` adicional en el corredor 3D. La pausa recibe su propia ancla de
+cámara y tiempo de lectura; no suma un número al contador de fotos.
 
 ### El timeline despierta, no aparece
 
@@ -123,8 +135,15 @@ el primero retrasa aún más el despertar, bajar el segundo lo hace más brusco.
 `js/hero/corazon.js` es un point cloud rojo: miles de partículas llenan un
 corazón 3D construido inflando la curva ♥ clásica como un almohadón (de
 frente, silueta perfecta con surco profundo; girado, panza y cuerpo), con el
-contorno reforzado por una banda de partículas más brillantes. Repelen al
-cursor y, con el scroll, cada una se suelta como brasa hacia su destino
+contorno reforzado por una banda de partículas más brillantes. Al hacer clic
+en su forma, la nube cambia en ciclo entre corazón, M y S. Las letras usan
+los contornos de Fredoka Bold (licencia en `assets/fuentes/fredoka-OFL.txt`):
+`js/hero/glifos.js` conserva sus máscaras compactas, y la nube reparte
+partículas por la cara, el borde y un volumen redondeado como el del corazón.
+El cursor las aparta con una fuerza que acompaña su velocidad e ilumina
+brevemente las partículas cercanas, conservando la misma paleta roja en las
+tres figuras. Con el scroll, cada una se suelta
+como brasa hacia su destino
 (`aDispersa`). Ese destino queda abierto a propósito: para que el desarme
 forme OTRA COSA más adelante, alcanza con cambiar los `aDispersa` por las
 posiciones de la nueva figura. Contrato público (no cambiar al reemplazar

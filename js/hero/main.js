@@ -18,7 +18,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
-import { CONFIG, CALIDAD, PALETA, MOVIMIENTO_REDUCIDO, FASES, DESARME, POS_CORAZON } from './config.js';
+import { CONFIG, CALIDAD, PALETA, MOVIMIENTO_REDUCIDO, FASES, DESARME, POS_CORAZON, ALTO_RECORRIDO_VH } from './config.js';
 import { MOMENTOS } from './momentos.js';
 import { GobernadorCalidad } from './calidad.js';
 import { Atmosfera } from './atmosfera.js';
@@ -37,6 +37,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 class HeroInmersivo {
   constructor() {
+    document.documentElement.style.setProperty('--alto-recorrido', `${ALTO_RECORRIDO_VH}vh`);
     /* ── Arranque siempre desde el principio ──
        Al refrescar, el navegador restaura el scroll anterior: el hero se
        montaba con la cámara en el landing mientras el scroll decía "mitad
@@ -183,7 +184,7 @@ class HeroInmersivo {
         this.recorrido.aplicarProgreso(p);
         this._actualizarCorazon(p);
         this._actualizarVelo(p);
-        this.ui.setProgreso(p);
+        this.ui.setProgreso(p, this.recorrido.anclasPausa);
         this.ui.setActivo(this.recorrido.momentoActivo());
       },
       /* Al salir del hero (pantalla final): pausa total */
@@ -218,7 +219,9 @@ class HeroInmersivo {
      se reescalan con --alto-recorrido: son 45vh después de la última card y 15vh
      antes del fondo del recorrido — 30vh de dissolve, como fue siempre. */
   _actualizarVelo(progreso) {
-    const opacidad = THREE.MathUtils.smoothstep(progreso, FASES.timelineFin + 0.01375, 0.99542);
+    const opacidad = THREE.MathUtils.smoothstep(
+      progreso, FASES.timelineFin + 45 / ALTO_RECORRIDO_VH, 1 - 15 / ALTO_RECORRIDO_VH
+    );
     this.veloEl.style.opacity = opacidad.toFixed(3);
   }
 
@@ -245,6 +248,17 @@ class HeroInmersivo {
       this.mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
       this.hayMouse = true;
     }, { passive: true });
+    document.addEventListener('pointerleave', () => { this.hayMouse = false; });
+    window.addEventListener('blur', () => { this.hayMouse = false; });
+
+    /* La forma responde sólo al clic dentro de su trazo; el clic global
+       que inicia la música y los controles de navegación siguen intactos. */
+    window.addEventListener('click', (e) => {
+      if (!this.activo || e.target.closest('a, button, input, .nav-pill, .panel-vidrio')) return;
+      this.mouseNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
+      this.mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      this.corazon.alternarForma(this.mouseNDC, this.camara);
+    }, { passive: true });
 
     window.addEventListener('resize', () => this._redimensionar());
 
@@ -258,6 +272,7 @@ class HeroInmersivo {
   _redimensionar() {
     this.camara.aspect = window.innerWidth / Math.max(window.innerHeight, 1);
     this.camara.updateProjectionMatrix();
+    this.recorrido.redimensionar();
     this._aplicarTamanio();
   }
 

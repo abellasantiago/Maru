@@ -8,6 +8,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
+import { MOMENTOS, PAUSAS_NARRATIVAS } from './momentos.js';
 
 /* Lee una variable CSS de :root y la devuelve como THREE.Color */
 function colorDeCSS(nombre) {
@@ -68,18 +69,18 @@ export const PALETA = {
   ▸ landingGiro..1: acelera con empalme suave hacia la velocidad del timeline,
     y el corazón se esfuma para dar paso a las cards.
 */
-/* Estas fracciones son del ESPACIADOR entero (--alto-recorrido en estilos.css),
-   así que se recalculan cada vez que cambia su altura. La receta, para que el
-   ritmo no se mueva al agregar cards: el landing dura ~390vh y el final ~90vh
-   SIEMPRE; lo único que se estira es el timeline, que reparte su largo entre
-   (cantidadDeCards + 2) segmentos de curva → ~68vh de scroll por card.
-     landingFin  = 390 / alto        timelineFin = (alto − 90) / alto
-   Hoy: alto 3272vh, 39 cards → landing 390vh, timeline 2792vh (41 segmentos,
-   68.1vh cada uno), final 90vh — el mismo ritmo que con 35 cards y 3000vh. */
+/* Landing y cierre conservan su longitud. La base de 3272vh corresponde a
+   39 fotos; cada foto nueva, pausa o hito suma recorrido sin comprimir las
+   escenas que ya existen. */
+export const ALTO_RECORRIDO_VH = 3272
+  + (MOMENTOS.length - 39) * 68
+  + PAUSAS_NARRATIVAS.length * 68
+  + MOMENTOS.filter((m) => m.tratamiento).length * 64;
+
 export const FASES = {
   landingGiro: 0.73,     // fracción del landing de descenso lineal (los "3-4 scrolls")
-  landingFin: 0.1192,    // duración total del landing: más scroll = más lento
-  timelineFin: 0.9725,   // fin del vuelo por las cards (después: velo + cierre)
+  landingFin: 390 / ALTO_RECORRIDO_VH,
+  timelineFin: 1 - 90 / ALTO_RECORRIDO_VH,
 };
 
 /* Cuándo se desarma el corazón, en fracción DEL LANDING. Es el reloj del
@@ -127,11 +128,10 @@ export const CONFIG = {
      silueta ♥ justo en el momento en que más importa verla. */
   vueltasCorazon: 1,
 
-  /* Entrada del corazón (segundos): las partículas caen desde arriba y
-     lo van ARMANDO de abajo hacia arriba, hasta cerrar la silueta ♥.
-     La dispara comenzarEntrada(), que main.js llama apenas arranca el
-     mundo — no hay preludio que la demore. */
-  duracionEntrada: MOVIMIENTO_REDUCIDO ? 1.0 : 3.2,
+  /* Entrada del corazón (segundos): lluvia escalonada, con movimiento
+     orgánico y una llegada lenta que deja asentarse la nube. */
+  duracionEntrada: MOVIMIENTO_REDUCIDO ? 1.0 : (ES_MOBILE ? 4.0 : 4.7),
+  duracionCambioFigura: MOVIMIENTO_REDUCIDO ? 0.45 : 0.9,
 
   /* ── Desarme: el río de brasas ──
      Al scrollear, el corazón no se dispersa al azar: cada partícula se

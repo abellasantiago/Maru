@@ -6,24 +6,16 @@
    (scroll suave de Lenis hasta el ancla de cámara del momento).
    ═══════════════════════════════════════════════════════════════ */
 
-import { MOMENTOS } from './momentos.js';
-import { FASES, MOVIMIENTO_REDUCIDO } from './config.js';
+import { MOMENTOS, NOMBRES_MESES } from './momentos.js';
+import { FASES, MOVIMIENTO_REDUCIDO, ALTO_RECORRIDO_VH } from './config.js';
 import { ContadorJuntos } from './contador.js';
+import { buscarMomentos } from './busqueda.js';
 
 /* Canción del sitio. Arranca con el PRIMER click en cualquier parte del
    sitio (ver _configurarMusica) y desde ahí se pausa/reanuda con la
    cápsula Santi ♥ Maru. */
 const RUTA_CANCION = 'assets/musica/beautiful-crazy.mp3';
 const VOLUMEN_CANCION = 0.85;
-
-/* Normaliza texto para buscar: minúsculas y sin tildes */
-function normalizar(texto) {
-  return texto
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-}
 
 export class InterfazHero {
   /**
@@ -33,67 +25,28 @@ export class InterfazHero {
   constructor(irAMomento, irAScroll) {
     this.irAMomento = irAMomento;
     this.irAScroll = irAScroll;
-    this.indiceActivo = 0;
+    this.indiceActivo = -1;
     this.progreso = 0;
 
-    /* ── Sidebar: un punto por momento ── */
-    const sidebar = document.getElementById('sidebar-momentos');
-    this.itemsSidebar = MOMENTOS.map((momento, indice) => {
-      const boton = document.createElement('button');
-      boton.type = 'button';
-      boton.className = 'sidebar-item';
-      boton.setAttribute('aria-label', `Ir a: ${momento.titulo}`);
-      boton.innerHTML = `
-        <span class="sidebar-punto"></span>
-        <span class="sidebar-etiqueta">${momento.titulo}</span>
-      `;
-      boton.addEventListener('click', () => irAMomento(indice));
-      sidebar.appendChild(boton);
-      return boton;
-    });
+    this._construirIndice();
 
     /* ── Indicador + flechas ── */
     this.elActual = document.getElementById('indicador-actual');
     this.elTitulo = document.getElementById('indicador-titulo');
+    this.elFecha = document.getElementById('indicador-fecha');
+    this.botonPrev = document.getElementById('indicador-prev');
+    this.botonNext = document.getElementById('indicador-next');
     document.getElementById('indicador-total').textContent =
       String(MOMENTOS.length).padStart(2, '0');
 
-    document.getElementById('indicador-prev').addEventListener('click', () =>
-      irAMomento(Math.max(0, this.indiceActivo - 1))
+    this.botonPrev.addEventListener('click', () =>
+      this._irAMomento(Math.max(0, this.indiceActivo - 1))
     );
-    document.getElementById('indicador-next').addEventListener('click', () =>
-      irAMomento(Math.min(MOMENTOS.length - 1, this.indiceActivo + 1))
+    this.botonNext.addEventListener('click', () =>
+      this._irAMomento(Math.min(MOMENTOS.length - 1, this.indiceActivo + 1))
     );
 
-    /* ── Buscador: salta al momento por palabra clave o fecha ── */
-    const formulario = document.getElementById('buscador');
-    const input = document.getElementById('buscador-input');
-    const placeholderOriginal = input.placeholder;
-
-    formulario.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const consulta = normalizar(input.value);
-      if (!consulta) return;
-
-      const indice = MOMENTOS.findIndex((m) => {
-        const campos = [m.titulo, m.fecha, ...m.claves].map(normalizar);
-        return campos.some((c) => c.includes(consulta) || consulta.includes(c));
-      });
-
-      if (indice >= 0) {
-        input.value = '';
-        input.blur();
-        irAMomento(indice);
-      } else {
-        /* No encontrado: sacudida + mensaje temporal, tono íntimo */
-        formulario.classList.remove('sin-resultado');
-        void formulario.offsetWidth; // reinicia la animación
-        formulario.classList.add('sin-resultado');
-        input.value = '';
-        input.placeholder = 'no encontré ese momento… probá otra palabra';
-        setTimeout(() => { input.placeholder = placeholderOriginal; }, 2600);
-      }
-    });
+    this._configurarBusqueda();
 
     /* ── Contador de tiempo juntos (bajo el corazón, sólo en el landing) ── */
     this.contadorEl = document.getElementById('contador-juntos');
@@ -109,6 +62,224 @@ export class InterfazHero {
     this._configurarTeclado();
   }
 
+  /* El índice conserva el riel de puntos, pero sólo abre un nivel a la vez.
+     <details>/<summary> resuelve Enter, Espacio y estado accesible sin
+     controles paralelos ni 39 botones superpuestos. */
+  _construirIndice() {
+    this.sidebar = document.getElementById('sidebar-momentos');
+    this.itemsSidebar = new Array(MOMENTOS.length);
+    this.gruposAnio = new Map();
+    this.gruposMes = new Map();
+    const agrupados = new Map();
+
+    MOMENTOS.forEach((momento, indice) => {
+      const { anio, mes } = momento.fechaInicio;
+      if (!agrupados.has(anio)) agrupados.set(anio, new Map());
+      const meses = agrupados.get(anio);
+      if (!meses.has(mes)) meses.set(mes, []);
+      meses.get(mes).push({ momento, indice });
+    });
+
+    const control = (texto, clase) => {
+      const summary = document.createElement('summary');
+      summary.className = `sidebar-control ${clase}`;
+      const punto = document.createElement('span');
+      punto.className = 'sidebar-punto';
+      punto.setAttribute('aria-hidden', 'true');
+      const etiqueta = document.createElement('span');
+      etiqueta.className = 'sidebar-etiqueta';
+      etiqueta.textContent = texto;
+      const flecha = document.createElement('span');
+      flecha.className = 'sidebar-chevron';
+      flecha.setAttribute('aria-hidden', 'true');
+      flecha.textContent = '›';
+      summary.append(punto, etiqueta, flecha);
+      return summary;
+    };
+
+    for (const [anio, meses] of agrupados) {
+      const grupoAnio = document.createElement('details');
+      grupoAnio.className = 'sidebar-anio';
+      grupoAnio.append(control(String(anio), 'sidebar-anio-control'));
+      const listaMeses = document.createElement('div');
+      listaMeses.className = 'sidebar-lista-meses';
+      grupoAnio.append(listaMeses);
+      this.gruposAnio.set(anio, grupoAnio);
+
+      for (const [mes, recuerdos] of meses) {
+        const grupoMes = document.createElement('details');
+        grupoMes.className = 'sidebar-mes';
+        grupoMes.append(control(NOMBRES_MESES[mes], 'sidebar-mes-control'));
+        const listaMomentos = document.createElement('div');
+        listaMomentos.className = 'sidebar-lista-momentos';
+        grupoMes.append(listaMomentos);
+        listaMeses.append(grupoMes);
+        this.gruposMes.set(`${anio}-${mes}`, grupoMes);
+
+        for (const { momento, indice } of recuerdos) {
+          const boton = document.createElement('button');
+          boton.type = 'button';
+          boton.className = 'sidebar-item';
+          boton.setAttribute('aria-label', `Ir a: ${momento.titulo}, ${momento.fecha}`);
+          boton.title = `${momento.titulo} · ${momento.fecha}`;
+          const punto = document.createElement('span');
+          punto.className = 'sidebar-punto';
+          punto.setAttribute('aria-hidden', 'true');
+          const etiqueta = document.createElement('span');
+          etiqueta.className = 'sidebar-etiqueta';
+          etiqueta.textContent = momento.titulo;
+          boton.append(punto, etiqueta);
+          boton.addEventListener('click', () => this._irAMomento(indice));
+          listaMomentos.append(boton);
+          this.itemsSidebar[indice] = boton;
+        }
+      }
+
+      grupoAnio.addEventListener('toggle', () => {
+        if (grupoAnio.open) {
+          for (const otro of this.gruposAnio.values()) if (otro !== grupoAnio) otro.open = false;
+        } else {
+          for (const mes of grupoAnio.querySelectorAll('.sidebar-mes')) mes.open = false;
+        }
+        this.sidebar.classList.toggle('expandido',
+          [...this.gruposAnio.values()].some((grupo) => grupo.open));
+      });
+      this.sidebar.append(grupoAnio);
+    }
+
+    for (const grupoMes of this.gruposMes.values()) {
+      grupoMes.addEventListener('toggle', () => {
+        if (!grupoMes.open) return;
+        for (const otro of grupoMes.parentElement.querySelectorAll('.sidebar-mes')) {
+          if (otro !== grupoMes) otro.open = false;
+        }
+      });
+    }
+  }
+
+  _cerrarIndice() {
+    for (const grupo of this.gruposAnio.values()) grupo.open = false;
+    this.sidebar.classList.remove('expandido');
+  }
+
+  _irAMomento(indice) {
+    this._cerrarIndice();
+    this.irAMomento(indice);
+  }
+
+  _configurarBusqueda() {
+    const formulario = this.formularioBusqueda = document.getElementById('buscador');
+    const input = this.inputBusqueda = document.getElementById('buscador-input');
+    const panel = this.panelResultados = document.getElementById('buscador-resultados');
+    this.resultados = [];
+    this.resultadoSeleccionado = -1;
+
+    const cerrar = () => {
+      panel.hidden = true;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+      this.resultadoSeleccionado = -1;
+    };
+    this.cerrarBusqueda = cerrar;
+
+    const seleccionar = (indice) => {
+      if (indice < 0 || indice >= this.resultados.length) return;
+      const destino = this.resultados[indice].indice;
+      cerrar();
+      input.value = '';
+      input.blur();
+      this._irAMomento(destino);
+    };
+
+    const marcar = (indice) => {
+      this.resultadoSeleccionado = indice;
+      for (const [i, el] of [...panel.querySelectorAll('.buscador-resultado')].entries()) {
+        el.classList.toggle('seleccionado', i === indice);
+        el.setAttribute('aria-selected', String(i === indice));
+        if (i === indice) el.scrollIntoView({ block: 'nearest' });
+      }
+      if (indice >= 0) input.setAttribute('aria-activedescendant', `resultado-${indice}`);
+      else input.removeAttribute('aria-activedescendant');
+    };
+
+    const mostrar = () => {
+      const consulta = input.value.trim();
+      if (!consulta) { cerrar(); return; }
+      this.resultados = buscarMomentos(MOMENTOS, consulta);
+      this.resultadoSeleccionado = -1;
+      panel.replaceChildren();
+      if (!this.resultados.length) {
+        const vacio = document.createElement('p');
+        vacio.className = 'buscador-vacio';
+        vacio.textContent = 'No encontramos ese recuerdo. Probá otra palabra o fecha.';
+        panel.append(vacio);
+      } else {
+        if (this.resultados.length > 1) {
+          const ayuda = document.createElement('p');
+          ayuda.className = 'buscador-ayuda';
+          ayuda.setAttribute('role', 'presentation');
+          ayuda.textContent = `${this.resultados.length} recuerdos · elegí uno`;
+          panel.append(ayuda);
+        }
+        this.resultados.forEach(({ momento, indice }, i) => {
+          const opcion = document.createElement('button');
+          opcion.type = 'button';
+          opcion.id = `resultado-${i}`;
+          opcion.className = 'buscador-resultado';
+          opcion.setAttribute('role', 'option');
+          opcion.setAttribute('aria-selected', 'false');
+          const titulo = document.createElement('span');
+          titulo.className = 'buscador-resultado-titulo';
+          titulo.textContent = momento.titulo;
+          const fecha = document.createElement('span');
+          fecha.className = 'buscador-resultado-fecha';
+          fecha.textContent = momento.fecha;
+          const numero = document.createElement('span');
+          numero.className = 'buscador-resultado-numero';
+          numero.textContent = String(indice + 1).padStart(2, '0');
+          opcion.append(numero, titulo, fecha);
+          opcion.addEventListener('click', () => seleccionar(i));
+          panel.append(opcion);
+        });
+      }
+      panel.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      input.removeAttribute('aria-activedescendant');
+    };
+
+    input.addEventListener('input', mostrar);
+    input.addEventListener('focus', () => {
+      this._cerrarIndice();
+      if (input.value.trim()) mostrar();
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { cerrar(); input.blur(); return; }
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      if (panel.hidden) mostrar();
+      if (!this.resultados.length) return;
+      e.preventDefault();
+      const paso = e.key === 'ArrowDown' ? 1 : -1;
+      marcar((this.resultadoSeleccionado + paso + this.resultados.length) % this.resultados.length);
+    });
+    formulario.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!input.value.trim()) return;
+      if (panel.hidden) mostrar();
+      if (this.resultados.length === 1) seleccionar(0);
+      else if (this.resultadoSeleccionado >= 0) seleccionar(this.resultadoSeleccionado);
+      else if (!this.resultados.length) {
+        formulario.classList.remove('sin-resultado');
+        void formulario.offsetWidth;
+        formulario.classList.add('sin-resultado');
+      } else {
+        marcar(0); // con varios resultados, pedir elección explícita
+      }
+    });
+    document.addEventListener('pointerdown', (e) => {
+      if (!formulario.contains(e.target)) cerrar();
+    });
+  }
+
   /* Navegación por teclado.
 
      Sólo se toman las flechas HORIZONTALES (y Inicio/Fin). Las verticales
@@ -121,7 +292,8 @@ export class InterfazHero {
     window.addEventListener('keydown', (e) => {
       /* Escribiendo en el buscador, las flechas son del buscador */
       const foco = document.activeElement;
-      if (foco && (foco.tagName === 'INPUT' || foco.tagName === 'TEXTAREA')) return;
+      if (foco && (foco.tagName === 'INPUT' || foco.tagName === 'TEXTAREA' ||
+        this.formularioBusqueda.contains(foco) || this.sidebar.contains(foco))) return;
       /* Con modificadores son atajos del sistema o del navegador */
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
@@ -131,11 +303,11 @@ export class InterfazHero {
       switch (e.key) {
         case 'ArrowRight':
           /* Desde el landing, la primera flecha entra al timeline */
-          this.irAMomento(enLanding ? 0 : Math.min(ultimo, this.indiceActivo + 1));
+          this._irAMomento(enLanding ? 0 : Math.min(ultimo, this.indiceActivo + 1));
           break;
         case 'ArrowLeft':
           if (enLanding) return;
-          this.irAMomento(Math.max(0, this.indiceActivo - 1));
+          this._irAMomento(Math.max(0, this.indiceActivo - 1));
           break;
         case 'Home':
           this.irAScroll(0);
@@ -278,28 +450,45 @@ export class InterfazHero {
   /** Actualiza sidebar + contador según el momento activo */
   setActivo(indice) {
     if (indice === this.indiceActivo) return;
+    if (this.indiceActivo >= 0) {
+      const anterior = MOMENTOS[this.indiceActivo];
+      this.itemsSidebar[this.indiceActivo].classList.remove('activo');
+      this.itemsSidebar[this.indiceActivo].removeAttribute('aria-current');
+      this.gruposAnio.get(anterior.fechaInicio.anio).classList.remove('activo');
+      this.gruposMes.get(`${anterior.fechaInicio.anio}-${anterior.fechaInicio.mes}`).classList.remove('activo');
+    }
     this.indiceActivo = indice;
-    this.itemsSidebar.forEach((el, i) => el.classList.toggle('activo', i === indice));
+    const momento = MOMENTOS[indice];
+    this.itemsSidebar[indice].classList.add('activo');
+    this.itemsSidebar[indice].setAttribute('aria-current', 'location');
+    this.gruposAnio.get(momento.fechaInicio.anio).classList.add('activo');
+    this.gruposMes.get(`${momento.fechaInicio.anio}-${momento.fechaInicio.mes}`).classList.add('activo');
     this.elActual.textContent = String(indice + 1).padStart(2, '0');
-    this.elTitulo.textContent = MOMENTOS[indice].titulo;
+    this.elTitulo.textContent = momento.titulo;
+    this.elFecha.textContent = momento.fecha;
+    this.botonPrev.disabled = indice === 0;
+    this.botonNext.disabled = indice === MOMENTOS.length - 1;
   }
 
   /** Progreso 0..1 del hero: muestra/oculta la UI según la fase del recorrido */
-  setProgreso(progreso) {
+  setProgreso(progreso, anclasPausa = []) {
     this.progreso = progreso;
     /* Contador de tiempo juntos: sólo al comienzo del landing. El umbral es
        fracción del espaciador entero (≈90vh de scroll): se reescala si cambia
        --alto-recorrido, para que se esfume después del mismo recorrido real. */
-    this.contadorEl.classList.toggle('oculto', progreso >= 0.0275);
+    this.contadorEl.classList.toggle('oculto', progreso >= 90 / ALTO_RECORRIDO_VH);
     /* Coordenadas del monograma: mismo criterio — un detalle del arranque,
        se esfuma apenas se empieza a scrollear */
-    this.coordEl.classList.toggle('oculto', progreso >= 0.0275);
+    this.coordEl.classList.toggle('oculto', progreso >= 90 / ALTO_RECORRIDO_VH);
 
     /* La UI de cards (sidebar, buscador, indicador) vive sólo en el timeline:
        oculta durante el landing del corazón y cuando llega la pantalla final. */
     const enLanding = progreso < FASES.landingFin * 0.9;
-    const enFinal = progreso > FASES.timelineFin + 0.00458;   // 15vh después de la última card
-    const uiCards = !enLanding && !enFinal;
+    const enFinal = progreso > FASES.timelineFin + 15 / ALTO_RECORRIDO_VH;
+    const enPausa = anclasPausa.some((ancla) =>
+      Math.abs(progreso - ancla) < 38 / ALTO_RECORRIDO_VH);
+    const uiCards = !enLanding && !enFinal && !enPausa;
+    if (!uiCards && !this.panelResultados.hidden) this.cerrarBusqueda();
     for (const id of ['sidebar-momentos', 'buscador', 'indicador']) {
       document.getElementById(id).classList.toggle('oculto', !uiCards);
     }
@@ -310,7 +499,7 @@ export class InterfazHero {
   /** Estado inicial: marca el primer momento y deja la UI en modo landing
      (sidebar/buscador/indicador ocultos, contador visible) desde el primer frame. */
   iniciar() {
-    this.itemsSidebar[0].classList.add('activo');
+    this.setActivo(0);
     this.setProgreso(0);
   }
 }
