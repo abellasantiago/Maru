@@ -112,7 +112,7 @@ elegirlas con las flechas del teclado y Enter.
 
 Para marcar un hito especial se le pone `tratamiento: 'noviazgo'` al momento:
 la cámara lo recibe más frontalmente y con más tiempo, mientras la card gana
-un foco de luz cálida detrás, una leyenda superior y una frase breve debajo.
+un foco de luz cálida detrás y una leyenda superior.
 `destacado: true` conserva el marco fino dorado. El haz se dibuja sólo cuando
 la foto está cerca y en foco; con movimiento reducido queda quieto.
 

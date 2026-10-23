@@ -118,7 +118,6 @@ export class PanelesVidrio {
           <span class="hito-escena-rayo" aria-hidden="true"></span>
           <span class="hito-escena-piso" aria-hidden="true"></span>
           <span class="hito-escena-leyenda">EL DÍA QUE NOS ELEGIMOS</span>
-          <span class="hito-escena-epilogo">Una pausa. Toda la luz sobre nosotros.</span>
         `;
         const escenaObjeto = new CSS3DObject(escenaEl);
         escenaObjeto.scale.setScalar(CONFIG.escalaCSS3D / SS);

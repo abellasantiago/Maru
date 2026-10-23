@@ -948,8 +948,7 @@ body {
   background: rgba(240, 146, 80, 0.25);
   filter: blur(calc(30px * var(--ss)));
 }
-.hito-escena-leyenda,
-.hito-escena-epilogo {
+.hito-escena-leyenda {
   position: absolute;
   color: var(--color-crema);
   text-shadow: 0 0 calc(22px * var(--ss)) rgba(230, 184, 125, 0.45),
@@ -963,22 +962,6 @@ body {
   font-size: calc(10px * var(--ss));
   letter-spacing: 0.34em;
   text-align: center;
-}
-.hito-escena-epilogo {
-  bottom: 5%;
-  left: 6%;
-  font-family: var(--fuente-display);
-  font-size: calc(23px * var(--ss));
-  font-style: italic;
-  line-height: 1.1;
-}
-.hito-escena-epilogo::before {
-  content: '';
-  display: block;
-  width: calc(30px * var(--ss));
-  height: max(1px, calc(1px * var(--ss)));
-  margin-bottom: calc(9px * var(--ss));
-  background: var(--color-dorado);
 }
 @keyframes hitoHazRespira {
   50% { opacity: 0.65; transform: rotate(11deg) scaleX(1.09); }
@@ -1248,8 +1231,6 @@ body {
   .panel-vidrio.hito-noviazgo .panel-palabra { font-size: calc(27px * var(--ss)); }
   .hito-escena { width: calc(370px * var(--ss)); height: calc(340px * var(--ss)); }
   .hito-escena-leyenda { top: 2%; font-size: calc(8px * var(--ss)); letter-spacing: 0.2em; }
-  .hito-escena-epilogo { left: 5%; bottom: 2%; font-size: calc(15px * var(--ss)); }
-  .hito-escena-epilogo::before { margin-bottom: calc(5px * var(--ss)); }
   .pausa-narrativa { width: 340px; }
   .pausa-narrativa-texto { font-size: 36px; }
   .pausa-narrativa-linea { margin-bottom: 18px; }
