@@ -13,9 +13,10 @@
 import http from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const PUERTO = process.env.PORT || 8123;
-const RAIZ = process.cwd();
+const RAIZ = fileURLToPath(new URL('../', import.meta.url));
 const CARPETA_CAPTURAS = process.env.CAPTURAS || join(RAIZ, '.capturas');
 
 const MIME = {
@@ -27,6 +28,8 @@ const MIME = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.mp3': 'audio/mpeg',
   '.svg': 'image/svg+xml',
   '.woff2': 'font/woff2',
   '.ico': 'image/x-icon',

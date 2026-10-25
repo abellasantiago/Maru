@@ -38,6 +38,12 @@
   <!-- Tapa la pantalla hasta que el hero dibuja su primer cuadro: entre el
        primer paint y el primer frame de WebGL se colaba un destello -->
   <div id="velo-carga" aria-hidden="true"></div>
+  <div class="error-inicio" id="error-inicio" role="alert" hidden>
+    <p class="error-inicio-titulo">Nuestro recorrido te espera.</p>
+    <p>No pudimos abrirlo. Volvé a intentarlo en un momento.</p>
+    <button type="button" id="reintentar-inicio">Volver a intentar</button>
+  </div>
+  <noscript><p class="aviso-javascript">Activá JavaScript para recorrer nuestra historia.</p></noscript>
 
   <!-- ═══════════════ INTERFAZ DEL HERO ═══════════════ -->
 
@@ -142,6 +148,6 @@
   </main>
 
   <!-- Punto de entrada del hero (módulos ES) -->
-  <script type="module" src="js/hero/main.js"></script>
+  <script type="module" src="js/inicio.js"></script>
 </body>
 </html>

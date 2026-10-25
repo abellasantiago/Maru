@@ -67,18 +67,32 @@ export class PanelesVidrio {
         <div class="panel-interior">
           <div class="panel-tilt">
             <figure class="panel-foto">
-              <img src="${momento.foto}" alt="${momento.titulo}" draggable="false" decoding="async" fetchpriority="${indice < 3 ? 'auto' : 'low'}" style="object-position: ${momento.encuadre}; --zoom: ${momento.zoom}">
+              <img draggable="false" decoding="async" fetchpriority="${indice < 3 ? 'auto' : 'low'}">
               <div class="panel-grano"></div>
             </figure>
             <header class="panel-info">
-              <span class="panel-fecha"><span class="panel-fecha-raya" aria-hidden="true"></span>${momento.fecha}</span>
-              <span class="panel-palabra">${momento.titulo}</span>
-              ${momento.desc ? `<span class="panel-desc">${momento.desc}</span>` : ''}
+              <span class="panel-fecha"><span class="panel-fecha-raya" aria-hidden="true"></span></span>
+              <span class="panel-palabra"></span>
             </header>
             <div class="panel-brillo" aria-hidden="true"></div>
           </div>
         </div>
       `;
+      /* El contenido se asigna como texto: las comillas y los signos de una
+         descripción nunca deben convertirse en atributos o etiquetas HTML. */
+      const foto = el.querySelector('img');
+      foto.src = momento.foto;
+      foto.alt = momento.titulo;
+      foto.style.objectPosition = momento.encuadre;
+      foto.style.setProperty('--zoom', momento.zoom);
+      el.querySelector('.panel-fecha').append(document.createTextNode(momento.fecha));
+      el.querySelector('.panel-palabra').textContent = momento.titulo;
+      if (momento.desc) {
+        const descripcion = document.createElement('span');
+        descripcion.className = 'panel-desc';
+        descripcion.textContent = momento.desc;
+        el.querySelector('.panel-info').append(descripcion);
+      }
       el.addEventListener('click', () => alClickear(indice));
 
       /* Tilt 3D + brillo especular al pasar el cursor: la card se inclina

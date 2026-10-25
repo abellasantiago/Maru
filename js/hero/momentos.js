@@ -90,7 +90,7 @@ const DATOS = [
   { titulo: 'Finde en Punta Ballena', fecha: 'Del 18 al 20 de setiembre de 2026', encuadre: '50% 76%', contrasteTexto: true, desc: 'Nos fuimos el finde a Punta Ballena con mis padres' },   // 40 → Momento-40.webp
   { titulo: 'La Diagonal', fecha: '25 de setiembre de 2026', encuadre: '50% 30%', contrasteTexto: true, desc: '' },   // 41 → Momento-41.webp
   { titulo: 'Río con Nico', fecha: '5 de octubre de 2026', encuadre: '50% 20%', contrasteTexto: true, desc: '' },   // 42 → Momento-42.webp
-  { titulo: 'Kilombito en Punta', fecha: '10 de octubre de 2026', encuadre: '50% 38%', contrasteTexto: true, desc: Finde en lo del Boli y kilombito con alguos monos' },   // 43 → Momento-43.webp
+  { titulo: 'Kilombito en Punta', fecha: '10 de octubre de 2026', encuadre: '50% 38%', contrasteTexto: true, desc: 'Finde en lo del Boli y Kilombito con algunos monos' },   // 43 → Momento-43.webp
   { titulo: 'Merienda en Obra', fecha: '15 de octubre de 2026', encuadre: '50% 40%', contrasteTexto: true, desc: '' },   // 44 → Momento-44.webp
   { titulo: 'Almuerzo en Escaramuza', fecha: '19 de octubre de 2026', encuadre: '50% 65%', contrasteTexto: true, desc: 'Cumplimos 1 año y 1 mes.' },   // 45 → Momento-45.webp
 ];

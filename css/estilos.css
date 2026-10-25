@@ -133,6 +133,40 @@ body {
 }
 #velo-carga.listo { opacity: 0; }
 
+/* Sólo aparece si el módulo de entrada no pudo cargar o crear el mundo. */
+.error-inicio:not([hidden]), .aviso-javascript {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 32px;
+  background: var(--color-fondo-3d);
+  text-align: center;
+  line-height: 1.6;
+}
+.error-inicio-titulo {
+  font-family: var(--fuente-display);
+  font-size: clamp(32px, 6vw, 48px);
+}
+.error-inicio button {
+  padding: 12px 24px;
+  border: 1px solid var(--color-dorado);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-crema);
+  font: inherit;
+  cursor: pointer;
+}
+.error-inicio button:hover, .error-inicio button:focus-visible {
+  background: var(--color-bordo-oscuro);
+  outline: 2px solid var(--color-dorado);
+  outline-offset: 4px;
+}
+
 /* Velo de transición hero → timeline (lo controla GSAP con el scroll) */
 #velo-transicion {
   position: fixed;

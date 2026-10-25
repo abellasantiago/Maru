@@ -29,7 +29,14 @@ resplandor dorado al final del corredor, que empalma con la pantalla final crema
 
 ## Cómo correrlo
 
-Sin build tools. Solo un servidor estático (los módulos ES no andan con `file://`):
+Sin build tools. Desde la raíz del repo:
+
+```
+npm start
+```
+
+Mantener esa terminal abierta mientras se usa `http://localhost:8123`.
+También sirve cualquier servidor estático (los módulos ES no andan con `file://`):
 
 ```
 python -m http.server 8123
@@ -40,6 +47,19 @@ ScrollTrigger, Lenis y las fuentes están vendorizados (`js/vendor/`, `assets/fu
 
 > `herramientas/dev-servidor.mjs` es un server SÓLO de desarrollo (agrega un
 > endpoint de capturas para verificar). Para el sitio real, cualquier estático alcanza.
+
+### Verificar antes de publicar
+
+Ejecutar `npm test` antes de hacer commit. Revisa la sintaxis de todo el
+JavaScript, las fechas y búsquedas, las fotos WebP, las fuentes y los imports.
+No necesita instalar dependencias: `sharp` sólo se usa al optimizar fotos.
+GitHub Actions ejecuta las mismas comprobaciones en cada push a `main` y en
+los pull requests; el despliegue de Pages conserva su configuración actual.
+
+Al editar `js/hero/momentos.js`, los textos de `titulo`, `fecha` y `desc`
+deben estar entre comillas. Una comilla faltante impide cargar el módulo.
+El arranque muestra un aviso de reintento si falla un recurso o WebGL,
+en lugar de dejar el velo de carga tapando la página indefinidamente.
 
 ## Dónde tocar cada cosa
 
