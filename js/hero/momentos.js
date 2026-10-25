@@ -87,7 +87,7 @@ const DATOS = [
   { titulo: 'Escapada al campo', fecha: 'Del 27 al 30 de agosto de 2026', encuadre: '50% 50%', zoom: 1.15, desc: '' },   // 37 → Momento-37.jpg
   { titulo: 'Cuidamos a Alaska', fecha: 'Del 31 de agosto al 7 de setiembre de 2026', encuadre: '0% 50%', ancha: true, desc: '' },   // 38 → Momento-38.jpg  (foto horizontal: encuadre pegado a la izquierda, desde mi cara hasta donde termina el gato)
   { titulo: 'Asadito con Manu y Juanpe', fecha: '6 de setiembre de 2026', encuadre: '50% 50%', desc: '' },   // 39 → Momento-39.jpg
-  { titulo: 'Finde en Punta Ballena', fecha: 'Del 18 al 20 de setiembre de 2026', encuadre: '50% 76%', contrasteTexto: true, desc: 'Nos fuimos el finde a Punta Ballena con mis padres' },   // 40 → Momento-40.webp
+  { titulo: 'Finde en Punta Ballena', fecha: 'Del 18 al 20 de setiembre de 2026', encuadre: '50% 76%', contrasteTexto: true, desc: 'Nos fuimos el finde al Syrah con mis padres' },   // 40 → Momento-40.webp
   { titulo: 'La Diagonal', fecha: '25 de setiembre de 2026', encuadre: '50% 30%', contrasteTexto: true, desc: '' },   // 41 → Momento-41.webp
   { titulo: 'Río con Nico', fecha: '5 de octubre de 2026', encuadre: '50% 20%', contrasteTexto: true, desc: '' },   // 42 → Momento-42.webp
   { titulo: 'Kilombito en Punta', fecha: '10 de octubre de 2026', encuadre: '50% 38%', contrasteTexto: true, desc: 'Finde en lo del Boli y Kilombito con algunos monos' },   // 43 → Momento-43.webp
