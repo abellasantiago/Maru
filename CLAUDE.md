@@ -6,7 +6,7 @@ Sitio-regalo de Santi para Maru: un recorrido inmersivo en 3D por los momentos
 de la relación. El scroll no mueve contenido en 2D — mueve una cámara por un
 mundo. El sitio abre directo, sin preludio ni pantalla de carga: un
 **landing** con un corazón de partículas que ya está cayendo, se arma, gira y
-se desarma en brasas, un **timeline** de 39 cards de vidrio flotando en un
+se desarma en brasas, un **timeline** de 45 cards de vidrio flotando en un
 corredor, y una **pantalla final** ("Que sea eterno."). La canción arranca
 con el primer click en cualquier parte del sitio.
 

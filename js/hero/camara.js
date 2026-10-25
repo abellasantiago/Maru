@@ -105,7 +105,10 @@ export class RecorridoCamara {
       const anchoCard = window.innerWidth <= 760
         ? (momento.ancha ? 3.9 : 3.2)
         : (momento.ancha ? 5.94 : 4.7);
-      const distancia = Math.max(perfil.distancia, anchoCard * 1.10 / anchoVisiblePorUnidad);
+      /* El margen móvil también cubre la perspectiva y la deriva: el borde
+         más cercano puede crecer y salirse aunque el ancho plano quepa. */
+      const margen = window.innerWidth <= 760 ? 1.22 : 1.10;
+      const distancia = Math.max(perfil.distancia, anchoCard * margen / anchoVisiblePorUnidad);
       const x = momento.tratamiento === 'noviazgo'
         ? p.x + Math.sin(momento.rotacion[1]) * distancia
         : p.x * perfil.lateral;

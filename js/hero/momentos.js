@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
    Momentos del timeline — ÚNICA fuente de datos de las cards.
 
-   Hay una entrada por foto (Momento-01.webp … Momento-39.webp). La
+   Hay una entrada por foto (Momento-01.webp … Momento-45.webp). La
    POSICIÓN 3D de cada card se calcula sola en `disponer()` a partir
    del índice, así agregar/quitar/reordenar es trivial: se edita solo
    el array DATOS.
@@ -15,6 +15,9 @@
        buscador; el buscador ya usa el título y la fecha igual.
 
    ▸ Para reemplazar/rotar una foto: pisá el archivo assets/fotos/Momento-NN.webp
+
+   ▸ CONTRASTE: `contrasteTexto: true` agrega un degradado al pie de la
+     foto para mantener legibles los textos sobre fondos claros.
 
    ▸ ENCUADRE: la card recorta la foto con object-fit:cover (5:4). Si el
      sujeto queda descentrado, ajustá `encuadre` de esa línea — son las
@@ -84,7 +87,12 @@ const DATOS = [
   { titulo: 'Escapada al campo', fecha: 'Del 27 al 30 de agosto de 2026', encuadre: '50% 50%', zoom: 1.15, desc: '' },   // 37 → Momento-37.jpg
   { titulo: 'Cuidamos a Alaska', fecha: 'Del 31 de agosto al 7 de setiembre de 2026', encuadre: '0% 50%', ancha: true, desc: '' },   // 38 → Momento-38.jpg  (foto horizontal: encuadre pegado a la izquierda, desde mi cara hasta donde termina el gato)
   { titulo: 'Asadito con Manu y Juanpe', fecha: '6 de setiembre de 2026', encuadre: '50% 50%', desc: '' },   // 39 → Momento-39.jpg
-
+  { titulo: 'Finde en Punta Ballena', fecha: 'Del 18 al 20 de setiembre de 2026', encuadre: '50% 76%', contrasteTexto: true, desc: 'Con mis padres' },   // 40 → Momento-40.webp
+  { titulo: 'La Diagonal', fecha: '25 de setiembre de 2026', encuadre: '50% 30%', contrasteTexto: true, desc: '' },   // 41 → Momento-41.webp
+  { titulo: 'Río con Nico', fecha: '5 de octubre de 2026', encuadre: '50% 20%', contrasteTexto: true, desc: '' },   // 42 → Momento-42.webp
+  { titulo: 'Kilombito en Punta', fecha: '10 de octubre de 2026', encuadre: '50% 38%', contrasteTexto: true, desc: '' },   // 43 → Momento-43.webp
+  { titulo: 'Obra a hacer "Cowork"', fecha: '15 de octubre de 2026', encuadre: '50% 40%', contrasteTexto: true, desc: '' },   // 44 → Momento-44.webp
+  { titulo: 'Escaramuza', fecha: '19 de octubre de 2026', encuadre: '50% 65%', contrasteTexto: true, desc: '' },   // 45 → Momento-45.webp
 ];
 
 /* ── Disposición 3D: parámetros del "corredor" de cards ── */
@@ -151,6 +159,7 @@ export const MOMENTOS = DATOS.map((d, i) => ({
   tratamiento: d.tratamiento || null,
   ancha: d.ancha || false,
   zoom: d.zoom || 1,
+  contrasteTexto: d.contrasteTexto || false,
   titulo: (d.titulo && d.titulo.trim()) ? d.titulo : GENERICO.titulo,
   fecha: (d.fecha && d.fecha.trim()) ? d.fecha : GENERICO.fecha,
   fechaInicio: inicioDeFecha(d.fecha || GENERICO.fecha),

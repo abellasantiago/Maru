@@ -112,6 +112,10 @@ abarcan dos meses se agrupan en el primero. La búsqueda muestra todas las
 coincidencias con su fecha, para distinguir títulos repetidos, y permite
 elegirlas con las flechas del teclado y Enter.
 
+Las fotos claras pueden usar `contrasteTexto: true`: agrega un degradado al
+pie para que la fecha y el título se lean sin oscurecer las caras. El
+encuadre de cada imagen se ajusta con `encuadre` (CSS `object-position`).
+
 Para marcar un hito especial se le pone `tratamiento: 'noviazgo'` al momento:
 la cámara lo recibe más frontalmente y con más tiempo, mientras la card gana
 un foco de luz cálida detrás y una leyenda superior.

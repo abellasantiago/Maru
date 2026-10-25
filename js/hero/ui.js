@@ -391,7 +391,9 @@ export class InterfazHero {
     const desde = this.audio.volume;
     const t0 = performance.now();
     const paso = (t) => {
-      const k = Math.min(1, (t - t0) / duracionMs);
+      /* rAF fecha el inicio del cuadro: en el primer paso puede ser
+         anterior a t0. Acotar ambos extremos evita un volumen negativo. */
+      const k = Math.max(0, Math.min(1, (t - t0) / duracionMs));
       this.audio.volume = desde + (destino - desde) * k;
       if (k < 1) {
         this._fadeAudio = requestAnimationFrame(paso);

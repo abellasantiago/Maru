@@ -838,6 +838,17 @@ body {
   transform: translateY(calc((1 - var(--foco)) * 8px * var(--ss)));
   pointer-events: none;
 }
+/* Contraste opcional al pie: acompaña el revelado sin oscurecer las caras. */
+.panel-vidrio.contraste-texto .panel-foto::before {
+  content: '';
+  position: absolute;
+  inset: 35% 0 0;
+  z-index: 1;
+  background: linear-gradient(180deg, transparent, rgba(26, 5, 8, 0.78));
+  opacity: var(--foco);
+  pointer-events: none;
+}
+.panel-vidrio.contraste-texto .panel-info { z-index: 2; }
 .panel-fecha {
   display: flex;
   align-items: center;

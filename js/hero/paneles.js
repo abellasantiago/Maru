@@ -55,6 +55,7 @@ export class PanelesVidrio {
       el.className = 'panel-vidrio' +
         (momento.destacado ? ' destacado' : '') +
         (momento.ancha ? ' ancha' : '') +
+        (momento.contrasteTexto ? ' contraste-texto' : '') +
         (momento.tratamiento ? ` hito-${momento.tratamiento}` : '');
       el.dataset.momento = momento.id;
       el.style.setProperty('--ss', SS);
