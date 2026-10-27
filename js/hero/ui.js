@@ -89,11 +89,7 @@ export class InterfazHero {
       const etiqueta = document.createElement('span');
       etiqueta.className = 'sidebar-etiqueta';
       etiqueta.textContent = texto;
-      const flecha = document.createElement('span');
-      flecha.className = 'sidebar-chevron';
-      flecha.setAttribute('aria-hidden', 'true');
-      flecha.textContent = '›';
-      summary.append(punto, etiqueta, flecha);
+      summary.append(punto, etiqueta);
       return summary;
     };
 
