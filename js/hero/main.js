@@ -92,7 +92,8 @@ class HeroInmersivo {
     this.corazon = new Corazon(this.escena);
     this.paneles = new PanelesVidrio(
       document.getElementById('capa-css3d'),
-      (indice) => this.irAMomento(indice)
+      (indice) => this.irAMomento(indice),
+      (abierto) => abierto ? this.lenis.stop() : this.lenis.start()
     );
     this.recorrido = new RecorridoCamara(this.camara);
     this.postproceso = new PostProceso(this.renderizador, this.escena, this.camara);
@@ -254,7 +255,7 @@ class HeroInmersivo {
     /* La forma responde sólo al clic dentro de su trazo; el clic global
        que inicia la música y los controles de navegación siguen intactos. */
     window.addEventListener('click', (e) => {
-      if (!this.activo || e.target.closest('a, button, input, .nav-pill, .panel-vidrio')) return;
+      if (!this.activo || e.target.closest('a, button, input, .nav-pill, .panel-vidrio, .recuerdo-dialogo')) return;
       this.mouseNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
       this.mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
       this.corazon.alternarForma(this.mouseNDC, this.camara);

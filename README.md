@@ -136,6 +136,11 @@ Las fotos claras pueden usar `contrasteTexto: true`: agrega un degradado al
 pie para que la fecha y el título se lean sin oscurecer las caras. El
 encuadre de cada imagen se ajusta con `encuadre` (CSS `object-position`).
 
+`Posada del Mar` usa `privado: true`: desenfoca toda la card, oculta sus textos
+y abre cuatro casillas al tocarla. El código correcto revela la foto y los
+textos; se vuelve a bloquear al recargar. Es un
+bloqueo **visual**: el archivo WebP sigue siendo público en el sitio estático.
+
 Para marcar un hito especial se le pone `tratamiento: 'noviazgo'` al momento:
 la cámara lo recibe más frontalmente y con más tiempo, mientras la card gana
 un foco de luz cálida detrás y una leyenda superior.

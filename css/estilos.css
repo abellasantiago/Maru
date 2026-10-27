@@ -746,6 +746,7 @@ body {
    descendientes position:absolute, así que .panel-info sigue funcionando
    igual que cuando colgaba directo de .panel-vidrio. */
 .panel-interior {
+  position: relative;
   width: 100%;
   height: 100%;
   transform-origin: 50% 100%;
@@ -870,6 +871,59 @@ body {
   pointer-events: none;
 }
 .panel-vidrio.contraste-texto .panel-info { z-index: 2; }
+
+/* La card privada se desenfoca entera. El marco y el pequeño candado quedan
+   nítidos; fecha, título y descripción desaparecen hasta ingresar el código. */
+.panel-vidrio.recuerdo-privado {
+  cursor: pointer;
+}
+.panel-vidrio.recuerdo-privado:focus-visible {
+  outline: calc(2px * var(--ss)) solid var(--color-dorado);
+  outline-offset: calc(5px * var(--ss));
+}
+.recuerdo-privado .panel-tilt {
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+              filter 1.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.recuerdo-privado:not(.recuerdo-abierto) .panel-tilt {
+  filter: blur(calc(28px * var(--ss))) brightness(0.62) saturate(0.72);
+}
+.recuerdo-privado .panel-info {
+  transition: opacity 0.65s ease 0.35s, visibility 0.65s;
+}
+.recuerdo-privado:not(.recuerdo-abierto) .panel-info {
+  opacity: 0;
+  visibility: hidden;
+}
+.recuerdo-candado {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: calc(43px * var(--ss));
+  height: calc(43px * var(--ss));
+  border: max(1px, calc(1px * var(--ss))) solid rgba(255, 226, 190, 0.45);
+  border-radius: 50%;
+  background: rgba(40, 15, 22, 0.3);
+  box-shadow: 0 0 calc(28px * var(--ss)) rgba(230, 184, 125, 0.2);
+  color: #ffe1bf;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.45s ease, transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.45s;
+}
+.recuerdo-candado svg { width: 42%; height: 42%; }
+.recuerdo-privado:not(.recuerdo-abierto):hover .recuerdo-candado,
+.recuerdo-privado:not(.recuerdo-abierto):focus-visible .recuerdo-candado {
+  transform: translate(-50%, -50%) scale(1.08);
+  box-shadow: 0 0 calc(36px * var(--ss)) rgba(230, 184, 125, 0.32);
+}
+.recuerdo-privado.recuerdo-abierto .recuerdo-candado {
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, -50%) scale(0.72);
+}
+
 .panel-fecha {
   display: flex;
   align-items: center;
@@ -1109,6 +1163,88 @@ body {
   .hito-escena-haz { animation: none; }
 }
 
+/* Sólo cuatro casillas flotan frente al recorrido: sin textos ni botones. */
+.recuerdo-dialogo {
+  position: fixed;
+  inset: 0;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  margin: auto;
+  border: 0;
+  padding: 0;
+  overflow: visible;
+  color: var(--color-crema);
+  background: transparent;
+  font-family: var(--fuente-ui);
+  -webkit-font-smoothing: antialiased;
+}
+.recuerdo-dialogo[open] { animation: recuerdo-dialogo-entrar 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.recuerdo-dialogo::backdrop {
+  background: rgba(18, 5, 10, 0.67);
+  backdrop-filter: blur(11px) saturate(0.8);
+  -webkit-backdrop-filter: blur(11px) saturate(0.8);
+}
+.recuerdo-codigo-form { padding: 12px; }
+.recuerdo-codigo-campos {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.recuerdo-codigo-campos input {
+  width: 54px;
+  height: 66px;
+  border: 1px solid rgba(255, 224, 184, 0.4);
+  border-radius: 10px;
+  outline: none;
+  background: rgba(67, 25, 34, 0.67);
+  color: var(--color-crema);
+  box-shadow: 0 12px 28px rgba(13, 2, 6, 0.15);
+  font: 500 27px/1 var(--fuente-ui);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  caret-color: var(--color-dorado);
+  transition: background 0.24s, border-color 0.24s, box-shadow 0.24s;
+}
+.recuerdo-codigo-campos input:focus {
+  border-color: rgba(255, 224, 184, 0.95);
+  background: rgba(88, 34, 46, 0.78);
+  box-shadow: 0 0 0 3px rgba(230, 184, 125, 0.12), 0 0 28px rgba(230, 184, 125, 0.2);
+}
+.recuerdo-codigo-estado {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+.recuerdo-codigo-form.codigo-incorrecto .recuerdo-codigo-campos {
+  animation: recuerdo-codigo-error 0.38s ease;
+}
+.recuerdo-codigo-form.codigo-incorrecto input { border-color: rgba(224, 89, 106, 0.85); }
+@keyframes recuerdo-dialogo-entrar {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes recuerdo-codigo-error {
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+@media (pointer: fine) {
+  body.recuerdo-dialogo-abierto, body.recuerdo-dialogo-abierto * { cursor: auto !important; }
+  body.recuerdo-dialogo-abierto .recuerdo-dialogo input { cursor: text !important; }
+  body.recuerdo-dialogo-abierto #cursor-cereza { opacity: 0 !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .recuerdo-dialogo[open],
+  .recuerdo-codigo-form.codigo-incorrecto .recuerdo-codigo-campos { animation: none; }
+  .recuerdo-privado .panel-tilt,
+  .recuerdo-privado .panel-info,
+  .recuerdo-candado { transition-duration: 0.01ms; }
+}
+
 /* ═══════════════ CURSOR CEREZAS ═══════════════ */
 
 #cursor-cereza {
@@ -1215,6 +1351,8 @@ body {
 
 /* Mobile: el hero se simplifica, la UI se reacomoda */
 @media (max-width: 760px) {
+  .recuerdo-codigo-campos { gap: 9px; }
+  .recuerdo-codigo-campos input { width: 49px; height: 59px; }
   .monograma { top: 20px; left: 20px; }
   .nav-pill { top: 20px; right: 20px; padding: 9px 16px; gap: 10px; }
   .nav-latido { width: 42px; }

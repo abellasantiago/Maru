@@ -25,15 +25,18 @@ import { MOMENTOS, PAUSAS_NARRATIVAS } from './momentos.js';
 const FRASES = [
   { texto: 'un viaje por nuestra historia', pos: [0, 8.6, -3], rotY: 0 },
 ];
+const CODIGO_RECUERDO = '1111'; // Gesto visual: el archivo de la foto sigue siendo público.
 
 export class PanelesVidrio {
   /**
    * @param {THREE.Scene} escenaCSS  escena exclusiva del CSS3DRenderer
    * @param {HTMLElement} contenedor #capa-css3d
    * @param {(indice:number)=>void} alClickear callback de navegación
+   * @param {(abierto:boolean)=>void} alCambiarDialogo pausa o reanuda el scroll
    */
-  constructor(contenedor, alClickear) {
+  constructor(contenedor, alClickear, alCambiarDialogo = () => {}) {
     this.escenaCSS = new THREE.Scene();
+    this.alCambiarDialogo = alCambiarDialogo;
 
     this.renderizador = new CSS3DRenderer({ element: contenedor });
     this.renderizador.setSize(window.innerWidth, window.innerHeight);
@@ -56,8 +59,16 @@ export class PanelesVidrio {
         (momento.destacado ? ' destacado' : '') +
         (momento.ancha ? ' ancha' : '') +
         (momento.contrasteTexto ? ' contraste-texto' : '') +
+        (momento.privado ? ' recuerdo-privado' : '') +
         (momento.tratamiento ? ` hito-${momento.tratamiento}` : '');
       el.dataset.momento = momento.id;
+      if (momento.privado) {
+        el.tabIndex = 0;
+        el.setAttribute('role', 'button');
+        el.setAttribute('aria-label', `Desbloquear ${momento.titulo}`);
+      } else {
+        el.setAttribute('aria-hidden', 'true');
+      }
       el.style.setProperty('--ss', SS);
       /* .panel-interior es un div propio para la animación de entrada
          (translateY/scale): el.style.transform ya lo usa CSS3DRenderer
@@ -76,6 +87,15 @@ export class PanelesVidrio {
             </header>
             <div class="panel-brillo" aria-hidden="true"></div>
           </div>
+          ${momento.privado ? `
+            <span class="recuerdo-candado" aria-hidden="true">
+              <svg viewBox="0 0 32 32" fill="none">
+                <path d="M9.5 13V10a6.5 6.5 0 0 1 13 0v3" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
+                <rect x="6.5" y="13" width="19" height="15" rx="4" stroke="currentColor" stroke-width="1.45"/>
+                <circle cx="16" cy="20.3" r="1.5" fill="currentColor"/>
+              </svg>
+            </span>
+          ` : ''}
         </div>
       `;
       /* El contenido se asigna como texto: las comillas y los signos de una
@@ -93,7 +113,21 @@ export class PanelesVidrio {
         descripcion.textContent = momento.desc;
         el.querySelector('.panel-info').append(descripcion);
       }
-      el.addEventListener('click', () => alClickear(indice));
+      el.addEventListener('click', () => {
+        if (momento.privado && !el.classList.contains('recuerdo-abierto')) {
+          this._abrirRecuerdoPrivado({ el, momento });
+        } else {
+          alClickear(indice);
+        }
+      });
+      if (momento.privado) {
+        el.addEventListener('keydown', (e) => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          e.stopPropagation();
+          el.click();
+        });
+      }
 
       /* Tilt 3D + brillo especular al pasar el cursor: la card se inclina
          como un objeto con peso y la luz le resbala por el vidrio. Sólo con
@@ -128,6 +162,7 @@ export class PanelesVidrio {
       if (momento.tratamiento === 'noviazgo') {
         const escenaEl = document.createElement('div');
         escenaEl.className = 'hito-escena';
+        escenaEl.setAttribute('aria-hidden', 'true');
         escenaEl.style.setProperty('--ss', SS);
         escenaEl.innerHTML = `
           <span class="hito-escena-haz" aria-hidden="true"></span>
@@ -157,10 +192,13 @@ export class PanelesVidrio {
       });
     });
 
+    this._configurarRecuerdoPrivado();
+
     /* ── Frases del descenso (mismo espacio 3D que los paneles) ── */
     this.frases = FRASES.map((frase, i) => {
       const el = document.createElement('div');
       el.className = 'frase-viaje';
+      el.setAttribute('aria-hidden', 'true');
       /* El foco por distancia (más abajo) escala/desenfoca un hijo propio:
          el.style.transform ya lo usa CSS3DRenderer para la posición 3D. */
       const interior = document.createElement('div');
@@ -181,6 +219,7 @@ export class PanelesVidrio {
     this.pausas = PAUSAS_NARRATIVAS.map((pausa) => {
       const el = document.createElement('div');
       el.className = 'pausa-narrativa';
+      el.setAttribute('aria-hidden', 'true');
       const linea = document.createElement('span');
       linea.className = 'pausa-narrativa-linea';
       linea.setAttribute('aria-hidden', 'true');
@@ -196,6 +235,79 @@ export class PanelesVidrio {
     });
 
     this._v = new THREE.Vector3(); // temporal reutilizable
+  }
+
+  _configurarRecuerdoPrivado() {
+    this.dialogoRecuerdo = document.getElementById('recuerdo-dialogo');
+    this.formCodigo = document.getElementById('recuerdo-codigo-form');
+    this.camposCodigo = [...this.formCodigo.querySelectorAll('input')];
+    this.estadoCodigo = document.getElementById('recuerdo-codigo-estado');
+    this.dialogoRecuerdo.addEventListener('click', (e) => {
+      if (e.target === this.dialogoRecuerdo) this.dialogoRecuerdo.close();
+    });
+    this.dialogoRecuerdo.addEventListener('close', () => {
+      this.formCodigo.reset();
+      this.formCodigo.classList.remove('codigo-incorrecto');
+      this.estadoCodigo.textContent = '';
+      document.body.classList.remove('recuerdo-dialogo-abierto');
+      this.alCambiarDialogo(false);
+    });
+
+    this.camposCodigo.forEach((campo, indice) => {
+      campo.addEventListener('input', () => {
+        campo.value = campo.value.replace(/\D/g, '').slice(-1);
+        this.estadoCodigo.textContent = '';
+        this.formCodigo.classList.remove('codigo-incorrecto');
+        if (campo.value && indice < this.camposCodigo.length - 1) {
+          this.camposCodigo[indice + 1].focus();
+        }
+        if (this.camposCodigo.every((c) => c.value)) this.formCodigo.requestSubmit();
+      });
+      campo.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !campo.value && indice > 0) {
+          this.camposCodigo[indice - 1].focus();
+          this.camposCodigo[indice - 1].value = '';
+        }
+        if (e.key === 'ArrowLeft' && indice > 0) this.camposCodigo[indice - 1].focus();
+        if (e.key === 'ArrowRight' && indice < this.camposCodigo.length - 1) this.camposCodigo[indice + 1].focus();
+      });
+    });
+    this.formCodigo.addEventListener('paste', (e) => {
+      const numeros = e.clipboardData?.getData('text').replace(/\D/g, '').slice(0, 4);
+      if (!numeros) return;
+      e.preventDefault();
+      this.camposCodigo.forEach((campo, i) => { campo.value = numeros[i] || ''; });
+      this.camposCodigo[Math.min(numeros.length, 4) - 1].focus();
+      if (numeros.length === 4) this.formCodigo.requestSubmit();
+    });
+    this.formCodigo.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const codigo = this.camposCodigo.map((campo) => campo.value).join('');
+      if (codigo !== CODIGO_RECUERDO) {
+        this.estadoCodigo.textContent = codigo.length < 4
+          ? 'Ingresá los cuatro dígitos.' : 'Código incorrecto. Probá otra vez.';
+        this.formCodigo.classList.remove('codigo-incorrecto');
+        void this.formCodigo.offsetWidth; // reinicia la animación de error
+        this.formCodigo.classList.add('codigo-incorrecto');
+        if (codigo.length === 4) this.camposCodigo.forEach((campo) => { campo.value = ''; });
+        this.camposCodigo[0].focus();
+        return;
+      }
+
+      const { el, momento } = this.recuerdoActivo;
+      el.classList.add('recuerdo-abierto');
+      el.setAttribute('aria-label', `Ir a ${momento.titulo}`);
+      this.dialogoRecuerdo.close();
+    });
+  }
+
+  _abrirRecuerdoPrivado(recuerdo) {
+    if (this.dialogoRecuerdo.open) return;
+    this.recuerdoActivo = recuerdo;
+    this.dialogoRecuerdo.showModal();
+    document.body.classList.add('recuerdo-dialogo-abierto');
+    this.alCambiarDialogo(true);
+    this.camposCodigo[0].focus({ preventScroll: true });
   }
 
   /* Escribe una variable CSS SÓLO si cambió.
