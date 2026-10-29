@@ -541,6 +541,18 @@ export class PanelesVidrio {
       width: `${rect.width}px`, height: `${rect.height}px`,
     });
     this.controlRecuerdo.style.setProperty('--ss', rect.width / 470);
+    // Proyectamos el eje horizontal de la card: los campos siguen su
+    // inclinación, pero conservan los eventos fiables de la capa 2D.
+    const centro = new THREE.Vector3().setFromMatrixPosition(item.objeto.matrixWorld).project(camara);
+    const derecha = new THREE.Vector3(1, 0, 0).applyMatrix4(item.objeto.matrixWorld).project(camara);
+    const ancho = window.innerWidth;
+    const alto = window.innerHeight;
+    const angulo = Math.atan2(-(derecha.y - centro.y) * alto, (derecha.x - centro.x) * ancho);
+    Object.assign(this.dialogoRecuerdo.style, {
+      left: `${(centro.x + 1) * ancho / 2 - rect.left}px`,
+      top: `${(1 - centro.y) * alto / 2 - rect.top}px`,
+      transform: `translate(-50%, -50%) rotate(${angulo}rad)`,
+    });
   }
 
   redimensionar(ancho, alto) {

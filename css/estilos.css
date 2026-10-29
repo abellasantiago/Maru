@@ -1209,27 +1209,27 @@ body {
 .recuerdo-codigo-campos {
   display: flex;
   justify-content: center;
-  gap: calc(10px * var(--ss));
+  gap: calc(8px * var(--ss));
 }
 .recuerdo-codigo-campos input {
-  width: calc(44px * var(--ss));
-  height: calc(54px * var(--ss));
-  border: 1px solid rgba(255, 224, 184, 0.4);
-  border-radius: 10px;
+  width: calc(38px * var(--ss));
+  height: calc(47px * var(--ss));
+  border: 1px solid rgba(225, 225, 220, 0.4);
+  border-radius: 8px;
   outline: none;
-  background: rgba(67, 25, 34, 0.67);
+  background: rgba(58, 59, 60, 0.82);
   color: var(--color-crema);
   box-shadow: 0 12px 28px rgba(13, 2, 6, 0.15);
-  font: 500 calc(24px * var(--ss))/1 var(--fuente-ui);
+  font: 500 calc(21px * var(--ss))/1 var(--fuente-ui);
   font-variant-numeric: tabular-nums;
   text-align: center;
   caret-color: var(--color-dorado);
   transition: background 0.24s, border-color 0.24s, box-shadow 0.24s;
 }
 .recuerdo-codigo-campos input:focus {
-  border-color: rgba(255, 224, 184, 0.95);
-  background: rgba(88, 34, 46, 0.78);
-  box-shadow: 0 0 0 3px rgba(230, 184, 125, 0.12), 0 0 28px rgba(230, 184, 125, 0.2);
+  border-color: rgba(240, 240, 235, 0.95);
+  background: rgba(78, 79, 80, 0.9);
+  box-shadow: 0 0 0 3px rgba(220, 220, 215, 0.12), 0 0 28px rgba(220, 220, 215, 0.16);
 }
 .recuerdo-codigo-estado {
   position: absolute;
