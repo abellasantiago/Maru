@@ -32,11 +32,9 @@ export class PanelesVidrio {
    * @param {THREE.Scene} escenaCSS  escena exclusiva del CSS3DRenderer
    * @param {HTMLElement} contenedor #capa-css3d
    * @param {(indice:number)=>void} alClickear callback de navegación
-   * @param {(abierto:boolean)=>void} alCambiarDialogo pausa o reanuda el scroll
    */
-  constructor(contenedor, alClickear, alCambiarDialogo = () => {}) {
+  constructor(contenedor, alClickear) {
     this.escenaCSS = new THREE.Scene();
-    this.alCambiarDialogo = alCambiarDialogo;
 
     this.renderizador = new CSS3DRenderer({ element: contenedor });
     this.renderizador.setSize(window.innerWidth, window.innerHeight);
@@ -113,7 +111,8 @@ export class PanelesVidrio {
         descripcion.textContent = momento.desc;
         el.querySelector('.panel-info').append(descripcion);
       }
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.recuerdo-codigo-form')) return;
         if (momento.privado && !el.classList.contains('recuerdo-abierto')) {
           this._abrirRecuerdoPrivado({ el, momento });
         } else {
@@ -122,6 +121,7 @@ export class PanelesVidrio {
       });
       if (momento.privado) {
         el.addEventListener('keydown', (e) => {
+          if (e.target !== el) return;
           if (e.key !== 'Enter' && e.key !== ' ') return;
           e.preventDefault();
           e.stopPropagation();
@@ -249,7 +249,7 @@ export class PanelesVidrio {
     const punto = new THREE.Vector3();
     const lienzo = document.getElementById('lienzo-webgl');
     document.addEventListener('click', (evento) => {
-      if (!this.camaraClick || this.dialogoRecuerdo.open) return;
+      if (!this.camaraClick) return;
       if (evento.target !== lienzo && evento.target !== contenedor) return;
       if (getComputedStyle(contenedor).visibility === 'hidden') return;
       const rect = contenedor.getBoundingClientRect();
@@ -274,6 +274,14 @@ export class PanelesVidrio {
           distancia = distanciaActual;
         }
       }
+      if (elegido && !this.dialogoRecuerdo.hidden && elegido.el === this.recuerdoActivo?.el) {
+        const campo = this.camposCodigo.find((input) => {
+          const r = input.getBoundingClientRect();
+          return evento.clientX >= r.left && evento.clientX <= r.right &&
+            evento.clientY >= r.top && evento.clientY <= r.bottom;
+        });
+        if (campo) { campo.focus({ preventScroll: true }); return; }
+      }
       elegido?.el.click();
     });
   }
@@ -283,16 +291,6 @@ export class PanelesVidrio {
     this.formCodigo = document.getElementById('recuerdo-codigo-form');
     this.camposCodigo = [...this.formCodigo.querySelectorAll('input')];
     this.estadoCodigo = document.getElementById('recuerdo-codigo-estado');
-    this.dialogoRecuerdo.addEventListener('click', (e) => {
-      if (e.target === this.dialogoRecuerdo) this.dialogoRecuerdo.close();
-    });
-    this.dialogoRecuerdo.addEventListener('close', () => {
-      this.formCodigo.reset();
-      this.formCodigo.classList.remove('codigo-incorrecto');
-      this.estadoCodigo.textContent = '';
-      document.body.classList.remove('recuerdo-dialogo-abierto');
-      this.alCambiarDialogo(false);
-    });
 
     this.camposCodigo.forEach((campo, indice) => {
       campo.addEventListener('input', () => {
@@ -337,18 +335,35 @@ export class PanelesVidrio {
 
       const { el, momento } = this.recuerdoActivo;
       el.classList.add('recuerdo-abierto');
+      el.setAttribute('role', 'button');
       el.setAttribute('aria-label', `Ir a ${momento.titulo}`);
-      this.dialogoRecuerdo.close();
+      this.dialogoRecuerdo.hidden = true;
+      this.formCodigo.reset();
+      el.classList.remove('recuerdo-ingresando');
+      el.focus({ preventScroll: true });
+      clearTimeout(this.temporizadorRecuerdo);
+      this.temporizadorRecuerdo = setTimeout(() => {
+        el.classList.remove('recuerdo-abierto');
+        el.setAttribute('aria-label', 'Desbloquear recuerdo');
+        this._abrirRecuerdoPrivado({ el, momento }, false);
+      }, 10000);
     });
   }
 
-  _abrirRecuerdoPrivado(recuerdo) {
-    if (this.dialogoRecuerdo.open) return;
+  _abrirRecuerdoPrivado(recuerdo, enfocar = true) {
+    if (!this.dialogoRecuerdo.hidden) {
+      if (enfocar) this.camposCodigo.find((campo) => !campo.value)?.focus({ preventScroll: true });
+      return;
+    }
     this.recuerdoActivo = recuerdo;
-    this.dialogoRecuerdo.showModal();
-    document.body.classList.add('recuerdo-dialogo-abierto');
-    this.alCambiarDialogo(true);
-    this.camposCodigo[0].focus({ preventScroll: true });
+    recuerdo.el.querySelector('.panel-interior').append(this.dialogoRecuerdo);
+    recuerdo.el.classList.add('recuerdo-ingresando');
+    recuerdo.el.removeAttribute('role');
+    this.formCodigo.reset();
+    this.formCodigo.classList.remove('codigo-incorrecto');
+    this.estadoCodigo.textContent = '';
+    this.dialogoRecuerdo.hidden = false;
+    if (enfocar) this.camposCodigo[0].focus({ preventScroll: true });
   }
 
   /* Escribe una variable CSS SÓLO si cambió.

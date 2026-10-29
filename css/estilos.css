@@ -885,7 +885,7 @@ body {
   transition: filter 1.15s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .recuerdo-privado:not(.recuerdo-abierto) .panel-foto img {
-  filter: blur(calc(28px * var(--ss))) brightness(0.62) saturate(0.72);
+  filter: blur(calc(28px * var(--ss))) saturate(0.72) brightness(0.62);
 }
 .recuerdo-privado .panel-info {
   transition: opacity 1.15s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1163,9 +1163,13 @@ body {
 }
 
 /* Sólo cuatro casillas flotan frente al recorrido: sin textos ni botones. */
+.recuerdo-ingresando .recuerdo-candado { visibility: hidden; opacity: 0; }
 .recuerdo-dialogo {
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
   width: max-content;
   max-width: calc(100vw - 24px);
   margin: auto;
@@ -1177,28 +1181,23 @@ body {
   font-family: var(--fuente-ui);
   -webkit-font-smoothing: antialiased;
 }
-.recuerdo-dialogo[open] { animation: recuerdo-dialogo-entrar 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.recuerdo-dialogo::backdrop {
-  background: rgba(18, 5, 10, 0.67);
-  backdrop-filter: blur(11px) saturate(0.8);
-  -webkit-backdrop-filter: blur(11px) saturate(0.8);
-}
+.recuerdo-dialogo[hidden] { display: none; }
 .recuerdo-codigo-form { padding: 12px; }
 .recuerdo-codigo-campos {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: calc(10px * var(--ss));
 }
 .recuerdo-codigo-campos input {
-  width: 54px;
-  height: 66px;
+  width: calc(44px * var(--ss));
+  height: calc(54px * var(--ss));
   border: 1px solid rgba(255, 224, 184, 0.4);
   border-radius: 10px;
   outline: none;
   background: rgba(67, 25, 34, 0.67);
   color: var(--color-crema);
   box-shadow: 0 12px 28px rgba(13, 2, 6, 0.15);
-  font: 500 27px/1 var(--fuente-ui);
+  font: 500 calc(24px * var(--ss))/1 var(--fuente-ui);
   font-variant-numeric: tabular-nums;
   text-align: center;
   caret-color: var(--color-dorado);
@@ -1223,21 +1222,11 @@ body {
   animation: recuerdo-codigo-error 0.38s ease;
 }
 .recuerdo-codigo-form.codigo-incorrecto input { border-color: rgba(224, 89, 106, 0.85); }
-@keyframes recuerdo-dialogo-entrar {
-  from { opacity: 0; transform: translateY(8px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
 @keyframes recuerdo-codigo-error {
   20%, 60% { transform: translateX(-5px); }
   40%, 80% { transform: translateX(5px); }
 }
-@media (pointer: fine) {
-  body.recuerdo-dialogo-abierto, body.recuerdo-dialogo-abierto * { cursor: auto !important; }
-  body.recuerdo-dialogo-abierto .recuerdo-dialogo input { cursor: text !important; }
-  body.recuerdo-dialogo-abierto #cursor-cereza { opacity: 0 !important; }
-}
 @media (prefers-reduced-motion: reduce) {
-  .recuerdo-dialogo[open],
   .recuerdo-codigo-form.codigo-incorrecto .recuerdo-codigo-campos { animation: none; }
   .recuerdo-privado .panel-tilt,
   .recuerdo-privado .panel-foto img,
@@ -1351,8 +1340,6 @@ body {
 
 /* Mobile: el hero se simplifica, la UI se reacomoda */
 @media (max-width: 760px) {
-  .recuerdo-codigo-campos { gap: 9px; }
-  .recuerdo-codigo-campos input { width: 49px; height: 59px; }
   .monograma { top: 20px; left: 20px; }
   .nav-pill { top: 20px; right: 20px; padding: 9px 16px; gap: 10px; }
   .nav-latido { width: 42px; }

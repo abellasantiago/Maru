@@ -113,7 +113,7 @@
 
   <!-- Código visual de la segunda card. La foto sigue siendo un archivo público
        del sitio: este gesto evita mostrarla casualmente durante el recorrido. -->
-  <dialog class="recuerdo-dialogo" id="recuerdo-dialogo" aria-label="Ingresar código para Posada del Mar">
+  <div class="recuerdo-dialogo" id="recuerdo-dialogo" hidden aria-label="Ingresar código">
     <form id="recuerdo-codigo-form" class="recuerdo-codigo-form" autocomplete="off">
       <div class="recuerdo-codigo-campos" role="group" aria-label="Código de cuatro dígitos">
         <input aria-label="Primer dígito" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off">
@@ -123,7 +123,7 @@
       </div>
       <p class="recuerdo-codigo-estado" id="recuerdo-codigo-estado" role="status" aria-live="polite"></p>
     </form>
-  </dialog>
+  </div>
 
   <!-- Cursor personalizado: cerezas dobles (logo de Pachá) que cuelgan desde la punta del cursor -->
   <div id="cursor-cereza" aria-hidden="true">

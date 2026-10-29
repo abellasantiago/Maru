@@ -286,7 +286,6 @@ export class InterfazHero {
      un momento al siguiente, como las flechas del indicador. */
   _configurarTeclado() {
     window.addEventListener('keydown', (e) => {
-      if (document.getElementById('recuerdo-dialogo').open) return;
       /* Escribiendo en el buscador, las flechas son del buscador */
       const foco = document.activeElement;
       if (foco && (foco.tagName === 'INPUT' || foco.tagName === 'TEXTAREA' ||

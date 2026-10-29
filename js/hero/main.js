@@ -92,8 +92,7 @@ class HeroInmersivo {
     this.corazon = new Corazon(this.escena);
     this.paneles = new PanelesVidrio(
       document.getElementById('capa-css3d'),
-      (indice) => this.irAMomento(indice),
-      (abierto) => abierto ? this.lenis.stop() : this.lenis.start()
+      (indice) => this.irAMomento(indice)
     );
     this.recorrido = new RecorridoCamara(this.camara);
     this.postproceso = new PostProceso(this.renderizador, this.escena, this.camara);
