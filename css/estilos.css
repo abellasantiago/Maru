@@ -872,8 +872,8 @@ body {
 }
 .panel-vidrio.contraste-texto .panel-info { z-index: 2; }
 
-/* Sólo la foto privada se desenfoca, dentro de su recorte. El marco,
-   los textos y el candado conservan la nitidez de las demás cards. */
+/* Sólo la foto privada se desenfoca, dentro de su recorte. El marco y el
+   candado quedan nítidos; los textos aparecen al desbloquear la foto. */
 .panel-vidrio.recuerdo-privado {
   cursor: pointer;
 }
@@ -886,6 +886,13 @@ body {
 }
 .recuerdo-privado:not(.recuerdo-abierto) .panel-foto img {
   filter: blur(calc(28px * var(--ss))) brightness(0.62) saturate(0.72);
+}
+.recuerdo-privado .panel-info {
+  transition: opacity 1.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.recuerdo-privado:not(.recuerdo-abierto) .panel-info {
+  opacity: 0;
+  visibility: hidden;
 }
 .recuerdo-candado {
   position: absolute;
