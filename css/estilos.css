@@ -1163,6 +1163,29 @@ body {
 }
 
 /* Sólo cuatro casillas flotan frente al recorrido: sin textos ni botones. */
+.recuerdo-control {
+  position: fixed;
+  z-index: 3;
+  pointer-events: none;
+}
+.recuerdo-control[hidden], .recuerdo-activar[hidden] { display: none; }
+.recuerdo-activar {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: calc(20px * var(--ss));
+  background: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.recuerdo-activar:focus-visible {
+  outline: 2px solid var(--color-dorado);
+  outline-offset: 3px;
+}
+.recuerdo-control .recuerdo-dialogo { pointer-events: auto; }
+.recuerdo-control input { cursor: text; }
 .recuerdo-ingresando .recuerdo-candado { visibility: hidden; opacity: 0; }
 .recuerdo-dialogo {
   position: absolute;

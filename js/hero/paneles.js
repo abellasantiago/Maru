@@ -288,6 +288,24 @@ export class PanelesVidrio {
 
   _configurarRecuerdoPrivado() {
     this.dialogoRecuerdo = document.getElementById('recuerdo-dialogo');
+    // Capa 2D real: los inputs y el botón no dependen del hit-testing CSS3D.
+    this.controlRecuerdo = document.createElement('div');
+    this.controlRecuerdo.className = 'recuerdo-control';
+    this.controlRecuerdo.hidden = true;
+    this.botonRecuerdo = document.createElement('button');
+    this.botonRecuerdo.type = 'button';
+    this.botonRecuerdo.className = 'recuerdo-activar';
+    this.botonRecuerdo.setAttribute('aria-label', 'Ingresar código para desbloquear el recuerdo');
+    this.controlRecuerdo.append(this.botonRecuerdo, this.dialogoRecuerdo);
+    this.renderizador.domElement.append(this.controlRecuerdo);
+    this.itemPrivado = this.items.find((item) => item.el.classList.contains('recuerdo-privado'));
+    this.itemPrivado.el.tabIndex = -1;
+    this.botonRecuerdo.addEventListener('click', () => {
+      this._abrirRecuerdoPrivado({
+        el: this.itemPrivado.el,
+        momento: MOMENTOS.find((momento) => momento.privado),
+      });
+    });
     this.formCodigo = document.getElementById('recuerdo-codigo-form');
     this.camposCodigo = [...this.formCodigo.querySelectorAll('input')];
     this.estadoCodigo = document.getElementById('recuerdo-codigo-estado');
@@ -340,7 +358,8 @@ export class PanelesVidrio {
       this.dialogoRecuerdo.hidden = true;
       this.formCodigo.reset();
       el.classList.remove('recuerdo-ingresando');
-      el.focus({ preventScroll: true });
+      this.botonRecuerdo.hidden = true;
+      if (this.formCodigo.contains(document.activeElement)) document.activeElement.blur();
       clearTimeout(this.temporizadorRecuerdo);
       this.temporizadorRecuerdo = setTimeout(() => {
         el.classList.remove('recuerdo-abierto');
@@ -356,7 +375,7 @@ export class PanelesVidrio {
       return;
     }
     this.recuerdoActivo = recuerdo;
-    recuerdo.el.querySelector('.panel-interior').append(this.dialogoRecuerdo);
+    this.botonRecuerdo.hidden = true;
     recuerdo.el.classList.add('recuerdo-ingresando');
     recuerdo.el.removeAttribute('role');
     this.formCodigo.reset();
@@ -510,6 +529,18 @@ export class PanelesVidrio {
   render(camara) {
     this.camaraClick = camara;
     this.renderizador.render(this.escenaCSS, camara);
+    const item = this.itemPrivado;
+    const abierto = item.el.classList.contains('recuerdo-abierto');
+    const visible = item.objeto.visible && item.foco > 0.15 &&
+      getComputedStyle(this.renderizador.domElement).visibility !== 'hidden';
+    this.controlRecuerdo.hidden = !visible || abierto;
+    if (!visible || abierto) return;
+    const rect = item.el.getBoundingClientRect();
+    Object.assign(this.controlRecuerdo.style, {
+      left: `${rect.left}px`, top: `${rect.top}px`,
+      width: `${rect.width}px`, height: `${rect.height}px`,
+    });
+    this.controlRecuerdo.style.setProperty('--ss', rect.width / 470);
   }
 
   redimensionar(ancho, alto) {
