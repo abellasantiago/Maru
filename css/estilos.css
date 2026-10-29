@@ -872,8 +872,8 @@ body {
 }
 .panel-vidrio.contraste-texto .panel-info { z-index: 2; }
 
-/* La card privada se desenfoca entera. El marco y el pequeño candado quedan
-   nítidos; fecha, título y descripción desaparecen hasta ingresar el código. */
+/* Sólo la foto privada se desenfoca, dentro de su recorte. El marco,
+   los textos y el candado conservan la nitidez de las demás cards. */
 .panel-vidrio.recuerdo-privado {
   cursor: pointer;
 }
@@ -881,19 +881,11 @@ body {
   outline: calc(2px * var(--ss)) solid var(--color-dorado);
   outline-offset: calc(5px * var(--ss));
 }
-.recuerdo-privado .panel-tilt {
-  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-              filter 1.15s cubic-bezier(0.22, 1, 0.36, 1);
+.recuerdo-privado .panel-foto img {
+  transition: filter 1.15s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.recuerdo-privado:not(.recuerdo-abierto) .panel-tilt {
+.recuerdo-privado:not(.recuerdo-abierto) .panel-foto img {
   filter: blur(calc(28px * var(--ss))) brightness(0.62) saturate(0.72);
-}
-.recuerdo-privado .panel-info {
-  transition: opacity 0.65s ease 0.35s, visibility 0.65s;
-}
-.recuerdo-privado:not(.recuerdo-abierto) .panel-info {
-  opacity: 0;
-  visibility: hidden;
 }
 .recuerdo-candado {
   position: absolute;
@@ -1241,6 +1233,7 @@ body {
   .recuerdo-dialogo[open],
   .recuerdo-codigo-form.codigo-incorrecto .recuerdo-codigo-campos { animation: none; }
   .recuerdo-privado .panel-tilt,
+  .recuerdo-privado .panel-foto img,
   .recuerdo-privado .panel-info,
   .recuerdo-candado { transition-duration: 0.01ms; }
 }

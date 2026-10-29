@@ -193,6 +193,7 @@ export class PanelesVidrio {
     });
 
     this._configurarRecuerdoPrivado();
+    this._configurarClickProyectado(contenedor);
 
     /* ── Frases del descenso (mismo espacio 3D que los paneles) ── */
     this.frases = FRASES.map((frase, i) => {
@@ -235,6 +236,46 @@ export class PanelesVidrio {
     });
 
     this._v = new THREE.Vector3(); // temporal reutilizable
+  }
+
+  _configurarClickProyectado(contenedor) {
+    // Algunos navegadores dibujan las cards CSS3D pero sus planos de
+    // profundidad no reciben eventos. En ese caso usamos la misma cámara
+    // para comprobar el punto exacto de la card, sin interceptar la UI.
+    const raycaster = new THREE.Raycaster();
+    const puntero = new THREE.Vector2();
+    const inversa = new THREE.Matrix4();
+    const plano = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+    const punto = new THREE.Vector3();
+    const lienzo = document.getElementById('lienzo-webgl');
+    document.addEventListener('click', (evento) => {
+      if (!this.camaraClick || this.dialogoRecuerdo.open) return;
+      if (evento.target !== lienzo && evento.target !== contenedor) return;
+      if (getComputedStyle(contenedor).visibility === 'hidden') return;
+      const rect = contenedor.getBoundingClientRect();
+      puntero.set(
+        (evento.clientX - rect.left) / rect.width * 2 - 1,
+        -(evento.clientY - rect.top) / rect.height * 2 + 1
+      );
+      raycaster.setFromCamera(puntero, this.camaraClick);
+      let elegido = null;
+      let distancia = Infinity;
+      for (const item of this.items) {
+        if (!item.objeto.visible) continue;
+        inversa.copy(item.objeto.matrixWorld).invert();
+        const rayoLocal = raycaster.ray.clone().applyMatrix4(inversa);
+        if (!rayoLocal.intersectPlane(plano, punto)) continue;
+        if (Math.abs(punto.x) > item.el.offsetWidth / 2 ||
+            Math.abs(punto.y) > item.el.offsetHeight / 2) continue;
+        punto.applyMatrix4(item.objeto.matrixWorld);
+        const distanciaActual = punto.distanceTo(raycaster.ray.origin);
+        if (distanciaActual < distancia) {
+          elegido = item;
+          distancia = distanciaActual;
+        }
+      }
+      elegido?.el.click();
+    });
   }
 
   _configurarRecuerdoPrivado() {
@@ -452,6 +493,7 @@ export class PanelesVidrio {
   }
 
   render(camara) {
+    this.camaraClick = camara;
     this.renderizador.render(this.escenaCSS, camara);
   }
 
