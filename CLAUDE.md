@@ -6,7 +6,7 @@ Sitio-regalo de Santi para Maru: un recorrido inmersivo en 3D por los momentos
 de la relación. El scroll no mueve contenido en 2D — mueve una cámara por un
 mundo. El sitio abre directo, sin preludio ni pantalla de carga: un
 **landing** con un corazón de partículas que ya está cayendo, se arma, gira y
-se desarma en brasas, un **timeline** de 45 cards de vidrio flotando en un
+se desarma en brasas, un **timeline** de 48 cards de vidrio flotando en un
 corredor, y una **pantalla final** ("Que sea eterno."). La canción arranca
 con el primer click en cualquier parte del sitio.
 
@@ -40,6 +40,39 @@ Reglas que conviene tener en la cabeza antes de tocar el hero:
   sin tocar el resto.
 
 ## Historial de cambios
+
+### 2026-11-11 — feat: 3 cards nuevas (46–48): Goes, Almenara Mall y Brujona
+
+- Cards nuevas, en orden de fecha (Santi pasó las fotos en otro orden):
+  **Goes - Unión Atlética** (29 oct 2026, "Fuimos a la cancha de Goes a
+  ver un partido."), **Almenara Mall** (30 oct, "Fuimos una noche al
+  Almenara a jugar al bowling, las maquinitas y un juego de realidad
+  virtual.") y **Brujona** (5 nov, sin descripción). Las tres con
+  `contrasteTexto: true`, como las últimas seis.
+- Fotos: llegaron como JPEG 1125×2000 (capturas de celular pasadas por
+  WhatsApp). Se procesaron directo con sharp al mismo formato que las
+  cards 44/45 (900×1600, WebP q82, lanczos3) — 239/254/141 KB. Mejoras
+  SUAVES y por foto, porque un sharpen fuerte levanta los bloques del
+  JPEG: Brujona era la más oscura (brightness 1.10 + linear 1.06/+4 y
+  algo más de nitidez); Goes un toque de contraste y color; Almenara
+  sólo nitidez, porque los neones ya venían saturados al máximo. Cada
+  una se revisó antes/después lado a lado.
+- Encuadres elegidos simulando el recorte 5:4 real de la card sobre la
+  foto vertical (tres alturas candidatas por foto): Goes `50% 34%` (la
+  bandera "Miedo… somos" + las dos caras con la gorra entera), Almenara
+  `50% 60%` (Maru riéndose + la moto), Brujona `50% 24%` (cara, el
+  "paz", las lucecitas y el borde del trago).
+- El ritmo del scroll no hizo falta tocarlo: desde la sesión del 25-10
+  `ALTO_RECORRIDO_VH` se calcula solo a partir de la cantidad de cards
+  (`config.js`), y `main.js` escribe `--alto-recorrido` en runtime.
+  Medido en vivo: 63.8vh entre cards, igual que las anteriores; landing
+  390vh y cola 90vh intactos.
+- `tests/navegacion.test.mjs` pasa a esperar 48 cards. 6/6 tests OK.
+- Al pushear, `origin/main` tenía 5 commits nuevos de la card privada
+  (desbloqueo con código) hechos desde otra máquina. No tocaban
+  `momentos.js` ni los tests, así que `git pull --rebase` entró limpio;
+  se volvieron a correr los tests sobre el resultado antes de pushear.
+- Rama: trabajado directo sobre `main`.
 
 ### 2026-09-10 — feat: fotos de las cards 36–39, y dos mecanismos nuevos de encuadre (ancha + zoom)
 
