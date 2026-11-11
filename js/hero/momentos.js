@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
    Momentos del timeline — ÚNICA fuente de datos de las cards.
 
-   Hay una entrada por foto (Momento-01.webp … Momento-45.webp). La
+   Hay una entrada por foto (Momento-01.webp … Momento-48.webp). La
    POSICIÓN 3D de cada card se calcula sola en `disponer()` a partir
    del índice, así agregar/quitar/reordenar es trivial: se edita solo
    el array DATOS.
@@ -93,6 +93,9 @@ const DATOS = [
   { titulo: 'Kilombito en Punta', fecha: '10 de octubre de 2026', encuadre: '50% 38%', contrasteTexto: true, desc: 'Finde en lo del Boli y Kilombito con algunos monos' },   // 43 → Momento-43.webp
   { titulo: 'Merienda en Obra', fecha: '15 de octubre de 2026', encuadre: '50% 40%', contrasteTexto: true, desc: '' },   // 44 → Momento-44.webp
   { titulo: 'Almuerzo en Escaramuza', fecha: '19 de octubre de 2026', encuadre: '50% 65%', contrasteTexto: true, desc: 'Cumplimos 1 año y 1 mes.' },   // 45 → Momento-45.webp
+  { titulo: 'Goes - Unión Atlética', fecha: '29 de octubre de 2026', encuadre: '50% 34%', contrasteTexto: true, desc: 'Fuimos a la cancha de Goes a ver un partido.' },   // 46 → Momento-46.webp
+  { titulo: 'Almenara Mall', fecha: '30 de octubre de 2026', encuadre: '50% 60%', contrasteTexto: true, desc: 'Fuimos una noche al Almenara a jugar al bowling, las maquinitas y un juego de realidad virtual.' },   // 47 → Momento-47.webp
+  { titulo: 'Brujona', fecha: '5 de noviembre de 2026', encuadre: '50% 24%', contrasteTexto: true, desc: '' },   // 48 → Momento-48.webp
 ];
 
 /* ── Disposición 3D: parámetros del "corredor" de cards ── */
